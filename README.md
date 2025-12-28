@@ -1,56 +1,54 @@
-<<<<<<< HEAD
-# Welcome to your Expo app 👋
+# StatChek
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A brief, one-line description of what your app does.
 
-## Get started
+## Overview
+[1-2 paragraphs explaining the problem it solves, the vision, and the core value proposition.]
 
-1. Install dependencies
+## Current Status
+- **Version:** 0.1.0 (Pre-Alpha)
+- **Latest Build:** [Date or Build ID]
+- **Current Focus:** [e.g., "Building core user authentication flow"]
 
-   ```bash
-   npm install
-   ```
+## Features
 
-2. Start the app
+### ✅ Implemented & Stable
+- Feature 1
+- Feature 2
 
-   ```bash
-   npx expo start
-   ```
+### 🔨 Currently In Progress
+- Feature 3 (Expected completion: [Date])
+- Feature 4
 
-In the output, you'll find options to open the app in a
+### 📋 Planned / Backlog
+- High Priority:
+  - [ ] Feature A
+  - [ ] Feature B
+- Medium Priority:
+  - [ ] Feature C
+- Future Ideas / Icebox:
+  - [ ] Feature D
+  - [ ] Feature E
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Tech Stack
+- **Frontend:** [e.g., React Native, Flutter]
+- **Backend:** [e.g., Firebase, Node.js]
+- **Database:** [e.g., PostgreSQL, MongoDB]
+- **Other Tools:** [e.g., Figma, GitHub Actions]
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Getting Started (Development)
+[Instructions for setting up the project locally.]
 
-## Get a fresh project
+## Roadmap & Milestones
+- **Milestone 1: MVP (Target: [Date])**
+  - [ ] Core user registration/login
+  - [ ] Basic primary feature working
+  - [ ] Deployable prototype
 
-When you're ready, run:
+- **Milestone 2: Beta (Target: [Date])**
+  - [ ] Add feature set X
+  - [ ] UI/Polish pass
+  - [ ] First external testers
 
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-=======
-# StatChekV3
-# StatChekV3
-# StatChekV3
->>>>>>> 61d93661c042363ac771dca1f7cef2b13c57d48d
+## Contributing
+[If you're open to contributions, explain how others can help.]
