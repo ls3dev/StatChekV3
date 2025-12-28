@@ -1,6 +1,6 @@
 # StatChek
 
-A brief, one-line description of what your app does.
+Instantly find players and organize them into custom Cheks you can revisit anytime.
 
 ## Overview
 How many times have you blanked mid-debate trying to recall your own "Top 10" list? Sports fans constantly create mental rankings but have nowhere to save them properly. [Your App Name] fixes this by providing a dedicated space to build and organize player lists that are always ready when you need them. Whether you're debating at a bar, in a group chat, or writing online, your curated takes on players, teams, and eras are just a tap away—transforming scattered opinions into organized, retrievable knowledge.
