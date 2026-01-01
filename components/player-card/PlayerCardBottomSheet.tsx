@@ -1,7 +1,11 @@
 import React from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 
+import { DesignTokens } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 import type { Player } from '@/types';
+
 import { PlayerCardContent } from './PlayerCardContent';
 
 type PlayerCardBottomSheetProps = {
@@ -10,24 +14,51 @@ type PlayerCardBottomSheetProps = {
   onDismiss: () => void;
 };
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export function PlayerCardBottomSheet({ player, isVisible, onDismiss }: PlayerCardBottomSheetProps) {
+  const { isDark } = useTheme();
+
   if (!player || !isVisible) return null;
 
-  // Use Modal for web, native bottom sheet can be added later for mobile
   return (
-    <Modal
-      visible={isVisible}
-      transparent
-      animationType="slide"
-      onRequestClose={onDismiss}>
+    <Modal visible={isVisible} transparent animationType="none" onRequestClose={onDismiss} statusBarTranslucent>
       <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onDismiss} />
-        <View style={styles.sheetContainer}>
-          <View style={styles.handle} />
+        {/* Backdrop */}
+        <AnimatedPressable
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(150)}
+          style={styles.backdrop}
+          onPress={onDismiss}
+        />
+
+        {/* Sheet container */}
+        <Animated.View
+          entering={SlideInDown.springify().damping(20).stiffness(150)}
+          exiting={SlideOutDown.duration(200)}
+          style={[
+            styles.sheetContainer,
+            {
+              backgroundColor: isDark ? DesignTokens.backgroundSecondaryDark : DesignTokens.backgroundSecondary,
+            },
+          ]}>
+          {/* Drag handle */}
+          <View style={styles.handleContainer}>
+            <View
+              style={[
+                styles.handle,
+                {
+                  backgroundColor: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted,
+                },
+              ]}
+            />
+          </View>
+
+          {/* Player card content */}
           <View style={styles.cardWrapper}>
             <PlayerCardContent player={player} />
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -40,26 +71,37 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   sheetContainer: {
-    backgroundColor: '#f5f5f5',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    height: '70%',
-    padding: 16,
+    borderTopLeftRadius: DesignTokens.radius.xl,
+    borderTopRightRadius: DesignTokens.radius.xl,
+    height: '75%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 24,
+      },
+    }),
+  },
+  handleContainer: {
+    alignItems: 'center',
+    paddingVertical: DesignTokens.spacing.md,
   },
   handle: {
-    width: 40,
+    width: 36,
     height: 4,
-    backgroundColor: '#ccc',
     borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
+    opacity: 0.4,
   },
   cardWrapper: {
     flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
+    paddingHorizontal: DesignTokens.spacing.md,
+    paddingBottom: DesignTokens.spacing.md,
   },
 });
