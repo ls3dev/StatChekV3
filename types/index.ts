@@ -17,4 +17,17 @@ export type PlayerList = {
   players: Player[];
 };
 
+export type PlayerLink = {
+  id: string;
+  playerId: string;
+  url: string;
+  title: string;
+  order: number;
+  createdAt: number;
+};
+
+export type PlayerLinksMap = {
+  [playerId: string]: PlayerLink[];
+};
+
 

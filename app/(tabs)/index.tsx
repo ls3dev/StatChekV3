@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { PlayerCard } from '@/components/PlayerCard';
 import { PlayerListItem } from '@/components/PlayerListItem';
+import { PlayerCardBottomSheet } from '@/components/player-card';
 import { SearchBar } from '@/components/SearchBar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -18,8 +19,17 @@ export default function SearchTab() {
   const scrollViewRef = useRef<FlatList>(null);
   const scrollOffset = useRef(0);
   const players = playersData as Player[];
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   // Duplicate players for infinite scroll effect
   const duplicatedPlayers = [...players, ...players, ...players];
+
+  const handlePlayerSelect = (player: Player) => {
+    setSelectedPlayer(player);
+  };
+
+  const handleDismiss = () => {
+    setSelectedPlayer(null);
+  };
 
   useEffect(() => {
     if (query) return; // Don't auto-scroll when searching
@@ -82,12 +92,20 @@ export default function SearchTab() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          renderItem={({ item }) => <PlayerListItem player={item} />}
+          renderItem={({ item }) => (
+            <PlayerListItem player={item} onPress={() => handlePlayerSelect(item)} />
+          )}
           ListEmptyComponent={
             <ThemedText type="default">No players found. Try a different search.</ThemedText>
           }
         />
       )}
+
+      <PlayerCardBottomSheet
+        player={selectedPlayer}
+        isVisible={!!selectedPlayer}
+        onDismiss={handleDismiss}
+      />
     </ThemedView>
   );
 }
