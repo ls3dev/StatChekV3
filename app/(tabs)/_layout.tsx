@@ -15,8 +15,8 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: DesignTokens.tabBarActive,
-        tabBarInactiveTintColor: DesignTokens.tabBarInactive,
+        tabBarActiveTintColor: isDark ? DesignTokens.tabBarActive : DesignTokens.accentPurple,
+        tabBarInactiveTintColor: isDark ? DesignTokens.tabBarInactive : DesignTokens.textMuted,
         tabBarStyle: {
           backgroundColor: isDark ? DesignTokens.tabBarBackgroundDark : DesignTokens.tabBarBackground,
           borderTopColor: isDark ? DesignTokens.tabBarBorderDark : DesignTokens.tabBarBorder,
@@ -41,6 +41,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="lists"
+        options={{
+          title: 'Lists',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'list' : 'list-outline'} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -50,12 +59,6 @@ export default function TabLayout() {
         }}
       />
       {/* Hide unused tabs from navigation */}
-      <Tabs.Screen
-        name="lists"
-        options={{
-          href: null,
-        }}
-      />
       <Tabs.Screen
         name="explore"
         options={{

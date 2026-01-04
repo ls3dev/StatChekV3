@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { GradientHeader } from '@/components/GradientHeader';
 import { HeroSearchCard } from '@/components/HeroSearchCard';
+import { RecentPlayersSection } from '@/components/RecentPlayersSection';
 import { PlayerCardBottomSheet } from '@/components/player-card';
 import { DesignTokens } from '@/constants/theme';
+import { useRecentPlayers } from '@/context/RecentPlayersContext';
 import { useTheme } from '@/context/ThemeContext';
 import type { Player } from '@/types';
 
 export default function HomeScreen() {
   const { isDark } = useTheme();
+  const { recentPlayers, addRecentPlayer, clearRecentPlayers } = useRecentPlayers();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
   const handlePlayerSelect = (player: Player) => {
+    addRecentPlayer(player);
     setSelectedPlayer(player);
   };
 
@@ -34,8 +38,17 @@ export default function HomeScreen() {
       {/* Floating search card with dropdown */}
       <HeroSearchCard onPlayerSelect={handlePlayerSelect} />
 
-      {/* Empty state - clean space below search */}
-      <View style={styles.content} />
+      {/* Recent players section */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}>
+        <RecentPlayersSection
+          players={recentPlayers}
+          onPlayerSelect={handlePlayerSelect}
+          onClear={clearRecentPlayers}
+        />
+      </ScrollView>
 
       {/* Bottom sheet for player details */}
       <PlayerCardBottomSheet player={selectedPlayer} isVisible={!!selectedPlayer} onDismiss={handleDismiss} />
@@ -49,5 +62,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
+    paddingTop: DesignTokens.spacing.lg,
+    paddingBottom: DesignTokens.spacing.xxl,
   },
 });

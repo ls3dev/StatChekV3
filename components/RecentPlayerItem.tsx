@@ -1,57 +1,40 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import type { Player } from '@/types';
 
-type SearchDropdownItemProps = {
+type RecentPlayerItemProps = {
   player: Player;
   onPress: () => void;
-  index: number;
+  isLast?: boolean;
 };
 
-// Sport colors for left border accent
-// TODO: Adding NFL and MLB player lists - colors:
-//   NFL: Blue (#3B82F6)
-//   NBA: Orange (#F97316)
-//   MLB: Green (#22C55E) - change from red when MLB players added
-const getSportColor = (sport: string) => {
-  const sportColors: Record<string, string> = {
-    NFL: '#3B82F6', // Blue
-    NBA: '#F97316', // Orange
-    MLB: '#22C55E', // Green (updated for future MLB players)
-    NHL: '#06B6D4', // Cyan
-    MLS: '#10B981', // Emerald
-  };
-  return sportColors[sport?.toUpperCase()] || '#6B7280';
-};
-
-const getPositionColor = (position: string) => {
-  const positionColors: Record<string, string> = {
-    QB: '#EF4444',
-    RB: '#F59E0B',
-    WR: '#10B981',
-    TE: '#06B6D4',
-    PG: '#8B5CF6',
-    SG: '#EC4899',
-    SF: '#F97316',
-    PF: '#14B8A6',
-    C: '#6366F1',
-    P: '#22C55E',
-    SP: '#3B82F6',
-    RP: '#A855F7',
-  };
-  return positionColors[position] || DesignTokens.accentPurple;
-};
-
-export function SearchDropdownItem({ player, onPress }: SearchDropdownItemProps) {
+export function RecentPlayerItem({ player, onPress, isLast = false }: RecentPlayerItemProps) {
   const { isDark } = useTheme();
   const [imageError, setImageError] = useState(false);
 
-  const sportColor = getSportColor(player.sport);
+  const getPositionColor = (position: string) => {
+    const positionColors: Record<string, string> = {
+      QB: '#EF4444',
+      RB: '#F59E0B',
+      WR: '#10B981',
+      TE: '#06B6D4',
+      PG: '#8B5CF6',
+      SG: '#EC4899',
+      SF: '#F97316',
+      PF: '#14B8A6',
+      C: '#6366F1',
+      P: '#22C55E',
+      SP: '#3B82F6',
+      RP: '#A855F7',
+    };
+    return positionColors[position] || DesignTokens.accentPurple;
+  };
+
   const positionColor = getPositionColor(player.position);
   const initials = player.name
     .split(' ')
@@ -61,14 +44,20 @@ export function SearchDropdownItem({ player, onPress }: SearchDropdownItemProps)
     .toUpperCase();
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.7}
-      style={[
+      style={({ pressed }) => [
         styles.container,
+        !isLast && {
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: isDark ? DesignTokens.dividerDark : DesignTokens.divider,
+        },
         {
-          borderLeftColor: sportColor,
-          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+          backgroundColor: pressed
+            ? isDark
+              ? 'rgba(255,255,255,0.05)'
+              : 'rgba(0,0,0,0.02)'
+            : 'transparent',
         },
       ]}>
       {/* Player avatar */}
@@ -100,13 +89,18 @@ export function SearchDropdownItem({ player, onPress }: SearchDropdownItemProps)
         </Text>
       </View>
 
+      {/* Position badge */}
+      <View style={[styles.positionBadge, { backgroundColor: positionColor + '15' }]}>
+        <Text style={[styles.positionText, { color: positionColor }]}>{player.position}</Text>
+      </View>
+
       {/* Chevron */}
       <Ionicons
         name="chevron-forward"
         size={20}
         color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
       />
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -114,26 +108,21 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 8,
-    marginVertical: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderLeftWidth: 4,
+    paddingVertical: DesignTokens.spacing.md,
+    paddingHorizontal: DesignTokens.spacing.lg,
+    gap: DesignTokens.spacing.md,
   },
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 8,
-    marginRight: 12,
+    borderRadius: DesignTokens.radius.sm,
   },
   avatarPlaceholder: {
     width: 40,
     height: 40,
-    borderRadius: 8,
+    borderRadius: DesignTokens.radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
   avatarText: {
     fontSize: 16,
@@ -141,12 +130,21 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
+    gap: 2,
   },
   name: {
     ...Typography.headline,
-    marginBottom: 2,
   },
   team: {
     ...Typography.bodySmall,
+  },
+  positionBadge: {
+    paddingHorizontal: DesignTokens.spacing.sm,
+    paddingVertical: DesignTokens.spacing.xs,
+    borderRadius: DesignTokens.radius.sm,
+  },
+  positionText: {
+    ...Typography.caption,
+    fontWeight: '600',
   },
 });

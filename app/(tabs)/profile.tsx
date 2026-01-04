@@ -144,8 +144,8 @@ export default function ProfileScreen() {
                 <Switch
                   value={isDark}
                   onValueChange={toggleTheme}
-                  trackColor={{ false: '#E5E7EB', true: DesignTokens.accentPurple + '60' }}
-                  thumbColor={isDark ? DesignTokens.accentPurple : '#FFFFFF'}
+                  trackColor={{ false: '#E5E7EB', true: isDark ? '#FFFFFF40' : DesignTokens.accentPurple + '60' }}
+                  thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
                   ios_backgroundColor="#E5E7EB"
                 />
               }

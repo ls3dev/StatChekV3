@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { ListsProvider } from '@/context/ListsContext';
 import { PlayerLinksProvider } from '@/context/PlayerLinksContext';
+import { RecentPlayersProvider } from '@/context/RecentPlayersContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 
 export const unstable_settings = {
@@ -44,11 +45,13 @@ function RootLayoutNav() {
     <NavigationThemeProvider value={isDark ? customDarkTheme : customLightTheme}>
       <ListsProvider>
         <PlayerLinksProvider>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          </Stack>
-          <StatusBar style={isDark ? 'light' : 'dark'} />
+          <RecentPlayersProvider>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            </Stack>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+          </RecentPlayersProvider>
         </PlayerLinksProvider>
       </ListsProvider>
     </NavigationThemeProvider>

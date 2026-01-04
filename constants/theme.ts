@@ -1,14 +1,14 @@
 /**
  * StatChek Design System
- * Premium Sports Tech aesthetic - confident, fluid, with elegant depth
+ * Apple Sports-inspired dark aesthetic - bold, clean, athletic
  */
 
 import { Platform } from 'react-native';
 
-// Brand gradient colors
+// Brand gradient colors - Apple Sports dark gray style
 export const BrandGradient = {
-  start: '#4F46E5', // Deep indigo
-  end: '#7C3AED', // Vibrant violet
+  start: '#374151', // Gray-700
+  end: '#1F2937', // Gray-800
 } as const;
 
 // Design tokens for the new aesthetic
@@ -17,47 +17,49 @@ export const DesignTokens = {
   gradientStart: BrandGradient.start,
   gradientEnd: BrandGradient.end,
 
-  // Card surfaces
+  // Card surfaces - darker for sports aesthetic
   cardBackground: '#FFFFFF',
-  cardBackgroundDark: '#1C1C1E',
+  cardBackgroundDark: '#1F2937', // Gray-800
+  cardSurfaceDark: '#111827', // Gray-900 for nested cards
   cardShadow: 'rgba(0, 0, 0, 0.08)',
-  cardShadowDark: 'rgba(0, 0, 0, 0.3)',
+  cardShadowDark: 'rgba(0, 0, 0, 0.4)',
 
   // Text colors
   textPrimary: '#1A1A2E',
   textSecondary: '#6B7280',
   textMuted: '#9CA3AF',
   textOnGradient: '#FFFFFF',
-  textPrimaryDark: '#F9FAFB',
+  textPrimaryDark: '#FFFFFF',
   textSecondaryDark: '#9CA3AF',
   textMutedDark: '#6B7280',
 
-  // Accent colors
-  accentPurple: '#7C3AED',
-  accentIndigo: '#4F46E5',
-  accentSuccess: '#10B981',
-  accentWarning: '#F59E0B',
-  accentError: '#EF4444',
+  // Accent colors - sports-focused
+  accentPrimary: '#FFFFFF', // White as primary accent on dark
+  accentPurple: '#A78BFA', // Lighter purple for dark backgrounds
+  accentIndigo: '#818CF8', // Lighter indigo
+  accentSuccess: '#34D399', // Brighter green
+  accentWarning: '#FBBF24', // Brighter amber
+  accentError: '#F87171', // Brighter red
 
   // Borders & dividers
   border: '#E5E7EB',
-  borderDark: '#2D2D30',
+  borderDark: '#374151', // Gray-700
   divider: '#F3F4F6',
-  dividerDark: '#2D2D30',
+  dividerDark: '#374151',
 
-  // Backgrounds
+  // Backgrounds - pure black base like Apple Sports
   backgroundPrimary: '#F9FAFB',
   backgroundSecondary: '#FFFFFF',
   backgroundPrimaryDark: '#000000',
-  backgroundSecondaryDark: '#1C1C1E',
+  backgroundSecondaryDark: '#111827', // Gray-900
 
-  // Tab bar
+  // Tab bar - dark and minimal
   tabBarBackground: '#FFFFFF',
-  tabBarBackgroundDark: '#1C1C1E',
+  tabBarBackgroundDark: '#000000',
   tabBarBorder: '#E5E7EB',
-  tabBarBorderDark: '#2D2D30',
-  tabBarActive: '#7C3AED',
-  tabBarInactive: '#9CA3AF',
+  tabBarBorderDark: '#1F2937',
+  tabBarActive: '#FFFFFF',
+  tabBarInactive: '#6B7280',
 
   // Spacing scale (base 4)
   spacing: {

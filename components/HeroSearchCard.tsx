@@ -115,7 +115,7 @@ export function HeroSearchCard({ onPlayerSelect }: HeroSearchCardProps) {
           <Ionicons
             name="search"
             size={20}
-            color={isFocused ? DesignTokens.accentPurple : isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+            color={isFocused ? (isDark ? DesignTokens.accentPrimary : DesignTokens.accentPurple) : isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
           />
           <TextInput
             ref={inputRef}
@@ -164,21 +164,12 @@ export function HeroSearchCard({ onPlayerSelect }: HeroSearchCardProps) {
           ]}>
           <ScrollView
             style={styles.dropdownScroll}
+            contentContainerStyle={styles.dropdownContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             bounces={false}>
             {results.slice(0, 5).map((player, index) => (
-              <React.Fragment key={player.id}>
-                {index > 0 && (
-                  <View
-                    style={[
-                      styles.divider,
-                      { backgroundColor: isDark ? DesignTokens.dividerDark : DesignTokens.divider },
-                    ]}
-                  />
-                )}
-                <SearchDropdownItem player={player} onPress={() => handlePlayerPress(player)} index={index} />
-              </React.Fragment>
+              <SearchDropdownItem key={player.id} player={player} onPress={() => handlePlayerPress(player)} index={index} />
             ))}
             {results.length > 5 && (
               <Text
@@ -228,8 +219,8 @@ const styles = StyleSheet.create({
   },
   cardShadow: {
     ...DesignTokens.shadow.lg,
-    shadowColor: '#4F46E5',
-    shadowOpacity: 0.15,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
   },
   cardShadowDark: {
     ...DesignTokens.shadow.lg,
@@ -268,11 +259,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
   },
   dropdownScroll: {
-    maxHeight: 320,
+    maxHeight: 400,
   },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: DesignTokens.spacing.md,
+  dropdownContent: {
+    paddingVertical: DesignTokens.spacing.sm,
   },
   moreText: {
     ...Typography.caption,

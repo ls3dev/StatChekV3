@@ -1,14 +1,16 @@
 {
   "expo": {
-    "name": "statchekV3",
-    "slug": "statchekV3",
+    "name": "StatChek",
+    "slug": "statchek",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "statchekv3",
+    "scheme": "statchek",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.statchek.app",
+      "buildNumber": "1",
       "supportsTablet": true
     },
     "android": {
