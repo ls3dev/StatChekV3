@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { DesignTokens, Typography } from '@/constants/theme';
+import { DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import type { Player } from '@/types';
 
@@ -60,6 +60,24 @@ export function SearchDropdownItem({ player, onPress }: SearchDropdownItemProps)
     .slice(0, 2)
     .toUpperCase();
 
+  // Determine player status styling
+  const isHallOfFame = player.hallOfFame === true;
+
+  // Get border and background colors based on status
+  const getBorderColor = () => {
+    if (isHallOfFame) return PlayerStatusColors.hallOfFame.primary;
+    return sportColor;
+  };
+
+  const getBackgroundColor = () => {
+    if (isHallOfFame) return isDark ? 'rgba(255, 215, 0, 0.08)' : 'rgba(255, 215, 0, 0.1)';
+    return isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
+  };
+
+  // Hide "N/A" team and position
+  const displayTeam = player.team === 'N/A' ? null : player.team;
+  const displayPosition = player.position === 'N/A' ? null : player.position;
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -67,8 +85,8 @@ export function SearchDropdownItem({ player, onPress }: SearchDropdownItemProps)
       style={[
         styles.container,
         {
-          borderLeftColor: sportColor,
-          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+          borderLeftColor: getBorderColor(),
+          backgroundColor: getBackgroundColor(),
         },
       ]}>
       {/* Player avatar */}
@@ -89,22 +107,30 @@ export function SearchDropdownItem({ player, onPress }: SearchDropdownItemProps)
       {/* Player info */}
       <View style={styles.info}>
         <Text
-          style={[styles.name, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}
+          style={[
+            styles.name,
+            { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+            isHallOfFame && { color: PlayerStatusColors.hallOfFame.primary },
+          ]}
           numberOfLines={1}>
           {player.name}
         </Text>
-        <Text
-          style={[styles.team, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}
-          numberOfLines={1}>
-          {player.team}
-        </Text>
+        {(displayTeam || displayPosition) && (
+          <Text
+            style={[styles.team, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}
+            numberOfLines={1}>
+            {displayTeam && displayPosition
+              ? displayTeam
+              : displayTeam || displayPosition}
+          </Text>
+        )}
       </View>
 
       {/* Chevron */}
       <Ionicons
         name="chevron-forward"
         size={20}
-        color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+        color={isHallOfFame ? PlayerStatusColors.hallOfFame.primary : isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
       />
     </TouchableOpacity>
   );

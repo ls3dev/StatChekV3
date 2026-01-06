@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import playersData from '@/data/players.json';
+import playersData from '@/data/nba_playersv2.json';
 import type { Player } from '@/types';
 
 export function usePlayerSearch() {

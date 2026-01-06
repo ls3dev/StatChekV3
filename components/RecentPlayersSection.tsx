@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
@@ -43,15 +43,22 @@ export function RecentPlayersSection({ players, onPlayerSelect, onClear }: Recen
             backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground,
           },
           isDark ? styles.cardShadowDark : styles.cardShadow,
+          players.length > 3 && styles.cardScrollable,
         ]}>
-        {players.slice(0, 5).map((player, index) => (
-          <RecentPlayerItem
-            key={player.id}
-            player={player}
-            onPress={() => onPlayerSelect(player)}
-            isLast={index === Math.min(players.length, 5) - 1}
-          />
-        ))}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={players.length > 3}
+          scrollEnabled={players.length > 3}
+          nestedScrollEnabled>
+          {players.map((player, index) => (
+            <RecentPlayerItem
+              key={player.id}
+              player={player}
+              onPress={() => onPlayerSelect(player)}
+              isLast={index === players.length - 1}
+            />
+          ))}
+        </ScrollView>
       </View>
 
       {/* Sync status / last updated indicator */}
@@ -92,6 +99,9 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: DesignTokens.radius.xl,
     overflow: 'hidden',
+  },
+  cardScrollable: {
+    maxHeight: 195, // ~3 items worth of height
   },
   cardShadow: {
     shadowColor: '#000',

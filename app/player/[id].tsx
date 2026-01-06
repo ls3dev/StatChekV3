@@ -5,7 +5,7 @@ import { StyleSheet } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { PlayerCard } from '@/components/PlayerCard';
-import players from '@/data/players.json';
+import players from '@/data/nba_playersv2.json';
 import type { Player } from '@/types';
 
 export default function PlayerDetailScreen() {

@@ -14,9 +14,6 @@ type ListCardProps = {
 export function ListCard({ list, onPress }: ListCardProps) {
   const { isDark } = useTheme();
 
-  const playerCount = list.players.length;
-  const linkCount = list.links.length;
-
   return (
     <Pressable
       onPress={onPress}
@@ -30,7 +27,7 @@ export function ListCard({ list, onPress }: ListCardProps) {
       ]}>
       {/* Icon */}
       <View style={[styles.iconContainer, { backgroundColor: DesignTokens.accentPurple + '15' }]}>
-        <Ionicons name="list" size={24} color={DesignTokens.accentPurple} />
+        <Ionicons name="list" size={28} color={DesignTokens.accentPurple} />
       </View>
 
       {/* Content */}
@@ -40,23 +37,25 @@ export function ListCard({ list, onPress }: ListCardProps) {
             styles.name,
             { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
           ]}
-          numberOfLines={1}>
+          numberOfLines={2}>
           {list.name}
         </Text>
-        <Text
-          style={[
-            styles.meta,
-            { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
-          ]}>
-          {playerCount} player{playerCount !== 1 ? 's' : ''}
-          {linkCount > 0 && ` · ${linkCount} link${linkCount !== 1 ? 's' : ''}`}
-        </Text>
+        {list.description && (
+          <Text
+            style={[
+              styles.description,
+              { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+            ]}
+            numberOfLines={2}>
+            {list.description}
+          </Text>
+        )}
       </View>
 
       {/* Chevron */}
       <Ionicons
         name="chevron-forward"
-        size={20}
+        size={24}
         color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
       />
     </Pressable>
@@ -67,9 +66,9 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: DesignTokens.spacing.md,
-    borderRadius: DesignTokens.radius.lg,
-    marginBottom: DesignTokens.spacing.sm,
+    padding: DesignTokens.spacing.lg,
+    borderRadius: DesignTokens.radius.xl,
+    marginBottom: DesignTokens.spacing.md,
   },
   cardShadow: {
     shadowColor: '#000',
@@ -86,21 +85,24 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: DesignTokens.radius.md,
+    width: 56,
+    height: 56,
+    borderRadius: DesignTokens.radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: DesignTokens.spacing.md,
   },
   content: {
     flex: 1,
+    paddingRight: DesignTokens.spacing.sm,
   },
   name: {
-    ...Typography.headline,
-    marginBottom: 2,
+    ...Typography.displaySmall,
+    fontSize: 18,
+    marginBottom: 4,
   },
-  meta: {
-    ...Typography.caption,
+  description: {
+    ...Typography.body,
+    lineHeight: 20,
   },
 });

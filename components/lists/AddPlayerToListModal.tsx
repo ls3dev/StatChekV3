@@ -106,7 +106,13 @@ export function AddPlayerToListModal({ visible, onClose, player }: AddPlayerToLi
                 styles.playerTeam,
                 { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
               ]}>
-              {player.team} · {player.position}
+              {player.team !== 'N/A' && player.position !== 'N/A'
+              ? `${player.team} · ${player.position}`
+              : player.team !== 'N/A'
+                ? player.team
+                : player.position !== 'N/A'
+                  ? player.position
+                  : ''}
             </Text>
           </View>
 

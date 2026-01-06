@@ -16,7 +16,13 @@ export function PlayerListItem({ player, onPress }: Props) {
       <View style={styles.info}>
         <ThemedText type="defaultSemiBold">{player.name}</ThemedText>
         <ThemedText type="default">
-          {player.position} • {player.team}
+          {player.team !== 'N/A' && player.position !== 'N/A'
+            ? `${player.position} • ${player.team}`
+            : player.team !== 'N/A'
+              ? player.team
+              : player.position !== 'N/A'
+                ? player.position
+                : ''}
         </ThemedText>
       </View>
     </TouchableOpacity>

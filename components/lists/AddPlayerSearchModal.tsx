@@ -12,9 +12,9 @@ import {
   View,
 } from 'react-native';
 
-import { DesignTokens, Typography } from '@/constants/theme';
+import { DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import playersData from '@/data/players.json';
+import playersData from '@/data/nba_playersv2.json';
 import type { Player } from '@/types';
 
 const allPlayers = playersData as Player[];
@@ -189,11 +189,26 @@ function PlayerSearchResult({
     .slice(0, 2)
     .toUpperCase();
 
+  // Determine player status styling
+  const isHallOfFame = player.hallOfFame === true;
+  const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : null;
+
+  // Get background color
+  const getBackgroundColor = () => {
+    if (isHallOfFame) return isDark ? 'rgba(255, 215, 0, 0.08)' : 'rgba(255, 215, 0, 0.1)';
+    return isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  };
+
+  // Hide "N/A" team and position
+  const displayTeam = player.team === 'N/A' ? null : player.team;
+  const displayPosition = player.position === 'N/A' ? null : player.position;
+
   return (
     <TouchableOpacity
       style={[
         styles.resultItem,
-        { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' },
+        { backgroundColor: getBackgroundColor() },
+        accentColor && { borderLeftWidth: 4, borderLeftColor: accentColor },
       ]}
       onPress={onSelect}
       activeOpacity={0.7}>
@@ -201,13 +216,19 @@ function PlayerSearchResult({
       {player.photoUrl && !imageError ? (
         <Image
           source={{ uri: player.photoUrl }}
-          style={styles.avatar}
+          style={[styles.avatar, accentColor && { borderWidth: 2, borderColor: accentColor }]}
           contentFit="cover"
           onError={() => setImageError(true)}
         />
       ) : (
-        <View style={[styles.avatarPlaceholder, { backgroundColor: DesignTokens.accentPurple + '15' }]}>
-          <Text style={[styles.avatarText, { color: DesignTokens.accentPurple }]}>{initials}</Text>
+        <View
+          style={[
+            styles.avatarPlaceholder,
+            { backgroundColor: (accentColor || DesignTokens.accentPurple) + '15' },
+          ]}>
+          <Text style={[styles.avatarText, { color: accentColor || DesignTokens.accentPurple }]}>
+            {initials}
+          </Text>
         </View>
       )}
 
@@ -216,22 +237,26 @@ function PlayerSearchResult({
         <Text
           style={[
             styles.resultName,
-            { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+            { color: accentColor || (isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary) },
           ]}
           numberOfLines={1}>
           {player.name}
         </Text>
-        <Text
-          style={[
-            styles.resultMeta,
-            { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
-          ]}>
-          {player.team} · {player.position}
-        </Text>
+        {(displayTeam || displayPosition) && (
+          <Text
+            style={[
+              styles.resultMeta,
+              { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+            ]}>
+            {displayTeam && displayPosition
+              ? `${displayTeam} · ${displayPosition}`
+              : displayTeam || displayPosition}
+          </Text>
+        )}
       </View>
 
       {/* Add icon */}
-      <Ionicons name="add-circle" size={24} color={DesignTokens.accentPurple} />
+      <Ionicons name="add-circle" size={24} color={accentColor || DesignTokens.accentPurple} />
     </TouchableOpacity>
   );
 }

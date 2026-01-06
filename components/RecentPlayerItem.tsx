@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { DesignTokens, Typography } from '@/constants/theme';
+import { DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import type { Player } from '@/types';
 
@@ -43,6 +43,14 @@ export function RecentPlayerItem({ player, onPress, isLast = false }: RecentPlay
     .slice(0, 2)
     .toUpperCase();
 
+  // Determine player status styling
+  const isHallOfFame = player.hallOfFame === true;
+  const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : null;
+
+  // Hide "N/A" team and position
+  const displayTeam = player.team === 'N/A' ? null : player.team;
+  const displayPosition = player.position === 'N/A' ? null : player.position;
+
   return (
     <Pressable
       onPress={onPress}
@@ -52,7 +60,12 @@ export function RecentPlayerItem({ player, onPress, isLast = false }: RecentPlay
           borderBottomWidth: StyleSheet.hairlineWidth,
           borderBottomColor: isDark ? DesignTokens.dividerDark : DesignTokens.divider,
         },
-        {
+        accentColor && {
+          borderLeftWidth: 4,
+          borderLeftColor: accentColor,
+          backgroundColor: isDark ? 'rgba(255, 215, 0, 0.08)' : 'rgba(255, 215, 0, 0.1)',
+        },
+        !accentColor && {
           backgroundColor: pressed
             ? isDark
               ? 'rgba(255,255,255,0.05)'
@@ -64,41 +77,58 @@ export function RecentPlayerItem({ player, onPress, isLast = false }: RecentPlay
       {player.photoUrl && !imageError ? (
         <Image
           source={{ uri: player.photoUrl }}
-          style={styles.avatar}
+          style={[styles.avatar, accentColor && { borderWidth: 2, borderColor: accentColor }]}
           contentFit="cover"
           onError={() => setImageError(true)}
           transition={150}
         />
       ) : (
-        <View style={[styles.avatarPlaceholder, { backgroundColor: positionColor + '15' }]}>
-          <Text style={[styles.avatarText, { color: positionColor }]}>{initials}</Text>
+        <View
+          style={[
+            styles.avatarPlaceholder,
+            { backgroundColor: (accentColor || positionColor) + '15' },
+          ]}>
+          <Text style={[styles.avatarText, { color: accentColor || positionColor }]}>{initials}</Text>
         </View>
       )}
 
       {/* Player info */}
       <View style={styles.info}>
         <Text
-          style={[styles.name, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}
+          style={[
+            styles.name,
+            { color: accentColor || (isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary) },
+          ]}
           numberOfLines={1}>
           {player.name}
         </Text>
-        <Text
-          style={[styles.team, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}
-          numberOfLines={1}>
-          {player.team}
-        </Text>
+        {displayTeam && (
+          <Text
+            style={[styles.team, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}
+            numberOfLines={1}>
+            {displayTeam}
+          </Text>
+        )}
       </View>
 
       {/* Position badge */}
-      <View style={[styles.positionBadge, { backgroundColor: positionColor + '15' }]}>
-        <Text style={[styles.positionText, { color: positionColor }]}>{player.position}</Text>
-      </View>
+      {displayPosition && (
+        <View
+          style={[
+            styles.positionBadge,
+            { backgroundColor: (accentColor || positionColor) + '15' },
+          ]}>
+          <Text style={[styles.positionText, { color: accentColor || positionColor }]}>
+            {displayPosition}
+          </Text>
+        </View>
+      )}
 
       {/* Chevron */}
       <Ionicons
         name="chevron-forward"
         size={20}
-        color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+        color={accentColor || (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
       />
     </Pressable>
   );

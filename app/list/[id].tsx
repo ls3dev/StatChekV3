@@ -17,9 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddPlayerSearchModal } from '@/components/lists';
 import { PlayerCardBottomSheet } from '@/components/player-card';
-import { DesignTokens, Typography } from '@/constants/theme';
+import { DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import playersData from '@/data/players.json';
+import playersData from '@/data/nba_playersv2.json';
 import { useLists } from '@/hooks/useLists';
 import type { Player, PlayerListItem } from '@/types';
 
@@ -334,6 +334,14 @@ function PlayerRow({
     .slice(0, 2)
     .toUpperCase();
 
+  // Determine player status styling
+  const isHallOfFame = player.hallOfFame === true;
+  const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : null;
+
+  // Hide "N/A" team and position
+  const displayTeam = player.team === 'N/A' ? null : player.team;
+  const displayPosition = player.position === 'N/A' ? null : player.position;
+
   const renderRightActions = (
     progress: Animated.AnimatedInterpolation<number>,
     dragX: Animated.AnimatedInterpolation<number>
@@ -365,6 +373,10 @@ function PlayerRow({
         { marginHorizontal: DesignTokens.spacing.lg },
         isFirst && styles.playerRowFirst,
         isLast && styles.playerRowLast,
+        accentColor && {
+          borderLeftWidth: 4,
+          borderLeftColor: accentColor,
+        },
       ]}>
       <Swipeable
         ref={swipeableRef}
@@ -379,7 +391,15 @@ function PlayerRow({
           delayLongPress={200}
           style={[
             styles.playerRow,
-            { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
+            {
+              backgroundColor: accentColor
+                ? isDark
+                  ? 'rgba(255, 215, 0, 0.08)'
+                  : 'rgba(255, 215, 0, 0.1)'
+                : isDark
+                  ? DesignTokens.cardBackgroundDark
+                  : DesignTokens.cardBackground,
+            },
             isActive && styles.playerRowActive,
             !isLast && {
               borderBottomWidth: StyleSheet.hairlineWidth,
@@ -391,7 +411,7 @@ function PlayerRow({
             <Ionicons
               name="menu"
               size={18}
-              color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+              color={accentColor || (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
             />
           </View>
 
@@ -399,7 +419,7 @@ function PlayerRow({
           <Text
             style={[
               styles.rank,
-              { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+              { color: accentColor || (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted) },
             ]}>
             {rank}
           </Text>
@@ -408,13 +428,19 @@ function PlayerRow({
           {player.photoUrl && !imageError ? (
             <Image
               source={{ uri: player.photoUrl }}
-              style={styles.avatar}
+              style={[styles.avatar, accentColor && { borderWidth: 2, borderColor: accentColor }]}
               contentFit="cover"
               onError={() => setImageError(true)}
             />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: DesignTokens.accentPurple + '15' }]}>
-              <Text style={[styles.avatarText, { color: DesignTokens.accentPurple }]}>{initials}</Text>
+            <View
+              style={[
+                styles.avatarPlaceholder,
+                { backgroundColor: (accentColor || DesignTokens.accentPurple) + '15' },
+              ]}>
+              <Text style={[styles.avatarText, { color: accentColor || DesignTokens.accentPurple }]}>
+                {initials}
+              </Text>
             </View>
           )}
 
@@ -423,25 +449,29 @@ function PlayerRow({
             <Text
               style={[
                 styles.playerName,
-                { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+                { color: accentColor || (isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary) },
               ]}
               numberOfLines={1}>
               {player.name}
             </Text>
-            <Text
-              style={[
-                styles.playerMeta,
-                { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
-              ]}>
-              {player.team} · {player.position}
-            </Text>
+            {(displayTeam || displayPosition) && (
+              <Text
+                style={[
+                  styles.playerMeta,
+                  { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+                ]}>
+                {displayTeam && displayPosition
+                  ? `${displayTeam} · ${displayPosition}`
+                  : displayTeam || displayPosition}
+              </Text>
+            )}
           </View>
 
           {/* Chevron indicator */}
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+            color={accentColor || (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
           />
         </TouchableOpacity>
       </Swipeable>

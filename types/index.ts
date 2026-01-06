@@ -8,6 +8,7 @@ export type Player = {
   photoUrl?: string;
   sportsReferenceUrl?: string;
   stats?: Record<string, number>;
+  hallOfFame?: boolean;
 };
 
 // Player list item - reference to a player in a list with order

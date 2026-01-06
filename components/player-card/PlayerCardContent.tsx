@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { BrandGradient, DesignTokens, Typography } from '@/constants/theme';
+import { BrandGradient, DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { usePlayerLinks } from '@/hooks/usePlayerLinks';
 import type { Player, PlayerLink } from '@/types';
@@ -120,6 +120,20 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
 
   const atLimit = isAtLimit(player.id);
 
+  // Determine player status styling
+  const isHallOfFame = player.hallOfFame === true;
+  const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : null;
+
+  // Hide "N/A" team and position
+  const displayTeam = player.team === 'N/A' ? null : player.team;
+  const displayPosition = player.position === 'N/A' ? null : player.position;
+
+  // Get gradient colors based on status
+  const getGradientColors = (): [string, string] => {
+    if (isHallOfFame) return ['#FFD700', '#FFA500'];
+    return [BrandGradient.start, BrandGradient.end];
+  };
+
   return (
     <View
       style={[
@@ -130,7 +144,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
       ]}>
       {/* Header gradient accent */}
       <LinearGradient
-        colors={[BrandGradient.start, BrandGradient.end]}
+        colors={getGradientColors()}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.headerAccent}
@@ -146,14 +160,21 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
           {player.photoUrl && !imageError ? (
             <Image
               source={{ uri: player.photoUrl }}
-              style={styles.photo}
+              style={[styles.photo, accentColor && { borderWidth: 3, borderColor: accentColor }]}
               contentFit="cover"
               onError={() => setImageError(true)}
               transition={200}
             />
           ) : (
-            <View style={[styles.photoPlaceholder, { backgroundColor: positionColor + '15' }]}>
-              <Text style={[styles.placeholderText, { color: positionColor }]}>{initials}</Text>
+            <View
+              style={[
+                styles.photoPlaceholder,
+                { backgroundColor: (accentColor || positionColor) + '15' },
+                accentColor && { borderWidth: 3, borderColor: accentColor },
+              ]}>
+              <Text style={[styles.placeholderText, { color: accentColor || positionColor }]}>
+                {initials}
+              </Text>
             </View>
           )}
 
@@ -161,7 +182,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
           <Text
             style={[
               styles.playerName,
-              { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+              { color: accentColor || (isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary) },
             ]}
             numberOfLines={2}>
             {player.name}
@@ -169,16 +190,26 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
 
           {/* Team and position */}
           <View style={styles.metaRow}>
-            <Text
-              style={[
-                styles.teamName,
-                { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
-              ]}>
-              {player.team}
-            </Text>
-            <View style={[styles.positionBadge, { backgroundColor: positionColor + '15' }]}>
-              <Text style={[styles.positionText, { color: positionColor }]}>{player.position}</Text>
-            </View>
+            {displayTeam && (
+              <Text
+                style={[
+                  styles.teamName,
+                  { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+                ]}>
+                {displayTeam}
+              </Text>
+            )}
+            {displayPosition && (
+              <View
+                style={[
+                  styles.positionBadge,
+                  { backgroundColor: (accentColor || positionColor) + '15' },
+                ]}>
+                <Text style={[styles.positionText, { color: accentColor || positionColor }]}>
+                  {displayPosition}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -328,14 +359,15 @@ const styles = StyleSheet.create({
   },
   playerSection: {
     alignItems: 'center',
-    paddingVertical: DesignTokens.spacing.xl,
+    paddingTop: DesignTokens.spacing.lg,
+    paddingBottom: DesignTokens.spacing.md,
     paddingHorizontal: DesignTokens.spacing.xl,
   },
   photo: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    marginBottom: DesignTokens.spacing.lg,
+    marginBottom: DesignTokens.spacing.md,
   },
   photoPlaceholder: {
     width: 120,
@@ -343,7 +375,7 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: DesignTokens.spacing.lg,
+    marginBottom: DesignTokens.spacing.md,
   },
   placeholderText: {
     fontSize: 40,
@@ -378,7 +410,7 @@ const styles = StyleSheet.create({
   },
   linksSection: {
     paddingHorizontal: DesignTokens.spacing.lg,
-    paddingTop: DesignTokens.spacing.lg,
+    paddingTop: DesignTokens.spacing.md,
   },
   linksLabel: {
     ...Typography.captionSmall,

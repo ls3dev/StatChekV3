@@ -106,6 +106,20 @@ export const DesignTokens = {
   },
 } as const;
 
+// Player status colors for Hall of Fame and retired players
+export const PlayerStatusColors = {
+  hallOfFame: {
+    primary: '#FFD700',      // Gold
+    secondary: '#FFA500',    // Orange gold
+    glow: 'rgba(255, 215, 0, 0.6)',
+  },
+  retired: {
+    primary: '#CD7F32',      // Bronze
+    secondary: '#B8860B',    // Dark goldenrod
+    glow: 'rgba(205, 127, 50, 0.5)',
+  },
+} as const;
+
 // Legacy Colors export for compatibility
 export const Colors = {
   light: {

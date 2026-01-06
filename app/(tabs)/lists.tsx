@@ -43,19 +43,6 @@ export default function ListsScreen() {
           ]}>
           My Lists
         </Text>
-        <TouchableOpacity
-          onPress={() => setShowCreateModal(true)}
-          style={[
-            styles.addButton,
-            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
-          ]}
-          hitSlop={8}>
-          <Ionicons
-            name="add"
-            size={24}
-            color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
-          />
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -103,6 +90,17 @@ export default function ListsScreen() {
         )}
       </ScrollView>
 
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        onPress={() => setShowCreateModal(true)}
+        style={[
+          styles.floatingButton,
+          { backgroundColor: DesignTokens.accentPurple },
+        ]}
+        activeOpacity={0.8}>
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
+
       <CreateListModal
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
@@ -125,13 +123,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.displaySmall,
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
@@ -176,5 +167,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     ...Typography.headline,
     fontSize: 15,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: DesignTokens.spacing.xl,
+    right: DesignTokens.spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
