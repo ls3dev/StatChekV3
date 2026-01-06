@@ -7,19 +7,34 @@ import type { Player } from '@/types';
 
 type Props = {
   player: Player;
+  onPress?: () => void;
 };
 
-export function PlayerListItem({ player }: Props) {
+export function PlayerListItem({ player, onPress }: Props) {
+  const content = (
+    <TouchableOpacity style={styles.container} onPress={onPress}>
+      <View style={styles.info}>
+        <ThemedText type="defaultSemiBold">{player.name}</ThemedText>
+        <ThemedText type="default">
+          {player.team !== 'N/A' && player.position !== 'N/A'
+            ? `${player.position} • ${player.team}`
+            : player.team !== 'N/A'
+              ? player.team
+              : player.position !== 'N/A'
+                ? player.position
+                : ''}
+        </ThemedText>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (onPress) {
+    return content;
+  }
+
   return (
     <Link href={`/player/${player.id}`} asChild>
-      <TouchableOpacity style={styles.container}>
-        <View style={styles.info}>
-          <ThemedText type="defaultSemiBold">{player.name}</ThemedText>
-          <ThemedText type="default">
-            {player.position} • {player.team}
-          </ThemedText>
-        </View>
-      </TouchableOpacity>
+      {content}
     </Link>
   );
 }

@@ -86,11 +86,13 @@ export function PlayerCard({ player }: Props) {
             )}
             <View style={styles.headerText}>
               <ThemedText type="title">{player.name}</ThemedText>
-              <ThemedText type="defaultSemiBold">{player.position}</ThemedText>
+              {player.position !== 'N/A' && (
+                <ThemedText type="defaultSemiBold">{player.position}</ThemedText>
+              )}
             </View>
           </View>
 
-          <ThemedText type="default">{player.team}</ThemedText>
+          {player.team !== 'N/A' && <ThemedText type="default">{player.team}</ThemedText>}
 
           {player.stats && (
             <View style={styles.statsRow}>
@@ -111,9 +113,11 @@ export function PlayerCard({ player }: Props) {
             <Text style={[styles.backTitle, styles.backText]}>
               {player.name}
             </Text>
-            <Text style={styles.backText}>
-              {player.team}
-            </Text>
+            {player.team !== 'N/A' && (
+              <Text style={styles.backText}>
+                {player.team}
+              </Text>
+            )}
           </View>
 
           <View style={styles.buttonContainer}>
