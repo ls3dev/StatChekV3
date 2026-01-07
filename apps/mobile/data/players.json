@@ -1,0 +1,722 @@
+[
+  {
+    "id": "1",
+    "name": "Shai Gilgeous-Alexander",
+    "sport": "NBA",
+    "team": "Oklahoma City Thunder",
+    "position": "PG",
+    "number": "2",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628983.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/g/gilgesh01.html",
+    "stats": {
+      "ppg": 32.7,
+      "rpg": 5.0,
+      "apg": 6.4
+    }
+  },
+  {
+    "id": "2",
+    "name": "Luka Doncic",
+    "sport": "NBA",
+    "team": "Dallas Mavericks",
+    "position": "PG",
+    "number": "77",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629029.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/d/doncilu01.html",
+    "stats": {
+      "ppg": 28.5,
+      "rpg": 8.1,
+      "apg": 7.9
+    }
+  },
+  {
+    "id": "3",
+    "name": "Giannis Antetokounmpo",
+    "sport": "NBA",
+    "team": "Milwaukee Bucks",
+    "position": "PF",
+    "number": "34",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/203507.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/a/antetgi01.html",
+    "stats": {
+      "ppg": 29.8,
+      "rpg": 11.2,
+      "apg": 5.8
+    }
+  },
+  {
+    "id": "4",
+    "name": "Nikola Jokic",
+    "sport": "NBA",
+    "team": "Denver Nuggets",
+    "position": "C",
+    "number": "15",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/j/jokicni01.html",
+    "stats": {
+      "ppg": 29.7,
+      "rpg": 13.7,
+      "apg": 10.1
+    }
+  },
+  {
+    "id": "5",
+    "name": "LeBron James",
+    "sport": "NBA",
+    "team": "Los Angeles Lakers",
+    "position": "SF",
+    "number": "23",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/j/jamesle01.html",
+    "stats": {
+      "ppg": 23.6,
+      "rpg": 7.8,
+      "apg": 8.9
+    }
+  },
+  {
+    "id": "6",
+    "name": "Stephen Curry",
+    "sport": "NBA",
+    "team": "Golden State Warriors",
+    "position": "PG",
+    "number": "30",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/201939.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/c/curryst01.html",
+    "stats": {
+      "ppg": 22.5,
+      "rpg": 4.9,
+      "apg": 6.4
+    }
+  },
+  {
+    "id": "7",
+    "name": "Kevin Durant",
+    "sport": "NBA",
+    "team": "Phoenix Suns",
+    "position": "SF",
+    "number": "35",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/201142.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/d/duranke01.html",
+    "stats": {
+      "ppg": 27.6,
+      "rpg": 6.6,
+      "apg": 5.0
+    }
+  },
+  {
+    "id": "8",
+    "name": "Joel Embiid",
+    "sport": "NBA",
+    "team": "Philadelphia 76ers",
+    "position": "C",
+    "number": "21",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/203954.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/e/embiijo01.html",
+    "stats": {
+      "ppg": 26.8,
+      "rpg": 10.9,
+      "apg": 5.2
+    }
+  },
+  {
+    "id": "9",
+    "name": "Jayson Tatum",
+    "sport": "NBA",
+    "team": "Boston Celtics",
+    "position": "SF",
+    "number": "0",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/t/tatumja01.html",
+    "stats": {
+      "ppg": 26.9,
+      "rpg": 8.1,
+      "apg": 4.9
+    }
+  },
+  {
+    "id": "10",
+    "name": "Anthony Edwards",
+    "sport": "NBA",
+    "team": "Minnesota Timberwolves",
+    "position": "SG",
+    "number": "5",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630162.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/e/edwaran01.html",
+    "stats": {
+      "ppg": 26.8,
+      "rpg": 5.5,
+      "apg": 5.3
+    }
+  },
+  {
+    "id": "11",
+    "name": "Damian Lillard",
+    "sport": "NBA",
+    "team": "Milwaukee Bucks",
+    "position": "PG",
+    "number": "0",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/203081.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/l/lillada01.html",
+    "stats": {
+      "ppg": 24.8,
+      "rpg": 4.1,
+      "apg": 7.0
+    }
+  },
+  {
+    "id": "12",
+    "name": "Jaylen Brown",
+    "sport": "NBA",
+    "team": "Boston Celtics",
+    "position": "SG",
+    "number": "7",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/b/brownja02.html",
+    "stats": {
+      "ppg": 23.0,
+      "rpg": 5.5,
+      "apg": 3.6
+    }
+  },
+  {
+    "id": "13",
+    "name": "Devin Booker",
+    "sport": "NBA",
+    "team": "Phoenix Suns",
+    "position": "SG",
+    "number": "1",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1626164.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/b/bookede01.html",
+    "stats": {
+      "ppg": 25.5,
+      "rpg": 4.2,
+      "apg": 6.7
+    }
+  },
+  {
+    "id": "14",
+    "name": "Kyrie Irving",
+    "sport": "NBA",
+    "team": "Dallas Mavericks",
+    "position": "PG",
+    "number": "11",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/202681.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/i/irvinky01.html",
+    "stats": {
+      "ppg": 24.3,
+      "rpg": 4.9,
+      "apg": 5.2
+    }
+  },
+  {
+    "id": "15",
+    "name": "Anthony Davis",
+    "sport": "NBA",
+    "team": "Los Angeles Lakers",
+    "position": "PF",
+    "number": "3",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/203076.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/d/davisan02.html",
+    "stats": {
+      "ppg": 25.9,
+      "rpg": 12.4,
+      "apg": 3.5
+    }
+  },
+  {
+    "id": "16",
+    "name": "Kawhi Leonard",
+    "sport": "NBA",
+    "team": "LA Clippers",
+    "position": "SF",
+    "number": "2",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/202695.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/l/leonaka01.html",
+    "stats": {
+      "ppg": 23.7,
+      "rpg": 6.1,
+      "apg": 3.6
+    }
+  },
+  {
+    "id": "17",
+    "name": "Trae Young",
+    "sport": "NBA",
+    "team": "Atlanta Hawks",
+    "position": "PG",
+    "number": "11",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629027.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/y/youngtr01.html",
+    "stats": {
+      "ppg": 25.5,
+      "rpg": 2.8,
+      "apg": 11.6
+    }
+  },
+  {
+    "id": "18",
+    "name": "Donovan Mitchell",
+    "sport": "NBA",
+    "team": "Cleveland Cavaliers",
+    "position": "SG",
+    "number": "45",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628378.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/m/mitchdo01.html",
+    "stats": {
+      "ppg": 26.6,
+      "rpg": 5.1,
+      "apg": 6.1
+    }
+  },
+  {
+    "id": "19",
+    "name": "Tyrese Haliburton",
+    "sport": "NBA",
+    "team": "Indiana Pacers",
+    "position": "PG",
+    "number": "0",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630169.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/h/halibty01.html",
+    "stats": {
+      "ppg": 20.3,
+      "rpg": 3.9,
+      "apg": 10.9
+    }
+  },
+  {
+    "id": "20",
+    "name": "Ja Morant",
+    "sport": "NBA",
+    "team": "Memphis Grizzlies",
+    "position": "PG",
+    "number": "12",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629630.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/m/moranja01.html",
+    "stats": {
+      "ppg": 20.8,
+      "rpg": 5.0,
+      "apg": 8.1
+    }
+  },
+  {
+    "id": "21",
+    "name": "De'Aaron Fox",
+    "sport": "NBA",
+    "team": "Sacramento Kings",
+    "position": "PG",
+    "number": "5",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628368.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/f/foxde01.html",
+    "stats": {
+      "ppg": 26.5,
+      "rpg": 4.8,
+      "apg": 6.0
+    }
+  },
+  {
+    "id": "22",
+    "name": "Domantas Sabonis",
+    "sport": "NBA",
+    "team": "Sacramento Kings",
+    "position": "C",
+    "number": "10",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627734.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/s/sabondo01.html",
+    "stats": {
+      "ppg": 19.3,
+      "rpg": 13.9,
+      "apg": 8.2
+    }
+  },
+  {
+    "id": "23",
+    "name": "Paolo Banchero",
+    "sport": "NBA",
+    "team": "Orlando Magic",
+    "position": "PF",
+    "number": "5",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1631094.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/b/banchpa01.html",
+    "stats": {
+      "ppg": 24.0,
+      "rpg": 5.1,
+      "apg": 5.5
+    }
+  },
+  {
+    "id": "24",
+    "name": "Jalen Brunson",
+    "sport": "NBA",
+    "team": "New York Knicks",
+    "position": "PG",
+    "number": "11",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628973.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/b/brunsja01.html",
+    "stats": {
+      "ppg": 28.7,
+      "rpg": 3.6,
+      "apg": 6.7
+    }
+  },
+  {
+    "id": "25",
+    "name": "Karl-Anthony Towns",
+    "sport": "NBA",
+    "team": "New York Knicks",
+    "position": "C",
+    "number": "32",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1626157.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/t/townska01.html",
+    "stats": {
+      "ppg": 24.8,
+      "rpg": 13.9,
+      "apg": 3.2
+    }
+  },
+  {
+    "id": "26",
+    "name": "Jimmy Butler",
+    "sport": "NBA",
+    "team": "Miami Heat",
+    "position": "SF",
+    "number": "22",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/202710.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/b/butleji01.html",
+    "stats": {
+      "ppg": 20.8,
+      "rpg": 5.3,
+      "apg": 5.0
+    }
+  },
+  {
+    "id": "27",
+    "name": "Bam Adebayo",
+    "sport": "NBA",
+    "team": "Miami Heat",
+    "position": "C",
+    "number": "13",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628389.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/a/adebaba01.html",
+    "stats": {
+      "ppg": 19.3,
+      "rpg": 10.4,
+      "apg": 3.9
+    }
+  },
+  {
+    "id": "28",
+    "name": "Zion Williamson",
+    "sport": "NBA",
+    "team": "New Orleans Pelicans",
+    "position": "PF",
+    "number": "1",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629627.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/w/willizi01.html",
+    "stats": {
+      "ppg": 22.9,
+      "rpg": 5.8,
+      "apg": 5.0
+    }
+  },
+  {
+    "id": "29",
+    "name": "Brandon Ingram",
+    "sport": "NBA",
+    "team": "New Orleans Pelicans",
+    "position": "SF",
+    "number": "14",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627742.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/i/ingrabr01.html",
+    "stats": {
+      "ppg": 20.8,
+      "rpg": 5.1,
+      "apg": 5.7
+    }
+  },
+  {
+    "id": "30",
+    "name": "Victor Wembanyama",
+    "sport": "NBA",
+    "team": "San Antonio Spurs",
+    "position": "C",
+    "number": "1",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1641705.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/w/wembavi01.html",
+    "stats": {
+      "ppg": 23.5,
+      "rpg": 10.1,
+      "apg": 3.9
+    }
+  },
+  {
+    "id": "31",
+    "name": "Jalen Williams",
+    "sport": "NBA",
+    "team": "Oklahoma City Thunder",
+    "position": "SF",
+    "number": "8",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1631116.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/w/willija06.html",
+    "stats": {
+      "ppg": 19.5,
+      "rpg": 4.0,
+      "apg": 4.5
+    }
+  },
+  {
+    "id": "32",
+    "name": "Chet Holmgren",
+    "sport": "NBA",
+    "team": "Oklahoma City Thunder",
+    "position": "C",
+    "number": "7",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1641717.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/h/holmgch01.html",
+    "stats": {
+      "ppg": 14.0,
+      "rpg": 7.9,
+      "apg": 2.4
+    }
+  },
+  {
+    "id": "33",
+    "name": "Paul George",
+    "sport": "NBA",
+    "team": "Philadelphia 76ers",
+    "position": "SF",
+    "number": "8",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/202331.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/g/georgpa01.html",
+    "stats": {
+      "ppg": 18.1,
+      "rpg": 5.2,
+      "apg": 4.8
+    }
+  },
+  {
+    "id": "34",
+    "name": "Tyrese Maxey",
+    "sport": "NBA",
+    "team": "Philadelphia 76ers",
+    "position": "PG",
+    "number": "0",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630178.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/m/maxeyty01.html",
+    "stats": {
+      "ppg": 25.9,
+      "rpg": 3.7,
+      "apg": 6.2
+    }
+  },
+  {
+    "id": "35",
+    "name": "James Harden",
+    "sport": "NBA",
+    "team": "LA Clippers",
+    "position": "PG",
+    "number": "1",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/201935.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/h/hardeja01.html",
+    "stats": {
+      "ppg": 16.6,
+      "rpg": 5.7,
+      "apg": 8.5
+    }
+  },
+  {
+    "id": "36",
+    "name": "Lauri Markkanen",
+    "sport": "NBA",
+    "team": "Utah Jazz",
+    "position": "PF",
+    "number": "23",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628374.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/m/markkla01.html",
+    "stats": {
+      "ppg": 23.2,
+      "rpg": 8.2,
+      "apg": 2.0
+    }
+  },
+  {
+    "id": "37",
+    "name": "Jaren Jackson Jr.",
+    "sport": "NBA",
+    "team": "Memphis Grizzlies",
+    "position": "PF",
+    "number": "13",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628991.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/j/jacksja02.html",
+    "stats": {
+      "ppg": 22.5,
+      "rpg": 5.5,
+      "apg": 1.6
+    }
+  },
+  {
+    "id": "38",
+    "name": "Scottie Barnes",
+    "sport": "NBA",
+    "team": "Toronto Raptors",
+    "position": "SF",
+    "number": "4",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630567.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/b/barnessc01.html",
+    "stats": {
+      "ppg": 19.9,
+      "rpg": 7.8,
+      "apg": 6.1
+    }
+  },
+  {
+    "id": "39",
+    "name": "Franz Wagner",
+    "sport": "NBA",
+    "team": "Orlando Magic",
+    "position": "SF",
+    "number": "22",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630532.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/w/wagnefr01.html",
+    "stats": {
+      "ppg": 24.4,
+      "rpg": 5.6,
+      "apg": 5.7
+    }
+  },
+  {
+    "id": "40",
+    "name": "Alperen Sengun",
+    "sport": "NBA",
+    "team": "Houston Rockets",
+    "position": "C",
+    "number": "28",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630578.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/s/sengual01.html",
+    "stats": {
+      "ppg": 18.6,
+      "rpg": 10.3,
+      "apg": 5.0
+    }
+  },
+  {
+    "id": "41",
+    "name": "DeMar DeRozan",
+    "sport": "NBA",
+    "team": "Sacramento Kings",
+    "position": "SF",
+    "number": "10",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/201942.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/d/derozde01.html",
+    "stats": {
+      "ppg": 21.7,
+      "rpg": 3.8,
+      "apg": 4.0
+    }
+  },
+  {
+    "id": "42",
+    "name": "Darius Garland",
+    "sport": "NBA",
+    "team": "Cleveland Cavaliers",
+    "position": "PG",
+    "number": "10",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629636.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/g/garlada01.html",
+    "stats": {
+      "ppg": 20.7,
+      "rpg": 2.7,
+      "apg": 6.5
+    }
+  },
+  {
+    "id": "43",
+    "name": "Evan Mobley",
+    "sport": "NBA",
+    "team": "Cleveland Cavaliers",
+    "position": "PF",
+    "number": "4",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630596.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/m/mobleev01.html",
+    "stats": {
+      "ppg": 15.9,
+      "rpg": 9.4,
+      "apg": 3.2
+    }
+  },
+  {
+    "id": "44",
+    "name": "Bradley Beal",
+    "sport": "NBA",
+    "team": "Phoenix Suns",
+    "position": "SG",
+    "number": "3",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/203078.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/b/bealbr01.html",
+    "stats": {
+      "ppg": 18.2,
+      "rpg": 4.4,
+      "apg": 5.0
+    }
+  },
+  {
+    "id": "45",
+    "name": "Mikal Bridges",
+    "sport": "NBA",
+    "team": "New York Knicks",
+    "position": "SF",
+    "number": "25",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628969.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/b/bridgmi01.html",
+    "stats": {
+      "ppg": 15.6,
+      "rpg": 3.1,
+      "apg": 3.2
+    }
+  },
+  {
+    "id": "46",
+    "name": "Rudy Gobert",
+    "sport": "NBA",
+    "team": "Minnesota Timberwolves",
+    "position": "C",
+    "number": "27",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/203497.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/g/goberru01.html",
+    "stats": {
+      "ppg": 10.4,
+      "rpg": 10.9,
+      "apg": 1.4
+    }
+  },
+  {
+    "id": "47",
+    "name": "Jamal Murray",
+    "sport": "NBA",
+    "team": "Denver Nuggets",
+    "position": "PG",
+    "number": "27",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627750.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/m/murraja01.html",
+    "stats": {
+      "ppg": 18.2,
+      "rpg": 4.0,
+      "apg": 6.5
+    }
+  },
+  {
+    "id": "48",
+    "name": "Kristaps Porzingis",
+    "sport": "NBA",
+    "team": "Boston Celtics",
+    "position": "C",
+    "number": "8",
+    "photoUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/204001.png",
+    "sportsReferenceUrl": "https://www.basketball-reference.com/players/p/porzikr01.html",
+    "stats": {
+      "ppg": 20.1,
+      "rpg": 7.2,
+      "apg": 2.0
+    }
+  }
+]
