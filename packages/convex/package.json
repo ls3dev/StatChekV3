@@ -1,0 +1,16 @@
+{
+  "name": "@statchek/convex",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy"
+  },
+  "dependencies": {
+    "convex": "^1.17.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
