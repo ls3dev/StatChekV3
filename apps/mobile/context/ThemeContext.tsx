@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 
-import { useUserId } from '@/providers/ConvexProvider';
-import { api } from '@statchek/convex';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@statcheck/convex';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -20,7 +20,7 @@ type ThemeProviderProps = {
 };
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const userId = useUserId();
+  const { userId } = useAuth();
 
   // Query user settings from Convex (includes theme)
   const userSettings = useQuery(
@@ -41,7 +41,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     }
   }, [userSettings]);
 
-  const isLoaded = userSettings !== undefined;
+  // Consider loaded if:
+  // 1. No userId (use default theme), or
+  // 2. Query has returned (even if null/undefined result)
+  const isLoaded = !userId || userSettings !== undefined;
 
   // Set theme and persist to Convex
   const setTheme = useCallback(

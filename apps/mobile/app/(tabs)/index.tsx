@@ -37,7 +37,7 @@ export default function HomeScreen() {
         },
       ]}>
       {/* Gradient header with app title */}
-      <GradientHeader title="StatChek" overlapPadding={50} />
+      <GradientHeader title="StatCheck" overlapPadding={50} />
 
       {/* Floating search card with dropdown */}
       <HeroSearchCard onPlayerSelect={handlePlayerSelect} />

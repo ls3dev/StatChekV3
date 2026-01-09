@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConvexReactClient } from "convex/react";
 import type { FunctionReference } from "convex/server";
 
-const MIGRATION_KEY = "@statchek_migration_complete";
+const MIGRATION_KEY = "@statcheck_migration_complete";
 
 export type MigrationStatus =
   | "pending"
@@ -123,7 +123,7 @@ export async function migrateAsyncStorageToConvex(
 
     // 3. Migrate Recent Players
     console.log("[Migration] Migrating recent players...");
-    const recentData = await AsyncStorage.getItem("@statchek_recent_players");
+    const recentData = await AsyncStorage.getItem("@statcheck_recent_players");
     if (recentData) {
       const recentPlayers = JSON.parse(recentData);
       console.log(`[Migration] Found ${recentPlayers.length} recent players`);
@@ -143,7 +143,7 @@ export async function migrateAsyncStorageToConvex(
 
     // 4. Migrate Theme Settings
     console.log("[Migration] Migrating theme settings...");
-    const themeData = await AsyncStorage.getItem("@statchek_theme");
+    const themeData = await AsyncStorage.getItem("@statcheck_theme");
     if (themeData) {
       const theme = JSON.parse(themeData) as "light" | "dark";
       try {

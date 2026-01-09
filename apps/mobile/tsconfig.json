@@ -6,7 +6,7 @@
       "@/*": [
         "./*"
       ],
-      "@statchek/convex": [
+      "@statcheck/convex": [
         "../../packages/convex"
       ]
     }

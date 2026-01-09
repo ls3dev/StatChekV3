@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 
 import type { Player } from '@/types';
 
-const RECENT_PLAYERS_STORAGE_KEY = '@statchek_recent_players';
+const RECENT_PLAYERS_STORAGE_KEY = '@statcheck_recent_players';
 const MAX_RECENT_PLAYERS = 10;
 
 type RecentPlayersContextType = {

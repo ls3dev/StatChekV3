@@ -150,7 +150,7 @@ export default function ListDetailScreen() {
       // TODO: Replace with actual Convex mutation once deployed
       // For now, we'll create a shareable text format
       const playerNames = playersWithData.map((p, i) => `${i + 1}. ${p.player.name}`).join('\n');
-      const shareText = `${list.name}\n\n${playerNames}\n\nShared from StatChek`;
+      const shareText = `${list.name}\n\n${playerNames}\n\nShared from StatCheck`;
 
       if (Platform.OS === 'web') {
         await Clipboard.setStringAsync(shareText);
@@ -164,7 +164,7 @@ export default function ListDetailScreen() {
 
       // Future implementation with Convex:
       // const { shareId } = await createSharedList({ ... });
-      // const shareUrl = `https://statchek.com/list/${shareId}`;
+      // const shareUrl = `https://statcheck.app/list/${shareId}`;
       // await Share.share({ url: shareUrl, title: list.name });
 
     } catch (error) {

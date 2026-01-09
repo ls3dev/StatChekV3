@@ -2,8 +2,8 @@ import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 
 import type { PlayerLink, PlayerLinksMap } from '@/types';
-import { useUserId } from '@/providers/ConvexProvider';
-import { api } from '@statchek/convex';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@statcheck/convex';
 
 const FREE_LINK_LIMIT = 3;
 
@@ -22,7 +22,7 @@ type PlayerLinksContextValue = {
 const PlayerLinksContext = createContext<PlayerLinksContextValue | undefined>(undefined);
 
 export function PlayerLinksProvider({ children }: { children: React.ReactNode }) {
-  const userId = useUserId();
+  const { userId } = useAuth();
 
   // Query all user's player links from Convex
   const allPlayerLinks = useQuery(

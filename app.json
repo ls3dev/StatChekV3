@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "StatChek",
-    "slug": "statchek",
+    "name": "StatCheck",
+    "slug": "statcheck",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "statchek",
+    "scheme": "statcheck",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "com.statchek.app",
+      "bundleIdentifier": "com.statcheck.app",
       "buildNumber": "1",
       "supportsTablet": true
     },

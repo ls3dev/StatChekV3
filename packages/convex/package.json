@@ -1,5 +1,5 @@
 {
-  "name": "@statchek/convex",
+  "name": "@statcheck/convex",
   "version": "1.0.0",
   "private": true,
   "main": "index.ts",
@@ -8,6 +8,8 @@
     "deploy": "convex deploy"
   },
   "dependencies": {
+    "@auth/core": "^0.37.0",
+    "@convex-dev/auth": "^0.0.90",
     "convex": "^1.17.4"
   },
   "devDependencies": {

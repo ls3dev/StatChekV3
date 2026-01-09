@@ -1,7 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-const ANONYMOUS_ID_KEY = "statchek_anonymous_id";
+const ANONYMOUS_ID_KEY = "statcheck_anonymous_id";
 
 /**
  * Generate a unique anonymous ID

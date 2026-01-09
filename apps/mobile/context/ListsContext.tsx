@@ -2,8 +2,8 @@ import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 
 import type { PlayerList, PlayerListItem, PlayerListLink } from '@/types';
-import { useUserId } from '@/providers/ConvexProvider';
-import { api } from '@statchek/convex';
+import { useAuth, useRequireAuth } from '@/context/AuthContext';
+import { api } from '@statcheck/convex';
 
 type ListsContextValue = {
   lists: PlayerList[];
@@ -29,7 +29,7 @@ type ListsContextValue = {
 const ListsContext = createContext<ListsContextValue | undefined>(undefined);
 
 export function ListsProvider({ children }: { children: React.ReactNode }) {
-  const userId = useUserId();
+  const { userId, isAuthenticated, setShowAuthPrompt } = useAuth();
 
   // Query all user lists from Convex (real-time subscription)
   const convexLists = useQuery(
@@ -67,9 +67,15 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
   const isLoaded = convexLists !== undefined;
   const isSyncing = false; // TODO: Track mutation pending state
 
-  // Create a new list
+  // Create a new list (requires authentication)
   const createList = useCallback(
     async (name: string, description?: string): Promise<PlayerList> => {
+      // Check if user is authenticated
+      if (!isAuthenticated) {
+        setShowAuthPrompt(true);
+        throw new Error('Authentication required to create lists');
+      }
+
       if (!userId) {
         throw new Error('User not initialized');
       }
@@ -91,7 +97,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
         updatedAt: Date.now(),
       };
     },
-    [userId, createListMutation]
+    [userId, isAuthenticated, setShowAuthPrompt, createListMutation]
   );
 
   // Update list name/description
@@ -135,9 +141,15 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
     [lists]
   );
 
-  // Add player to list
+  // Add player to list (requires authentication)
   const addPlayerToList = useCallback(
     async (listId: string, playerId: string): Promise<boolean> => {
+      // Check if user is authenticated
+      if (!isAuthenticated) {
+        setShowAuthPrompt(true);
+        return false;
+      }
+
       // Optimistic check
       if (isPlayerInList(listId, playerId)) {
         return false;
@@ -150,7 +162,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
 
       return result.success;
     },
-    [isPlayerInList, addPlayerMutation]
+    [isAuthenticated, setShowAuthPrompt, isPlayerInList, addPlayerMutation]
   );
 
   // Remove player from list

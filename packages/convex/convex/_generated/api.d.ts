@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as http from "../http.js";
 import type * as playerLinks from "../playerLinks.js";
 import type * as recentPlayers from "../recentPlayers.js";
 import type * as sharedLists from "../sharedLists.js";
@@ -23,6 +24,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  http: typeof http;
   playerLinks: typeof playerLinks;
   recentPlayers: typeof recentPlayers;
   sharedLists: typeof sharedLists;
