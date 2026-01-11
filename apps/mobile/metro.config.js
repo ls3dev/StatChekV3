@@ -18,7 +18,10 @@ config.resolver.nodeModulesPaths = [
 
 // Add the Convex package to extraNodeModules
 config.resolver.extraNodeModules = {
-  '@statchek/convex': path.resolve(workspaceRoot, 'packages/convex'),
+  '@statcheck/convex': path.resolve(workspaceRoot, 'packages/convex'),
 };
+
+// Enable package exports for Better Auth
+config.resolver.unstable_enablePackageExports = true;
 
 module.exports = config;

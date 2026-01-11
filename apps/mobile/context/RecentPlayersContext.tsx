@@ -2,8 +2,8 @@ import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 
 import type { Player } from '@/types';
-import { useUserId } from '@/providers/ConvexProvider';
-import { api } from '@statchek/convex';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@statcheck/convex';
 
 const MAX_RECENT_PLAYERS = 10;
 
@@ -21,7 +21,7 @@ type RecentPlayersProviderProps = {
 };
 
 export function RecentPlayersProvider({ children }: RecentPlayersProviderProps) {
-  const userId = useUserId();
+  const { userId } = useAuth();
 
   // Query recent players from Convex
   const convexRecentPlayers = useQuery(

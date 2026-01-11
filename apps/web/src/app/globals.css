@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background-primary: #0A0A0F;
+  --background-secondary: #12121A;
+  --card-background: #1A1A24;
+  --accent-purple: #8B5CF6;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --gold: #FFD700;
+}
+
+body {
+  background: var(--background-primary);
+  color: var(--text-primary);
+}
+
+/* Gold shimmer effect for Hall of Fame players */
+.gold-shimmer {
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+}

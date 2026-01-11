@@ -12,7 +12,7 @@ type GradientHeaderProps = {
   overlapPadding?: number;
 };
 
-export function GradientHeader({ title = 'StatChek', children, overlapPadding = 60 }: GradientHeaderProps) {
+export function GradientHeader({ title = 'StatCheck', children, overlapPadding = 60 }: GradientHeaderProps) {
   const insets = useSafeAreaInsets();
 
   return (

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
-const THEME_STORAGE_KEY = '@statchek_theme';
+const THEME_STORAGE_KEY = '@statcheck_theme';
 
 type ThemeMode = 'light' | 'dark';
 

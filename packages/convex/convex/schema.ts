@@ -1,29 +1,14 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
-  // Users table - supports both anonymous and authenticated users
-  users: defineTable({
-    // Better Auth integration fields
-    email: v.optional(v.string()),
-    name: v.optional(v.string()),
-    image: v.optional(v.string()),
-    emailVerified: v.optional(v.number()),
+  // Auth tables from @convex-dev/auth (users, sessions, accounts, etc.)
+  ...authTables,
 
-    // Anonymous user support
-    isAnonymous: v.boolean(),
-    anonymousId: v.optional(v.string()), // Device-based session ID
-
-    // Timestamps
-    createdAt: v.number(),
-    lastActiveAt: v.number(),
-  })
-    .index("by_email", ["email"])
-    .index("by_anonymous_id", ["anonymousId"]),
-
-  // User Lists - private lists owned by users (replaces AsyncStorage)
+  // User Lists - private lists owned by users
   userLists: defineTable({
-    userId: v.string(), // Can be anonymousId or authenticated userId
+    userId: v.string(), // Can be anonymousId or authenticated user._id
     name: v.string(),
     description: v.optional(v.string()),
 
@@ -135,7 +120,7 @@ export default defineSchema({
     ),
 
     // Ownership
-    userId: v.optional(v.string()), // Link to users table
+    userId: v.optional(v.string()),
     sharedBy: v.optional(v.string()),
     sharedByName: v.optional(v.string()),
 

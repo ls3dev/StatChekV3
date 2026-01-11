@@ -1,5 +1,5 @@
 {
-  "name": "@statchek/types",
+  "name": "@statcheck/types",
   "version": "1.0.0",
   "private": true,
   "main": "./src/index.ts",

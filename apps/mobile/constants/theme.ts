@@ -1,5 +1,5 @@
 /**
- * StatChek Design System
+ * StatCheck Design System
  * Apple Sports-inspired dark aesthetic - bold, clean, athletic
  */
 
