@@ -14,6 +14,7 @@ import { RecentPlayersProvider } from '@/context/RecentPlayersContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { AuthPromptModal } from '@/components/auth/AuthPromptModal';
+import { PaywallModal } from '@/components/PaywallModal';
 
 export const unstable_settings = {
   // Start with auth flow, will redirect to tabs after onboarding/auth
@@ -90,6 +91,7 @@ function RootLayoutNav() {
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             </Stack>
             <AuthPromptModal />
+            <PaywallModal />
             <StatusBar style={isDark ? 'light' : 'dark'} />
           </RecentPlayersProvider>
         </PlayerLinksProvider>

@@ -1,16 +1,23 @@
-import React, { createContext, useCallback, useContext, useMemo } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 
 import type { PlayerList, PlayerListItem, PlayerListLink } from '@/types';
 import { useAuth, useRequireAuth } from '@/context/AuthContext';
+import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { api } from '@statcheck/convex';
+
+const FREE_LIST_LIMIT = 3;
 
 type ListsContextValue = {
   lists: PlayerList[];
   isLoaded: boolean;
   isSyncing: boolean;
+  // Paywall
+  showPaywall: boolean;
+  setShowPaywall: (show: boolean) => void;
+  canCreateList: boolean;
   // List CRUD
-  createList: (name: string, description?: string) => Promise<PlayerList>;
+  createList: (name: string, description?: string) => Promise<PlayerList | null>;
   updateList: (id: string, updates: { name?: string; description?: string }) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   getListById: (id: string | string[] | undefined) => PlayerList | undefined;
@@ -30,6 +37,8 @@ const ListsContext = createContext<ListsContextValue | undefined>(undefined);
 
 export function ListsProvider({ children }: { children: React.ReactNode }) {
   const { userId, isAuthenticated, setShowAuthPrompt } = useAuth();
+  const { isProUser } = useRevenueCat();
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Query all user lists from Convex (real-time subscription)
   const convexLists = useQuery(
@@ -67,13 +76,22 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
   const isLoaded = convexLists !== undefined;
   const isSyncing = false; // TODO: Track mutation pending state
 
-  // Create a new list (requires authentication)
+  // Check if user can create more lists (Pro users unlimited, free users limited)
+  const canCreateList = isProUser || lists.length < FREE_LIST_LIMIT;
+
+  // Create a new list (requires authentication and checks limit)
   const createList = useCallback(
-    async (name: string, description?: string): Promise<PlayerList> => {
+    async (name: string, description?: string): Promise<PlayerList | null> => {
       // Check if user is authenticated
       if (!isAuthenticated) {
         setShowAuthPrompt(true);
-        throw new Error('Authentication required to create lists');
+        return null;
+      }
+
+      // Check list limit for non-Pro users
+      if (!isProUser && lists.length >= FREE_LIST_LIMIT) {
+        setShowPaywall(true);
+        return null;
       }
 
       if (!userId) {
@@ -97,7 +115,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
         updatedAt: Date.now(),
       };
     },
-    [userId, isAuthenticated, setShowAuthPrompt, createListMutation]
+    [userId, isAuthenticated, isProUser, lists.length, setShowAuthPrompt, createListMutation]
   );
 
   // Update list name/description
@@ -239,6 +257,9 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
         lists,
         isLoaded,
         isSyncing,
+        showPaywall,
+        setShowPaywall,
+        canCreateList,
         createList,
         updateList,
         deleteList,

@@ -46,6 +46,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "906272d7-0cf2-4c89-b6dc-8b63aa033de1"
+      }
+    },
+    "owner": "citizenlou"
   }
 }
