@@ -15,6 +15,8 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
+import { useMutation } from 'convex/react';
+import { api } from '@statcheck/convex';
 
 import { AddPlayerSearchModal } from '@/components/lists';
 import { AddLinkModal } from '@/components/AddLinkModal';
@@ -23,8 +25,11 @@ import { AgendaMode, VSMode, RankingMode } from '@/components/list-modes';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useListsContext } from '@/context/ListsContext';
+import { useAuth } from '@/context/AuthContext';
 import playersData from '@/data/nba_playersv2.json';
 import type { Player, PlayerListItem } from '@/types';
+
+const SHARE_BASE_URL = 'https://statcheck.app/list';
 
 const allPlayers = playersData as Player[];
 
@@ -41,6 +46,7 @@ export default function ListDetailScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const {
     getListById,
     deleteList,
@@ -50,6 +56,8 @@ export default function ListDetailScreen() {
     addLinkToList,
     removeLinkFromList,
   } = useListsContext();
+
+  const createSharedList = useMutation(api.sharedLists.createSharedList);
 
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showAddLinkModal, setShowAddLinkModal] = useState(false);
@@ -139,15 +147,44 @@ export default function ListDetailScreen() {
     setShowOptions(false);
 
     try {
-      const playerNames = playersWithData.map((p, i) => `${i + 1}. ${p.player.name}`).join('\n');
-      const shareText = `${list.name}\n\n${playerNames}\n\nShared from StatCheck`;
+      // Create the shared list with all player data
+      const { shareId } = await createSharedList({
+        name: list.name,
+        description: list.description,
+        players: playersWithData.map((p, index) => ({
+          playerId: p.playerId,
+          order: index,
+          name: p.player.name,
+          team: p.player.team,
+          position: p.player.position,
+          photoUrl: p.player.photoUrl,
+          sportsReferenceUrl: p.player.sportsReferenceUrl,
+          hallOfFame: p.player.hallOfFame,
+        })),
+        links: list.links.map((link) => ({
+          id: link.id,
+          url: link.url,
+          title: link.title,
+          order: link.order,
+        })),
+        originalCreatedAt: list.createdAt,
+        originalUpdatedAt: list.updatedAt,
+        sharedByName: user?.name || undefined,
+      });
+
+      // Create the shareable URL
+      const shareUrl = `${SHARE_BASE_URL}/${shareId}`;
+
+      // Share with Open Graph preview text
+      const shareMessage = `${list.name}\n\nCheck out my list on StatCheck!\n${shareUrl}`;
 
       if (Platform.OS === 'web') {
-        await Clipboard.setStringAsync(shareText);
-        Alert.alert('Copied!', 'List copied to clipboard');
+        await Clipboard.setStringAsync(shareUrl);
+        Alert.alert('Copied!', 'Share link copied to clipboard');
       } else {
         await Share.share({
-          message: shareText,
+          message: shareMessage,
+          url: shareUrl, // iOS will use this for rich preview
           title: list.name,
         });
       }
