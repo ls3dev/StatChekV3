@@ -7,7 +7,7 @@ import { getOrCreateAnonymousId } from '@/utils/anonymousAuth';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 
-type AuthStatus = 'loading' | 'onboarding' | 'unauthenticated' | 'authenticated';
+type AuthStatus = 'loading' | 'onboarding' | 'unauthenticated' | 'authenticated' | 'guest';
 
 interface User {
   id: string;
@@ -28,6 +28,7 @@ interface AuthContextType {
   signInWithOAuth: (provider: 'discord' | 'twitter') => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   refreshAuth: () => Promise<void>;
+  continueAsGuest: () => void;
   showAuthPrompt: boolean;
   setShowAuthPrompt: (show: boolean) => void;
 }
@@ -80,6 +81,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (!onboardingChecked) return;
     if (status === 'onboarding') return;
+    // Don't override guest status - user chose to continue as guest
+    if (status === 'guest') return;
 
     if (convexIsLoading) {
       setStatus('loading');
@@ -167,6 +170,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [convexIsAuthenticated]);
 
+  const continueAsGuest = useCallback(() => {
+    setStatus('guest');
+  }, []);
+
   // Determine the userId to use for data queries
   // Use the Convex user ID if authenticated, otherwise use anonymous ID
   const userId = convexIsAuthenticated ? 'authenticated' : anonymousId;
@@ -177,12 +184,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     userId,
     anonymousId,
     isAuthenticated: status === 'authenticated',
-    isGuest: status === 'unauthenticated',
+    isGuest: status === 'guest' || status === 'unauthenticated',
     signInWithPassword,
     signUpWithPassword,
     signInWithOAuth,
     signOut: handleSignOut,
     refreshAuth,
+    continueAsGuest,
     showAuthPrompt,
     setShowAuthPrompt,
   };

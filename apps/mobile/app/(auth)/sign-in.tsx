@@ -20,7 +20,7 @@ import { DesignTokens, Typography } from '@/constants/theme';
 export default function SignInScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { signInWithPassword, signInWithOAuth } = useAuth();
+  const { signInWithPassword, signInWithOAuth, continueAsGuest } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -71,8 +71,10 @@ export default function SignInScreen() {
     }
   };
 
-  const handleContinueAsGuest = () => {
-    router.replace('/(tabs)');
+  const handleContinueAsGuest = async () => {
+    continueAsGuest();
+    // Use push instead of replace and go to specific tab
+    router.push('/(tabs)/');
   };
 
   const handleGoToSignUp = () => {

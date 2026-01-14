@@ -35,8 +35,8 @@ function AuthNavigator() {
     if (status === 'onboarding') {
       // First time user - show onboarding
       router.replace('/(auth)/onboarding');
-    } else if (status === 'authenticated') {
-      // Authenticated user - go to main app
+    } else if (status === 'authenticated' || status === 'guest') {
+      // Authenticated user or guest - go to main app
       if (inAuthGroup) {
         router.replace('/(tabs)');
       }
@@ -46,7 +46,6 @@ function AuthNavigator() {
         router.replace('/(auth)/sign-in');
       }
     }
-    // For 'guest' status, don't force redirect - let them browse
   }, [status, segments, router]);
 
   return null;
