@@ -1,11 +1,12 @@
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { ReactNode } from "react";
-import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
+import { tokenCache } from "@clerk/clerk-expo/token-cache";
 
 // Create Convex client
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL!;
+const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
 if (!convexUrl) {
   throw new Error(
@@ -14,28 +15,33 @@ if (!convexUrl) {
   );
 }
 
+if (!clerkPublishableKey) {
+  throw new Error(
+    "Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable. " +
+    "Add your Clerk publishable key to .env"
+  );
+}
+
 const convex = new ConvexReactClient(convexUrl);
 
-// Storage adapter for React Native (SecureStore on native, localStorage on web)
-const storage = Platform.OS === "web"
-  ? {
-      getItem: (key: string) => localStorage.getItem(key),
-      setItem: (key: string, value: string) => localStorage.setItem(key, value),
-      removeItem: (key: string) => localStorage.removeItem(key),
-    }
-  : {
-      getItem: SecureStore.getItemAsync,
-      setItem: SecureStore.setItemAsync,
-      removeItem: SecureStore.deleteItemAsync,
-    };
+/**
+ * Inner provider that connects Convex with Clerk auth
+ */
+function ConvexClerkProvider({ children }: { children: ReactNode }) {
+  return (
+    <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+      {children}
+    </ConvexProviderWithClerk>
+  );
+}
 
 /**
- * ConvexAuthProvider wrapper for authentication
+ * Main provider wrapper - Clerk must wrap Convex
  */
 export function ConvexProviderWrapper({ children }: { children: ReactNode }) {
   return (
-    <ConvexAuthProvider client={convex} storage={storage}>
-      {children}
-    </ConvexAuthProvider>
+    <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={tokenCache}>
+      <ConvexClerkProvider>{children}</ConvexClerkProvider>
+    </ClerkProvider>
   );
 }

@@ -15,6 +15,7 @@ import type * as recentPlayers from "../recentPlayers.js";
 import type * as sharedLists from "../sharedLists.js";
 import type * as userLists from "../userLists.js";
 import type * as userSettings from "../userSettings.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   sharedLists: typeof sharedLists;
   userLists: typeof userLists;
   userSettings: typeof userSettings;
+  users: typeof users;
 }>;
 
 /**

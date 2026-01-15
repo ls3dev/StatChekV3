@@ -1,8 +1,7 @@
 import { httpRouter } from "convex/server";
-import { auth } from "./auth";
 
 const http = httpRouter();
 
-auth.addHttpRoutes(http);
+// Clerk handles all auth routes - no HTTP routes needed in Convex for auth
 
 export default http;

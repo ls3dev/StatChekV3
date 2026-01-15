@@ -52,7 +52,7 @@ export default function SignInScreen() {
     }
   };
 
-  const handleOAuthSignIn = async (provider: 'discord' | 'twitter') => {
+  const handleOAuthSignIn = async (provider: 'apple' | 'google' | 'discord') => {
     setOauthLoading(provider);
     setError(null);
 
@@ -110,6 +110,39 @@ export default function SignInScreen() {
 
           {/* OAuth Buttons */}
           <View style={styles.oauthContainer}>
+            {/* Apple Sign In */}
+            <Pressable
+              style={[styles.oauthButton, styles.appleButton]}
+              onPress={() => handleOAuthSignIn('apple')}
+              disabled={isDisabled}
+            >
+              {oauthLoading === 'apple' ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
+                  <Text style={styles.oauthButtonText}>Continue with Apple</Text>
+                </>
+              )}
+            </Pressable>
+
+            {/* Google Sign In */}
+            <Pressable
+              style={[styles.oauthButton, styles.googleButton]}
+              onPress={() => handleOAuthSignIn('google')}
+              disabled={isDisabled}
+            >
+              {oauthLoading === 'google' ? (
+                <ActivityIndicator color="#000000" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={20} color="#000000" />
+                  <Text style={[styles.oauthButtonText, { color: '#000000' }]}>Continue with Google</Text>
+                </>
+              )}
+            </Pressable>
+
+            {/* Discord Sign In */}
             <Pressable
               style={[styles.oauthButton, styles.discordButton]}
               onPress={() => handleOAuthSignIn('discord')}
@@ -244,13 +277,16 @@ const styles = StyleSheet.create({
     borderRadius: DesignTokens.radius.lg,
     gap: DesignTokens.spacing.sm,
   },
-  discordButton: {
-    backgroundColor: '#5865F2',
-  },
-  twitterButton: {
+  appleButton: {
     backgroundColor: '#000000',
+  },
+  googleButton: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: DesignTokens.borderDark,
+  },
+  discordButton: {
+    backgroundColor: '#5865F2',
   },
   oauthButtonText: {
     ...Typography.headline,

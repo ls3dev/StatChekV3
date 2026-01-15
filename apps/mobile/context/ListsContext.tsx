@@ -6,7 +6,7 @@ import { useAuth, useRequireAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { api } from '@statcheck/convex';
 
-const FREE_LIST_LIMIT = 3;
+const FREE_LIST_LIMIT = 1;
 
 type ListsContextValue = {
   lists: PlayerList[];
@@ -82,38 +82,44 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
   // Create a new list (requires authentication and checks limit)
   const createList = useCallback(
     async (name: string, description?: string): Promise<PlayerList | null> => {
-      // Check if user is authenticated
-      if (!isAuthenticated) {
-        setShowAuthPrompt(true);
+      try {
+        // Check if user is authenticated
+        if (!isAuthenticated) {
+          setShowAuthPrompt(true);
+          return null;
+        }
+
+        // Check list limit for non-Pro users
+        if (!isProUser && lists.length >= FREE_LIST_LIMIT) {
+          setShowPaywall(true);
+          return null;
+        }
+
+        if (!userId) {
+          console.error('User not initialized');
+          return null;
+        }
+
+        const listId = await createListMutation({
+          userId,
+          name,
+          description,
+        });
+
+        // Return the new list (it will be in the query results soon)
+        return {
+          id: listId,
+          name,
+          description,
+          players: [],
+          links: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      } catch (error) {
+        console.error('Error creating list:', error);
         return null;
       }
-
-      // Check list limit for non-Pro users
-      if (!isProUser && lists.length >= FREE_LIST_LIMIT) {
-        setShowPaywall(true);
-        return null;
-      }
-
-      if (!userId) {
-        throw new Error('User not initialized');
-      }
-
-      const listId = await createListMutation({
-        userId,
-        name,
-        description,
-      });
-
-      // Return the new list (it will be in the query results soon)
-      return {
-        id: listId,
-        name,
-        description,
-        players: [],
-        links: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
     },
     [userId, isAuthenticated, isProUser, lists.length, setShowAuthPrompt, createListMutation]
   );

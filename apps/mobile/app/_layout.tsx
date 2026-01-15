@@ -6,6 +6,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
+import { initSentry } from '@/utils/sentry';
+
+// Initialize Sentry as early as possible
+initSentry();
+
 import { ConvexProviderWrapper } from '@/providers/ConvexProvider';
 import { RevenueCatProvider } from '@/providers/RevenueCatProvider';
 import { ListsProvider } from '@/context/ListsContext';
@@ -40,12 +45,9 @@ function AuthNavigator() {
       if (inAuthGroup) {
         router.replace('/(tabs)');
       }
-    } else if (status === 'unauthenticated') {
-      // Not authenticated - show sign in (they can choose to continue as guest)
-      if (!inAuthGroup) {
-        router.replace('/(auth)/sign-in');
-      }
     }
+    // For unauthenticated users (guests), let them browse freely.
+    // The ListsContext will show AuthPromptModal when they try to create lists.
   }, [status, segments, router]);
 
   return null;

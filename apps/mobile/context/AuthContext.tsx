@@ -1,11 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useConvexAuth, useQuery } from 'convex/react';
-import { useAuthActions } from '@convex-dev/auth/react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
+import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import { useAuth as useClerkAuth, useUser, useSignIn, useSignUp } from '@clerk/clerk-expo';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import { api } from '@statcheck/convex';
 import { hasCompletedOnboarding } from '@/utils/storage';
 import { getOrCreateAnonymousId } from '@/utils/anonymousAuth';
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
+import { setUser as setSentryUser, captureException } from '@/utils/sentry';
+import { Platform } from 'react-native';
+
+// Warm up browser for OAuth
+WebBrowser.maybeCompleteAuthSession();
 
 type AuthStatus = 'loading' | 'onboarding' | 'unauthenticated' | 'authenticated' | 'guest';
 
@@ -23,9 +28,10 @@ interface AuthContextType {
   anonymousId: string | null;
   isAuthenticated: boolean;
   isGuest: boolean;
+  isUserReady: boolean;
   signInWithPassword: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithPassword: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>;
-  signInWithOAuth: (provider: 'discord' | 'twitter') => Promise<{ success: boolean; error?: string }>;
+  signInWithOAuth: (provider: 'apple' | 'google' | 'discord') => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   continueAsGuest: () => void;
@@ -39,9 +45,31 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Browser warmup for Android OAuth
+function useWarmUpBrowser() {
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    void WebBrowser.warmUpAsync();
+    return () => {
+      void WebBrowser.coolDownAsync();
+    };
+  }, []);
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
+  useWarmUpBrowser();
+
+  // Convex auth state (validates Clerk JWT with Convex backend)
   const { isAuthenticated: convexIsAuthenticated, isLoading: convexIsLoading } = useConvexAuth();
-  const { signIn, signOut: convexSignOut } = useAuthActions();
+
+  // Clerk hooks
+  const { signOut: clerkSignOut } = useClerkAuth();
+  const { user: clerkUser, isLoaded: userLoaded } = useUser();
+  const { signIn, setActive: setSignInActive, isLoaded: signInLoaded } = useSignIn();
+  const { signUp, setActive: setSignUpActive, isLoaded: signUpLoaded } = useSignUp();
+
+  // Sync user to Convex on authentication
+  const getOrCreateUser = useMutation(api.users.getOrCreateUser);
 
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<User | null>(null);
@@ -49,17 +77,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
-  // Get current user from Convex when authenticated
-  // Note: @convex-dev/auth stores user info that we can access
+  // Sync Clerk user to Convex and update local state
   useEffect(() => {
-    if (convexIsAuthenticated) {
-      // User is authenticated - we'll get user info from the session
-      // For now, set a placeholder that indicates authenticated state
-      setUser({ id: 'authenticated' });
-    } else {
-      setUser(null);
-    }
-  }, [convexIsAuthenticated]);
+    const syncUser = async () => {
+      if (convexIsAuthenticated && clerkUser) {
+        try {
+          const convexUser = await getOrCreateUser();
+          if (convexUser) {
+            setUser({
+              id: convexUser.id,
+              email: convexUser.email,
+              name: convexUser.name,
+              image: convexUser.image,
+            });
+            setSentryUser({
+              id: convexUser.id,
+              email: convexUser.email,
+              username: convexUser.name,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to sync user:', error);
+          captureException(error as Error, { context: 'syncUser' });
+        }
+      } else if (!convexIsAuthenticated) {
+        setUser(null);
+        setSentryUser(null);
+      }
+    };
+    syncUser();
+  }, [convexIsAuthenticated, clerkUser, getOrCreateUser]);
 
   // Check onboarding status on mount
   useEffect(() => {
@@ -69,8 +116,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setStatus('onboarding');
       }
       setOnboardingChecked(true);
-
-      // Always get anonymous ID for guest mode
       const anonId = await getOrCreateAnonymousId();
       setAnonymousId(anonId);
     };
@@ -81,7 +126,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (!onboardingChecked) return;
     if (status === 'onboarding') return;
-    // Don't override guest status - user chose to continue as guest
     if (status === 'guest') return;
 
     if (convexIsLoading) {
@@ -97,74 +141,140 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [convexIsAuthenticated, convexIsLoading, onboardingChecked, status]);
 
   const signInWithPassword = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      await signIn('password', { email, password, flow: 'signIn' });
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Sign in failed' };
+    if (!signInLoaded || !signIn) {
+      return { success: false, error: 'Sign in not ready' };
     }
-  }, [signIn]);
+
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (result.status === 'complete' && result.createdSessionId) {
+        await setSignInActive({ session: result.createdSessionId });
+        return { success: true };
+      }
+
+      return { success: false, error: 'Sign in incomplete' };
+    } catch (err: any) {
+      console.error('Sign in error:', err);
+      captureException(err, { context: 'signInWithPassword', email });
+      const errorMessage = err.errors?.[0]?.message || err.message || 'Sign in failed';
+      return { success: false, error: errorMessage };
+    }
+  }, [signIn, setSignInActive, signInLoaded]);
 
   const signUpWithPassword = useCallback(async (email: string, password: string, name?: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const params: Record<string, string> = { email, password, flow: 'signUp' };
-      if (name) params.name = name;
-      await signIn('password', params);
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Sign up failed' };
+    if (!signUpLoaded || !signUp) {
+      return { success: false, error: 'Sign up not ready' };
     }
-  }, [signIn]);
 
-  const signInWithOAuth = useCallback(async (provider: 'discord' | 'twitter'): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Get the redirect URL for OAuth
-      const redirectTo = Linking.createURL('/');
+      const result = await signUp.create({
+        emailAddress: email,
+        password,
+        firstName: name,
+      });
 
-      const result = await signIn(provider, { redirectTo });
+      // Handle email verification if required
+      if (result.status === 'missing_requirements') {
+        // Email verification might be required
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+        return { success: false, error: 'Please check your email for a verification code' };
+      }
 
-      // If we get a redirect URL, open it in a browser
-      if (result && typeof result === 'object' && 'redirect' in result && result.redirect) {
-        const redirectUrl = typeof result.redirect === 'string' ? result.redirect : result.redirect.toString();
-        const authResult = await WebBrowser.openAuthSessionAsync(
-          redirectUrl,
-          redirectTo
-        );
+      if (result.status === 'complete' && result.createdSessionId) {
+        await setSignUpActive({ session: result.createdSessionId });
+        return { success: true };
+      }
 
-        if (authResult.type === 'success') {
+      return { success: false, error: 'Sign up incomplete' };
+    } catch (err: any) {
+      console.error('Sign up error:', err);
+      captureException(err, { context: 'signUpWithPassword', email });
+      const errorMessage = err.errors?.[0]?.message || err.message || 'Sign up failed';
+      return { success: false, error: errorMessage };
+    }
+  }, [signUp, setSignUpActive, signUpLoaded]);
+
+  const signInWithOAuth = useCallback(async (provider: 'apple' | 'google' | 'discord'): Promise<{ success: boolean; error?: string }> => {
+    if (!signInLoaded || !signIn) {
+      return { success: false, error: 'Sign in not ready' };
+    }
+
+    try {
+      // Map provider names to Clerk strategies
+      const strategyMap = {
+        apple: 'oauth_apple',
+        google: 'oauth_google',
+        discord: 'oauth_discord',
+      } as const;
+
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: 'statcheck',
+      });
+
+      const result = await signIn.create({
+        strategy: strategyMap[provider],
+        redirectUrl,
+      });
+
+      const externalVerification = result.firstFactorVerification?.externalVerificationRedirectURL;
+
+      if (!externalVerification) {
+        return { success: false, error: 'OAuth not available' };
+      }
+
+      const authResult = await WebBrowser.openAuthSessionAsync(
+        externalVerification.toString(),
+        redirectUrl
+      );
+
+      if (authResult.type !== 'success') {
+        return { success: false, error: 'OAuth cancelled' };
+      }
+
+      // Get the rotated session ID from the callback URL
+      const url = new URL(authResult.url);
+      const rotatingTokenNonce = url.searchParams.get('rotating_token_nonce');
+
+      if (rotatingTokenNonce) {
+        // Reload to get the completed session
+        const reloadedResult = await signIn.reload();
+        if (reloadedResult.status === 'complete' && reloadedResult.createdSessionId) {
+          await setSignInActive({ session: reloadedResult.createdSessionId });
           return { success: true };
-        } else {
-          return { success: false, error: 'OAuth cancelled' };
         }
       }
 
-      return { success: true };
+      return { success: false, error: 'OAuth flow incomplete' };
     } catch (err: any) {
+      console.error('OAuth error:', err);
+      captureException(err, { context: 'signInWithOAuth', provider });
       return { success: false, error: err.message || 'OAuth sign in failed' };
     }
-  }, [signIn]);
+  }, [signIn, setSignInActive, signInLoaded]);
 
   const handleSignOut = useCallback(async () => {
     try {
-      await convexSignOut();
-    } catch (error) {
+      await clerkSignOut();
+      setSentryUser(null);
+      setUser(null);
+    } catch (error: any) {
       console.error('Sign out error:', error);
+      captureException(error, { context: 'signOut' });
     }
-  }, [convexSignOut]);
+  }, [clerkSignOut]);
 
   const refreshAuth = useCallback(async () => {
-    // Re-check onboarding status
     const onboardingComplete = await hasCompletedOnboarding();
     if (!onboardingComplete) {
       setStatus('onboarding');
       return;
     }
-
-    // Get anonymous ID
     const anonId = await getOrCreateAnonymousId();
     setAnonymousId(anonId);
-
-    // Auth state will auto-refresh via useConvexAuth
     if (!convexIsAuthenticated) {
       setStatus('unauthenticated');
     }
@@ -174,9 +284,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setStatus('guest');
   }, []);
 
-  // Determine the userId to use for data queries
-  // Use the Convex user ID if authenticated, otherwise use anonymous ID
-  const userId = convexIsAuthenticated ? 'authenticated' : anonymousId;
+  // userId: Clerk ID when authenticated, anonymous ID for guests
+  const userId = useMemo(() => {
+    if (convexIsAuthenticated && user?.id) {
+      return user.id;
+    }
+    return anonymousId;
+  }, [convexIsAuthenticated, user?.id, anonymousId]);
+
+  // isUserReady: true when userId is properly initialized
+  const isUserReady = useMemo(() => {
+    if (status === 'loading' || status === 'onboarding') return false;
+    if (convexIsAuthenticated) {
+      return user?.id !== undefined;
+    }
+    return anonymousId !== null;
+  }, [status, convexIsAuthenticated, user?.id, anonymousId]);
 
   const value: AuthContextType = {
     status,
@@ -185,6 +308,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     anonymousId,
     isAuthenticated: status === 'authenticated',
     isGuest: status === 'guest' || status === 'unauthenticated',
+    isUserReady,
     signInWithPassword,
     signUpWithPassword,
     signInWithOAuth,
