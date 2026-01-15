@@ -5,6 +5,7 @@ import type { PlayerList, PlayerListItem, PlayerListLink } from '@/types';
 import { useAuth, useRequireAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { api } from '@statcheck/convex';
+import { captureException, addBreadcrumb } from '@/utils/sentry';
 
 const FREE_LIST_LIMIT = 1;
 
@@ -36,14 +37,15 @@ type ListsContextValue = {
 const ListsContext = createContext<ListsContextValue | undefined>(undefined);
 
 export function ListsProvider({ children }: { children: React.ReactNode }) {
-  const { userId, isAuthenticated, setShowAuthPrompt } = useAuth();
+  const { userId, isAuthenticated, isUserReady, setShowAuthPrompt } = useAuth();
   const { isProUser } = useRevenueCat();
   const [showPaywall, setShowPaywall] = useState(false);
 
   // Query all user lists from Convex (real-time subscription)
+  // Only query when user is fully ready to prevent race conditions
   const convexLists = useQuery(
     api.userLists.getUserLists,
-    userId ? { userId } : 'skip'
+    isUserReady && userId ? { userId } : 'skip'
   );
 
   // Mutations
@@ -83,20 +85,30 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
   const createList = useCallback(
     async (name: string, description?: string): Promise<PlayerList | null> => {
       try {
+        addBreadcrumb('Creating list', 'lists', { name, isAuthenticated, isProUser, listsCount: lists.length });
+
         // Check if user is authenticated
         if (!isAuthenticated) {
+          addBreadcrumb('Auth prompt shown - user not authenticated', 'lists');
           setShowAuthPrompt(true);
           return null;
         }
 
         // Check list limit for non-Pro users
         if (!isProUser && lists.length >= FREE_LIST_LIMIT) {
+          addBreadcrumb('Paywall shown - list limit reached', 'lists');
           setShowPaywall(true);
           return null;
         }
 
-        if (!userId) {
-          console.error('User not initialized');
+        if (!isUserReady || !userId) {
+          console.error('User not ready');
+          captureException(new Error('User not ready when creating list'), {
+            context: 'createList',
+            isAuthenticated,
+            isUserReady,
+            userId,
+          });
           return null;
         }
 
@@ -105,6 +117,8 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
           name,
           description,
         });
+
+        addBreadcrumb('List created successfully', 'lists', { listId });
 
         // Return the new list (it will be in the query results soon)
         return {
@@ -116,12 +130,19 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error creating list:', error);
+        captureException(error, {
+          context: 'createList',
+          name,
+          userId,
+          isAuthenticated,
+          isProUser,
+        });
         return null;
       }
     },
-    [userId, isAuthenticated, isProUser, lists.length, setShowAuthPrompt, createListMutation]
+    [userId, isAuthenticated, isUserReady, isProUser, lists.length, setShowAuthPrompt, createListMutation]
   );
 
   // Update list name/description
@@ -168,8 +189,8 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
   // Add player to list (requires authentication)
   const addPlayerToList = useCallback(
     async (listId: string, playerId: string): Promise<boolean> => {
-      // Check if user is authenticated
-      if (!isAuthenticated) {
+      // Check if user is authenticated and ready
+      if (!isAuthenticated || !isUserReady) {
         setShowAuthPrompt(true);
         return false;
       }
@@ -186,7 +207,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
 
       return result.success;
     },
-    [isAuthenticated, setShowAuthPrompt, isPlayerInList, addPlayerMutation]
+    [isAuthenticated, isUserReady, setShowAuthPrompt, isPlayerInList, addPlayerMutation]
   );
 
   // Remove player from list
