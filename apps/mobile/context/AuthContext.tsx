@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
-import { useAuth as useClerkAuth, useUser, useSignIn, useSignUp } from '@clerk/clerk-expo';
+import { useAuth as useClerkAuth, useUser, useSignIn, useSignUp, useSSO } from '@clerk/clerk-expo';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { api } from '@statcheck/convex';
@@ -67,6 +67,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { user: clerkUser, isLoaded: userLoaded } = useUser();
   const { signIn, setActive: setSignInActive, isLoaded: signInLoaded } = useSignIn();
   const { signUp, setActive: setSignUpActive, isLoaded: signUpLoaded } = useSignUp();
+
+  // SSO hooks for OAuth providers
+  const { startSSOFlow: startAppleSSO } = useSSO({ strategy: 'oauth_apple' });
+  const { startSSOFlow: startGoogleSSO } = useSSO({ strategy: 'oauth_google' });
+  const { startSSOFlow: startDiscordSSO } = useSSO({ strategy: 'oauth_discord' });
 
   // Sync user to Convex on authentication
   const getOrCreateUser = useMutation(api.users.getOrCreateUser);
@@ -199,46 +204,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [signUp, setSignUpActive, signUpLoaded]);
 
   const signInWithOAuth = useCallback(async (provider: 'apple' | 'google' | 'discord'): Promise<{ success: boolean; error?: string }> => {
-    if (!signInLoaded || !signIn) {
-      return { success: false, error: 'Sign in not ready' };
-    }
-
     try {
-      // Map provider names to Clerk strategies
-      const strategyMap = {
-        apple: 'oauth_apple',
-        google: 'oauth_google',
-        discord: 'oauth_discord',
-      } as const;
+      // Select the correct SSO flow based on provider
+      const ssoFlowMap = {
+        apple: startAppleSSO,
+        google: startGoogleSSO,
+        discord: startDiscordSSO,
+      };
 
-      const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: 'statcheck',
-      });
+      const startFlow = ssoFlowMap[provider];
+      const redirectUrl = AuthSession.makeRedirectUri({ scheme: 'statcheck' });
 
-      const result = await signIn.create({
-        strategy: strategyMap[provider],
-        redirectUrl,
-      });
+      const { createdSessionId, setActive } = await startFlow({ redirectUrl });
 
-      const externalVerification = result.firstFactorVerification?.externalVerificationRedirectURL;
-
-      if (!externalVerification) {
-        return { success: false, error: 'OAuth not available' };
-      }
-
-      const authResult = await WebBrowser.openAuthSessionAsync(
-        externalVerification.toString(),
-        redirectUrl
-      );
-
-      if (authResult.type !== 'success') {
-        return { success: false, error: 'OAuth cancelled' };
-      }
-
-      // Always reload to get the completed session after browser returns
-      const reloadedResult = await signIn.reload();
-      if (reloadedResult.status === 'complete' && reloadedResult.createdSessionId) {
-        await setSignInActive({ session: reloadedResult.createdSessionId });
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
         return { success: true };
       }
 
@@ -248,7 +228,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       captureException(err, { context: 'signInWithOAuth', provider });
       return { success: false, error: err.message || 'OAuth sign in failed' };
     }
-  }, [signIn, setSignInActive, signInLoaded]);
+  }, [startAppleSSO, startGoogleSSO, startDiscordSSO]);
 
   const handleSignOut = useCallback(async () => {
     try {

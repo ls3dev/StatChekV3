@@ -8,18 +8,28 @@ import { CreateListModal, ListCard } from '@/components/lists';
 import { SyncIndicator } from '@/components/SyncIndicator';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { useLists } from '@/hooks/useLists';
 
 export default function ListsScreen() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { isAuthenticated, setShowAuthPrompt } = useAuth();
   const { lists, createList } = useLists();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Check auth before showing create modal
+  const handleCreateButtonPress = () => {
+    if (!isAuthenticated) {
+      setShowAuthPrompt(true);
+      return;
+    }
+    setShowCreateModal(true);
+  };
+
   const handleCreateList = async (name: string, description?: string) => {
     try {
-      // Close modal first so auth/paywall prompts can show
       setShowCreateModal(false);
       await createList(name, description);
     } catch (error) {
@@ -88,7 +98,7 @@ export default function ListsScreen() {
               Create your first list to organize players
             </Text>
             <TouchableOpacity
-              onPress={() => setShowCreateModal(true)}
+              onPress={handleCreateButtonPress}
               style={[styles.emptyButton, { backgroundColor: DesignTokens.accentPurple }]}>
               <Ionicons name="add" size={20} color="#fff" />
               <Text style={styles.emptyButtonText}>Create List</Text>
@@ -99,7 +109,7 @@ export default function ListsScreen() {
 
       {/* Floating Add Button */}
       <TouchableOpacity
-        onPress={() => setShowCreateModal(true)}
+        onPress={handleCreateButtonPress}
         style={[
           styles.floatingButton,
           { backgroundColor: DesignTokens.accentPurple },
