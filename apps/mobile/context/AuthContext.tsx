@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
-import { useAuth as useClerkAuth, useUser, useSignIn, useSignUp, useSSO } from '@clerk/clerk-expo';
+import { useAuth as useClerkAuth, useUser, useSignIn, useSignUp, useOAuth } from '@clerk/clerk-expo';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { api } from '@statcheck/convex';
@@ -68,10 +68,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { signIn, setActive: setSignInActive, isLoaded: signInLoaded } = useSignIn();
   const { signUp, setActive: setSignUpActive, isLoaded: signUpLoaded } = useSignUp();
 
-  // SSO hooks for OAuth providers
-  const { startSSOFlow: startAppleSSO } = useSSO({ strategy: 'oauth_apple' });
-  const { startSSOFlow: startGoogleSSO } = useSSO({ strategy: 'oauth_google' });
-  const { startSSOFlow: startDiscordSSO } = useSSO({ strategy: 'oauth_discord' });
+  // OAuth hooks for providers
+  const { startOAuthFlow: startAppleOAuth } = useOAuth({ strategy: 'oauth_apple' });
+  const { startOAuthFlow: startGoogleOAuth } = useOAuth({ strategy: 'oauth_google' });
+  const { startOAuthFlow: startDiscordOAuth } = useOAuth({ strategy: 'oauth_discord' });
 
   // Sync user to Convex on authentication
   const getOrCreateUser = useMutation(api.users.getOrCreateUser);
@@ -205,14 +205,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signInWithOAuth = useCallback(async (provider: 'apple' | 'google' | 'discord'): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Select the correct SSO flow based on provider
-      const ssoFlowMap = {
-        apple: startAppleSSO,
-        google: startGoogleSSO,
-        discord: startDiscordSSO,
+      // Select the correct OAuth flow based on provider
+      const oauthFlowMap = {
+        apple: startAppleOAuth,
+        google: startGoogleOAuth,
+        discord: startDiscordOAuth,
       };
 
-      const startFlow = ssoFlowMap[provider];
+      const startFlow = oauthFlowMap[provider];
       const redirectUrl = AuthSession.makeRedirectUri({ scheme: 'statcheck' });
 
       const { createdSessionId, setActive } = await startFlow({ redirectUrl });
@@ -228,7 +228,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       captureException(err, { context: 'signInWithOAuth', provider });
       return { success: false, error: err.message || 'OAuth sign in failed' };
     }
-  }, [startAppleSSO, startGoogleSSO, startDiscordSSO]);
+  }, [startAppleOAuth, startGoogleOAuth, startDiscordOAuth]);
 
   const handleSignOut = useCallback(async () => {
     try {
