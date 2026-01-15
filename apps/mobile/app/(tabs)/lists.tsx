@@ -18,8 +18,13 @@ export default function ListsScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleCreateList = async (name: string, description?: string) => {
-    await createList(name, description);
-    setShowCreateModal(false);
+    try {
+      // Close modal first so auth/paywall prompts can show
+      setShowCreateModal(false);
+      await createList(name, description);
+    } catch (error) {
+      console.error('Error creating list:', error);
+    }
   };
 
   const handleListPress = (listId: string) => {

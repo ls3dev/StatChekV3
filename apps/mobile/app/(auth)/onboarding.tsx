@@ -44,13 +44,13 @@ export default function OnboardingScreen() {
   const handleComplete = async () => {
     await setOnboardingComplete();
     await refreshAuth();
-    router.replace('/(auth)/sign-in');
+    router.replace('/(tabs)');
   };
 
   const handleSkip = async () => {
     await setOnboardingComplete();
     await refreshAuth();
-    router.replace('/(auth)/sign-in');
+    router.replace('/(tabs)');
   };
 
   const handleNext = () => {

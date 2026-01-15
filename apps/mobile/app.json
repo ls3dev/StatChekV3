@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.statcheck.app",
-      "buildNumber": "13",
+      "buildNumber": "23",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -46,7 +46,15 @@
           }
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "statcheck",
+          "project": "statcheck-mobile",
+          "uploadSourceMaps": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -235,17 +235,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return { success: false, error: 'OAuth cancelled' };
       }
 
-      // Get the rotated session ID from the callback URL
-      const url = new URL(authResult.url);
-      const rotatingTokenNonce = url.searchParams.get('rotating_token_nonce');
-
-      if (rotatingTokenNonce) {
-        // Reload to get the completed session
-        const reloadedResult = await signIn.reload();
-        if (reloadedResult.status === 'complete' && reloadedResult.createdSessionId) {
-          await setSignInActive({ session: reloadedResult.createdSessionId });
-          return { success: true };
-        }
+      // Always reload to get the completed session after browser returns
+      const reloadedResult = await signIn.reload();
+      if (reloadedResult.status === 'complete' && reloadedResult.createdSessionId) {
+        await setSignInActive({ session: reloadedResult.createdSessionId });
+        return { success: true };
       }
 
       return { success: false, error: 'OAuth flow incomplete' };
