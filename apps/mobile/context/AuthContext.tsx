@@ -131,16 +131,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (!onboardingChecked) return;
     if (status === 'onboarding') return;
-    if (status === 'guest') return;
 
     if (convexIsLoading) {
       setStatus('loading');
       return;
     }
 
+    // Always update to authenticated if Convex confirms auth (even from guest)
     if (convexIsAuthenticated) {
       setStatus('authenticated');
-    } else {
+    } else if (status !== 'guest') {
+      // Only set unauthenticated if not already a guest
       setStatus('unauthenticated');
     }
   }, [convexIsAuthenticated, convexIsLoading, onboardingChecked, status]);
