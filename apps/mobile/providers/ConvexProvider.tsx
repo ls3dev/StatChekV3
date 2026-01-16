@@ -1,4 +1,4 @@
-import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
+import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { ReactNode } from "react";
@@ -37,11 +37,14 @@ function ConvexClerkProvider({ children }: { children: ReactNode }) {
 
 /**
  * Main provider wrapper - Clerk must wrap Convex
+ * ClerkLoaded ensures Clerk is ready before Convex tries to use it
  */
 export function ConvexProviderWrapper({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={tokenCache}>
-      <ConvexClerkProvider>{children}</ConvexClerkProvider>
+      <ClerkLoaded>
+        <ConvexClerkProvider>{children}</ConvexClerkProvider>
+      </ClerkLoaded>
     </ClerkProvider>
   );
 }
