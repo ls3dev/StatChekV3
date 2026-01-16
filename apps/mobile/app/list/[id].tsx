@@ -70,13 +70,15 @@ export default function ListDetailScreen() {
   // Map player IDs to full player data
   const playersWithData = useMemo((): PlayerWithData[] => {
     if (!list) return [];
+    if (!list.players || !Array.isArray(list.players)) return [];
     return list.players
+      .filter((item) => item && item.playerId) // Filter out invalid items
       .map((item) => ({
         ...item,
         player: getPlayerById(item.playerId),
       }))
       .filter((item): item is PlayerWithData => item.player !== undefined)
-      .sort((a, b) => a.order - b.order);
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [list]);
 
   // Determine the current mode based on player count
@@ -286,7 +288,7 @@ export default function ListDetailScreen() {
           >
             <AgendaMode
               player={playersWithData[0].player}
-              links={list.links}
+              links={list?.links ?? []}
               isDark={isDark}
               onPlayerPress={() => setSelectedPlayer(playersWithData[0].player)}
               onAddPlayer={() => setShowAddPlayerModal(true)}
@@ -307,7 +309,7 @@ export default function ListDetailScreen() {
             <VSMode
               player1={playersWithData[0].player}
               player2={playersWithData[1].player}
-              links={list.links}
+              links={list?.links ?? []}
               isDark={isDark}
               onPlayer1Press={() => setSelectedPlayer(playersWithData[0].player)}
               onPlayer2Press={() => setSelectedPlayer(playersWithData[1].player)}
@@ -328,7 +330,7 @@ export default function ListDetailScreen() {
           >
             <RankingMode
               players={playersWithData}
-              links={list.links}
+              links={list?.links ?? []}
               isDark={isDark}
               onPlayerPress={(player) => setSelectedPlayer(player)}
               onAddPlayer={() => setShowAddPlayerModal(true)}
