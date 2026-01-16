@@ -117,6 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const checkOnboarding = async () => {
       const onboardingComplete = await hasCompletedOnboarding();
+      console.log('[AUTH] Onboarding complete?', onboardingComplete);
       if (!onboardingComplete) {
         setStatus('onboarding');
       }
@@ -205,6 +206,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [signUp, setSignUpActive, signUpLoaded]);
 
   const signInWithOAuth = useCallback(async (provider: 'apple' | 'google' | 'discord'): Promise<{ success: boolean; error?: string }> => {
+    console.log('[AUTH] signInWithOAuth called:', provider);
     try {
       // Select the correct OAuth flow based on provider
       const oauthFlowMap = {
@@ -215,29 +217,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const startFlow = oauthFlowMap[provider];
       const redirectUrl = AuthSession.makeRedirectUri({ scheme: 'statcheck' });
+      console.log('[AUTH] OAuth redirect URL:', redirectUrl);
 
+      console.log('[AUTH] Starting OAuth flow...');
       const { createdSessionId, setActive } = await startFlow({ redirectUrl });
+      console.log('[AUTH] OAuth flow returned, sessionId:', createdSessionId);
 
       if (createdSessionId && setActive) {
+        console.log('[AUTH] Setting active session...');
         await setActive({ session: createdSessionId });
+        console.log('[AUTH] Session activated');
         return { success: true };
       }
 
+      console.log('[AUTH] No session created');
       return { success: false, error: 'OAuth flow incomplete' };
     } catch (err: any) {
-      console.error('OAuth error:', err);
+      console.error('[AUTH] OAuth error:', err);
       captureException(err, { context: 'signInWithOAuth', provider });
       return { success: false, error: err.message || 'OAuth sign in failed' };
     }
   }, [startAppleOAuth, startGoogleOAuth, startDiscordOAuth]);
 
   const handleSignOut = useCallback(async () => {
+    console.log('[AUTH] Sign out initiated');
     try {
       await clerkSignOut();
+      console.log('[AUTH] Clerk sign out complete');
       setSentryUser(null);
       setUser(null);
+      setStatus('unauthenticated');
+      console.log('[AUTH] Status set to unauthenticated');
     } catch (error: any) {
-      console.error('Sign out error:', error);
+      console.error('[AUTH] Sign out error:', error);
       captureException(error, { context: 'signOut' });
     }
   }, [clerkSignOut]);

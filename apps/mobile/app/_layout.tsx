@@ -33,21 +33,22 @@ function AuthNavigator() {
   const segments = useSegments();
 
   useEffect(() => {
+    console.log('[NAV] AuthNavigator effect - status:', status, 'segments:', segments);
     if (status === 'loading') return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
     if (status === 'onboarding') {
-      // First time user - show onboarding
+      console.log('[NAV] Redirecting to onboarding');
       router.replace('/(auth)/onboarding');
-    } else if (status === 'authenticated' || status === 'guest') {
-      // Authenticated user or guest - go to main app
+    } else if (status === 'authenticated') {
+      // Redirect authenticated users away from auth screens to main app
       if (inAuthGroup) {
+        console.log('[NAV] Authenticated user in auth group, redirecting to tabs');
         router.replace('/(tabs)');
       }
     }
-    // For unauthenticated users (guests), let them browse freely.
-    // The ListsContext will show AuthPromptModal when they try to create lists.
+    // Guests and unauthenticated users can freely access auth screens (sign-in/sign-up)
   }, [status, segments, router]);
 
   return null;
@@ -89,6 +90,8 @@ function RootLayoutNav() {
             <Stack>
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="list/[id]" options={{ headerShown: false }} />
+              <Stack.Screen name="player/[id]" options={{ headerShown: false }} />
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             </Stack>
             <AuthPromptModal />

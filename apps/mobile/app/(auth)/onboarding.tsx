@@ -29,7 +29,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { refreshAuth } = useAuth();
+  const { continueAsGuest } = useAuth();
   const scrollX = useSharedValue(0);
   const currentIndex = useSharedValue(0);
   const scrollRef = useRef<Animated.ScrollView>(null);
@@ -43,13 +43,13 @@ export default function OnboardingScreen() {
 
   const handleComplete = async () => {
     await setOnboardingComplete();
-    await refreshAuth();
+    continueAsGuest();
     router.replace('/(tabs)');
   };
 
   const handleSkip = async () => {
     await setOnboardingComplete();
-    await refreshAuth();
+    continueAsGuest();
     router.replace('/(tabs)');
   };
 

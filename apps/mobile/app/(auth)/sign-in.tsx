@@ -53,18 +53,23 @@ export default function SignInScreen() {
   };
 
   const handleOAuthSignIn = async (provider: 'apple' | 'google' | 'discord') => {
+    console.log('[SIGN-IN] OAuth started:', provider);
     setOauthLoading(provider);
     setError(null);
 
     try {
       const result = await signInWithOAuth(provider);
+      console.log('[SIGN-IN] OAuth result:', result);
 
       if (result.success) {
+        console.log('[SIGN-IN] OAuth success, navigating to tabs');
         router.replace('/(tabs)');
       } else {
+        console.log('[SIGN-IN] OAuth failed:', result.error);
         setError(result.error || `${provider} sign in failed`);
       }
     } catch (err: any) {
+      console.error('[SIGN-IN] OAuth error:', err);
       setError(err.message || `${provider} sign in failed`);
     } finally {
       setOauthLoading(null);
