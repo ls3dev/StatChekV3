@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import { useMutation } from 'convex/react';
 import { api } from '@statcheck/convex';
 
@@ -235,12 +234,7 @@ export default function ListDetailScreen() {
     switch (currentMode) {
       case 'empty':
         return (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            layout={Layout.springify()}
-            style={styles.emptyContainer}
-          >
+          <View style={styles.emptyContainer}>
             <View
               style={[
                 styles.emptyCard,
@@ -276,16 +270,12 @@ export default function ListDetailScreen() {
                 <Text style={styles.emptyAddButtonText}>Add Player</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
+          </View>
         );
 
       case 'agenda':
         return (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            layout={Layout.springify()}
-          >
+          <View>
             <AgendaMode
               player={playersWithData[0].player}
               links={list?.links ?? []}
@@ -296,16 +286,12 @@ export default function ListDetailScreen() {
               onRemoveLink={handleRemoveLink}
               onRemovePlayer={() => handleRemovePlayer(playersWithData[0].playerId)}
             />
-          </Animated.View>
+          </View>
         );
 
       case 'vs':
         return (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            layout={Layout.springify()}
-          >
+          <View>
             <VSMode
               player1={playersWithData[0].player}
               player2={playersWithData[1].player}
@@ -318,16 +304,12 @@ export default function ListDetailScreen() {
               onRemoveLink={handleRemoveLink}
               onRemovePlayer={handleRemovePlayer}
             />
-          </Animated.View>
+          </View>
         );
 
       case 'ranking':
         return (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            layout={Layout.springify()}
-          >
+          <View>
             <RankingMode
               players={playersWithData}
               links={list?.links ?? []}
@@ -339,7 +321,7 @@ export default function ListDetailScreen() {
               onAddLink={() => setShowAddLinkModal(true)}
               onRemoveLink={handleRemoveLink}
             />
-          </Animated.View>
+          </View>
         );
     }
   };
