@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.statcheck.app",
-      "buildNumber": "36",
+      "buildNumber": "37",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "infoPlist": {

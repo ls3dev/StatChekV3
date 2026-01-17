@@ -1,9 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Swipeable } from 'react-native-gesture-handler';
 import { DesignTokens, Typography, PlayerStatusColors } from '@/constants/theme';
 import type { Player, PlayerListItem, PlayerListLink } from '@/types';
 
@@ -36,7 +35,6 @@ function RankPlayerRow({
   onRemove: () => void;
 }) {
   const [imageError, setImageError] = useState(false);
-  const swipeableRef = useRef<Swipeable>(null);
   const player = item.player;
 
   const initials = player.name
@@ -65,31 +63,6 @@ function RankPlayerRow({
 
   const rankStyle = getRankStyle();
 
-  const renderRightActions = (
-    progress: Animated.AnimatedInterpolation<number>,
-    dragX: Animated.AnimatedInterpolation<number>
-  ) => {
-    const scale = dragX.interpolate({
-      inputRange: [-80, 0],
-      outputRange: [1, 0.5],
-      extrapolate: 'clamp',
-    });
-
-    return (
-      <TouchableOpacity
-        style={styles.deleteAction}
-        onPress={() => {
-          swipeableRef.current?.close();
-          onRemove();
-        }}
-      >
-        <Animated.View style={{ transform: [{ scale }] }}>
-          <Ionicons name="trash" size={22} color="#fff" />
-        </Animated.View>
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <View
       style={[
@@ -99,32 +72,26 @@ function RankPlayerRow({
         accentColor && { borderLeftWidth: 4, borderLeftColor: accentColor },
       ]}
     >
-      <Swipeable
-        ref={swipeableRef}
-        renderRightActions={renderRightActions}
-        rightThreshold={40}
-        overshootRight={false}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={onPress}
+        style={[
+          styles.row,
+          {
+            backgroundColor: accentColor
+              ? isDark
+                ? 'rgba(255, 215, 0, 0.08)'
+                : 'rgba(255, 215, 0, 0.1)'
+              : isDark
+                ? DesignTokens.cardBackgroundDark
+                : DesignTokens.cardBackground,
+          },
+          !isLast && {
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+          },
+        ]}
       >
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={onPress}
-          style={[
-            styles.row,
-            {
-              backgroundColor: accentColor
-                ? isDark
-                  ? 'rgba(255, 215, 0, 0.08)'
-                  : 'rgba(255, 215, 0, 0.1)'
-                : isDark
-                  ? DesignTokens.cardBackgroundDark
-                  : DesignTokens.cardBackground,
-            },
-            !isLast && {
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-            },
-          ]}
-        >
 
             {/* Rank Badge */}
             <View style={[styles.rankBadge, { backgroundColor: rankStyle.backgroundColor }]}>
@@ -177,13 +144,21 @@ function RankPlayerRow({
               )}
             </View>
 
+            {/* Delete button */}
+            <TouchableOpacity
+              onPress={onRemove}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.deleteButton}
+            >
+              <Ionicons name="trash-outline" size={18} color="#EF4444" />
+            </TouchableOpacity>
+
             <Ionicons
               name="chevron-forward"
               size={20}
               color={accentColor || (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
             />
-        </TouchableOpacity>
-      </Swipeable>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -336,16 +311,6 @@ const styles = StyleSheet.create({
     padding: DesignTokens.spacing.md,
     gap: DesignTokens.spacing.sm,
   },
-  rowActive: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  dragHandle: {
-    padding: DesignTokens.spacing.xs,
-  },
   rankBadge: {
     width: 28,
     height: 28,
@@ -356,12 +321,6 @@ const styles = StyleSheet.create({
   rankText: {
     ...Typography.caption,
     fontWeight: '700',
-  },
-  deleteAction: {
-    backgroundColor: '#EF4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
   },
   avatar: {
     width: 40,
@@ -388,6 +347,9 @@ const styles = StyleSheet.create({
   },
   playerMeta: {
     ...Typography.caption,
+  },
+  deleteButton: {
+    padding: DesignTokens.spacing.xs,
   },
   addPlayerButton: {
     flexDirection: 'row',
