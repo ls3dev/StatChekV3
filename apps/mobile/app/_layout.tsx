@@ -47,14 +47,15 @@ function AuthNavigator() {
     if (status === 'onboarding') {
       console.log('[NAV] Redirecting to onboarding');
       router.replace('/(auth)/onboarding');
-    } else if (status === 'authenticated' || status === 'guest') {
-      // Redirect authenticated users and guests away from auth screens to main app
+    } else if (status === 'authenticated') {
+      // Only redirect authenticated users away from auth screens
+      // Guests navigate via onboarding screen directly (avoids race condition)
       if (inAuthGroup) {
-        console.log('[NAV] User in auth group, redirecting to tabs');
+        console.log('[NAV] Authenticated user in auth group, redirecting to tabs');
         router.replace('/(tabs)');
       }
     }
-    // Unauthenticated users can freely access auth screens (sign-in/sign-up)
+    // Unauthenticated and guest users handle their own navigation
   }, [status, segments, router]);
 
   return null;
