@@ -51,7 +51,6 @@ export default function ListDetailScreen() {
     deleteList,
     addPlayerToList,
     removePlayerFromList,
-    reorderPlayersInList,
     addLinkToList,
     removeLinkFromList,
   } = useListsContext();
@@ -88,20 +87,6 @@ export default function ListDetailScreen() {
     if (count === 2) return 'vs';
     return 'ranking';
   }, [playersWithData.length]);
-
-  // Handle drag end for reordering players (Ranking mode)
-  const handleReorderPlayers = useCallback(
-    async (data: PlayerWithData[]) => {
-      if (!list) return;
-      const reorderedItems: PlayerListItem[] = data.map((item, index) => ({
-        playerId: item.playerId,
-        order: index,
-        addedAt: item.addedAt,
-      }));
-      await reorderPlayersInList(list.id, reorderedItems);
-    },
-    [list, reorderPlayersInList]
-  );
 
   const handleDeleteList = () => {
     const doDelete = async () => {
@@ -317,7 +302,6 @@ export default function ListDetailScreen() {
               onPlayerPress={(player) => setSelectedPlayer(player)}
               onAddPlayer={() => setShowAddPlayerModal(true)}
               onRemovePlayer={handleRemovePlayer}
-              onReorderPlayers={handleReorderPlayers}
               onAddLink={() => setShowAddLinkModal(true)}
               onRemoveLink={handleRemoveLink}
             />

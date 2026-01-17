@@ -1,9 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import { Swipeable } from 'react-native-gesture-handler';
 import { DesignTokens, Typography, PlayerStatusColors } from '@/constants/theme';
 import type { Player, PlayerListItem, PlayerListLink } from '@/types';
@@ -17,15 +16,12 @@ interface RankingModeProps {
   onPlayerPress: (player: Player) => void;
   onAddPlayer: () => void;
   onRemovePlayer: (playerId: string) => void;
-  onReorderPlayers: (data: PlayerWithData[]) => void;
   onAddLink: () => void;
   onRemoveLink: (linkId: string) => void;
 }
 
 function RankPlayerRow({
   item,
-  drag,
-  isActive,
   index,
   totalCount,
   isDark,
@@ -33,8 +29,6 @@ function RankPlayerRow({
   onRemove,
 }: {
   item: PlayerWithData;
-  drag: () => void;
-  isActive: boolean;
   index: number;
   totalCount: number;
   isDark: boolean;
@@ -97,53 +91,40 @@ function RankPlayerRow({
   };
 
   return (
-    <ScaleDecorator>
-      <View
-        style={[
-          styles.rowContainer,
-          isFirst && styles.rowFirst,
-          isLast && styles.rowLast,
-          accentColor && { borderLeftWidth: 4, borderLeftColor: accentColor },
-        ]}
+    <View
+      style={[
+        styles.rowContainer,
+        isFirst && styles.rowFirst,
+        isLast && styles.rowLast,
+        accentColor && { borderLeftWidth: 4, borderLeftColor: accentColor },
+      ]}
+    >
+      <Swipeable
+        ref={swipeableRef}
+        renderRightActions={renderRightActions}
+        rightThreshold={40}
+        overshootRight={false}
       >
-        <Swipeable
-          ref={swipeableRef}
-          renderRightActions={renderRightActions}
-          rightThreshold={40}
-          overshootRight={false}
-          enabled={!isActive}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onPress}
+          style={[
+            styles.row,
+            {
+              backgroundColor: accentColor
+                ? isDark
+                  ? 'rgba(255, 215, 0, 0.08)'
+                  : 'rgba(255, 215, 0, 0.1)'
+                : isDark
+                  ? DesignTokens.cardBackgroundDark
+                  : DesignTokens.cardBackground,
+            },
+            !isLast && {
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+            },
+          ]}
         >
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={onPress}
-            onLongPress={drag}
-            delayLongPress={200}
-            style={[
-              styles.row,
-              {
-                backgroundColor: accentColor
-                  ? isDark
-                    ? 'rgba(255, 215, 0, 0.08)'
-                    : 'rgba(255, 215, 0, 0.1)'
-                  : isDark
-                    ? DesignTokens.cardBackgroundDark
-                    : DesignTokens.cardBackground,
-              },
-              isActive && styles.rowActive,
-              !isLast && {
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-              },
-            ]}
-          >
-            {/* Drag handle */}
-            <View style={styles.dragHandle}>
-              <Ionicons
-                name="menu"
-                size={18}
-                color={accentColor || (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
-              />
-            </View>
 
             {/* Rank Badge */}
             <View style={[styles.rankBadge, { backgroundColor: rankStyle.backgroundColor }]}>
@@ -201,10 +182,9 @@ function RankPlayerRow({
               size={20}
               color={accentColor || (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
             />
-          </TouchableOpacity>
-        </Swipeable>
-      </View>
-    </ScaleDecorator>
+        </TouchableOpacity>
+      </Swipeable>
+    </View>
   );
 }
 
@@ -215,17 +195,9 @@ export function RankingMode({
   onPlayerPress,
   onAddPlayer,
   onRemovePlayer,
-  onReorderPlayers,
   onAddLink,
   onRemoveLink,
 }: RankingModeProps) {
-  const handleDragEnd = useCallback(
-    ({ data }: { data: PlayerWithData[] }) => {
-      onReorderPlayers(data);
-    },
-    [onReorderPlayers]
-  );
-
   return (
     <View style={styles.container}>
       {/* Rankings Header */}
@@ -239,27 +211,19 @@ export function RankingMode({
       </View>
 
       {/* Rankings List */}
-      <DraggableFlatList
-        data={players}
-        keyExtractor={(item) => item.playerId}
-        onDragEnd={handleDragEnd}
-        scrollEnabled={false}
-        renderItem={({ item, drag, isActive, getIndex }) => {
-          const index = getIndex() ?? 0;
-          return (
-            <RankPlayerRow
-              item={item}
-              drag={drag}
-              isActive={isActive}
-              index={index}
-              totalCount={players.length}
-              isDark={isDark}
-              onPress={() => onPlayerPress(item.player)}
-              onRemove={() => onRemovePlayer(item.playerId)}
-            />
-          );
-        }}
-      />
+      <View>
+        {players.map((item, index) => (
+          <RankPlayerRow
+            key={item.playerId}
+            item={item}
+            index={index}
+            totalCount={players.length}
+            isDark={isDark}
+            onPress={() => onPlayerPress(item.player)}
+            onRemove={() => onRemovePlayer(item.playerId)}
+          />
+        ))}
+      </View>
 
       {/* Add More Players */}
       <TouchableOpacity onPress={onAddPlayer} activeOpacity={0.8}>
