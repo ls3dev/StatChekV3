@@ -7,6 +7,7 @@ import {
   Pressable,
   StatusBar,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -26,6 +27,7 @@ import { useAuth } from '@/context/AuthContext';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { continueAsGuest } = useAuth();
   const scrollX = useSharedValue(0);
@@ -42,13 +44,13 @@ export default function OnboardingScreen() {
   const handleComplete = async () => {
     await setOnboardingComplete();
     continueAsGuest();
-    // Navigation handled by AuthNavigator in _layout.tsx
+    router.replace('/(tabs)');
   };
 
   const handleSkip = async () => {
     await setOnboardingComplete();
     continueAsGuest();
-    // Navigation handled by AuthNavigator in _layout.tsx
+    router.replace('/(tabs)');
   };
 
   const handleNext = () => {
