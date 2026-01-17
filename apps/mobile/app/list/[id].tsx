@@ -32,12 +32,15 @@ const SHARE_BASE_URL = 'https://statcheck.app/list';
 
 const allPlayers = playersData as Player[];
 
+// Create a Map for O(1) player lookups instead of O(n) .find()
+const playerMap = new Map<string, Player>(allPlayers.map(p => [p.id, p]));
+
 // Type for player with full data
 type PlayerWithData = PlayerListItem & { player: Player };
 
-// Get player by ID from static data
+// Get player by ID from static data - O(1) lookup
 const getPlayerById = (id: string): Player | undefined => {
-  return allPlayers.find((p) => p.id === id);
+  return playerMap.get(id);
 };
 
 export default function ListDetailScreen() {

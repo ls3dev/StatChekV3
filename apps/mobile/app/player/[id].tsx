@@ -8,10 +8,13 @@ import { PlayerCard } from '@/components/PlayerCard';
 import players from '@/data/nba_playersv2.json';
 import type { Player } from '@/types';
 
+// Create a Map for O(1) player lookups
+const playerMap = new Map<string, Player>((players as Player[]).map(p => [p.id, p]));
+
 export default function PlayerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const player = (players as Player[]).find((p) => p.id === id);
+  const player = playerMap.get(id);
 
   if (!player) {
     return (
