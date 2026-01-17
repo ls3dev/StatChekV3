@@ -1,9 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { DesignTokens, Typography, PlayerStatusColors } from '@/constants/theme';
 import type { Player, PlayerListItem, PlayerListLink } from '@/types';
 
@@ -28,8 +27,8 @@ function RankPlayerRow({
   isDark,
   onPress,
   onRemove,
-  drag,
-  isActive,
+  onMoveUp,
+  onMoveDown,
 }: {
   item: PlayerWithData;
   index: number;
@@ -37,8 +36,8 @@ function RankPlayerRow({
   isDark: boolean;
   onPress: () => void;
   onRemove: () => void;
-  drag: () => void;
-  isActive: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const [imageError, setImageError] = useState(false);
   const player = item.player;
@@ -81,8 +80,6 @@ function RankPlayerRow({
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={onPress}
-        onLongPress={drag}
-        delayLongPress={150}
         style={[
           styles.row,
           {
@@ -98,16 +95,34 @@ function RankPlayerRow({
             borderBottomWidth: StyleSheet.hairlineWidth,
             borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
           },
-          isActive && styles.rowActive,
         ]}
       >
-            {/* Drag Handle */}
-            <View style={styles.dragHandle}>
-              <Ionicons
-                name="menu"
-                size={18}
-                color={accentColor || (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
-              />
+            {/* Reorder Arrows */}
+            <View style={styles.reorderButtons}>
+              <TouchableOpacity
+                onPress={onMoveUp}
+                disabled={isFirst}
+                style={[styles.arrowButton, isFirst && styles.arrowDisabled]}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <Ionicons
+                  name="chevron-up"
+                  size={16}
+                  color={isFirst ? (isDark ? '#444' : '#ccc') : (isDark ? '#fff' : '#333')}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onMoveDown}
+                disabled={isLast}
+                style={[styles.arrowButton, isLast && styles.arrowDisabled]}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <Ionicons
+                  name="chevron-down"
+                  size={16}
+                  color={isLast ? (isDark ? '#444' : '#ccc') : (isDark ? '#fff' : '#333')}
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Rank Badge */}
@@ -191,12 +206,19 @@ export function RankingMode({
   onAddLink,
   onRemoveLink,
 }: RankingModeProps) {
-  const handleDragEnd = useCallback(
-    ({ data }: { data: PlayerWithData[] }) => {
-      onReorderPlayers(data);
-    },
-    [onReorderPlayers]
-  );
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const newPlayers = [...players];
+    [newPlayers[index - 1], newPlayers[index]] = [newPlayers[index], newPlayers[index - 1]];
+    onReorderPlayers(newPlayers);
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index === players.length - 1) return;
+    const newPlayers = [...players];
+    [newPlayers[index], newPlayers[index + 1]] = [newPlayers[index + 1], newPlayers[index]];
+    onReorderPlayers(newPlayers);
+  };
 
   return (
     <View style={styles.container}>
@@ -210,28 +232,22 @@ export function RankingMode({
         </TouchableOpacity>
       </View>
 
-      {/* Rankings List - DraggableFlatList without ScaleDecorator */}
-      <DraggableFlatList
-        data={players}
-        keyExtractor={(item) => item.playerId}
-        onDragEnd={handleDragEnd}
-        scrollEnabled={false}
-        renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<PlayerWithData>) => {
-          const index = getIndex() ?? 0;
-          return (
-            <RankPlayerRow
-              item={item}
-              index={index}
-              totalCount={players.length}
-              isDark={isDark}
-              onPress={() => onPlayerPress(item.player)}
-              onRemove={() => onRemovePlayer(item.playerId)}
-              drag={drag}
-              isActive={isActive}
-            />
-          );
-        }}
-      />
+      {/* Rankings List */}
+      <View>
+        {players.map((item, index) => (
+          <RankPlayerRow
+            key={item.playerId}
+            item={item}
+            index={index}
+            totalCount={players.length}
+            isDark={isDark}
+            onPress={() => onPlayerPress(item.player)}
+            onRemove={() => onRemovePlayer(item.playerId)}
+            onMoveUp={() => handleMoveUp(index)}
+            onMoveDown={() => handleMoveDown(index)}
+          />
+        ))}
+      </View>
 
       {/* Add More Players */}
       <TouchableOpacity onPress={onAddPlayer} activeOpacity={0.8}>
@@ -344,15 +360,17 @@ const styles = StyleSheet.create({
     padding: DesignTokens.spacing.md,
     gap: DesignTokens.spacing.sm,
   },
-  rowActive: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+  reorderButtons: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: DesignTokens.spacing.xs,
   },
-  dragHandle: {
-    padding: DesignTokens.spacing.xs,
+  arrowButton: {
+    padding: 2,
+  },
+  arrowDisabled: {
+    opacity: 0.3,
   },
   rankBadge: {
     width: 28,
