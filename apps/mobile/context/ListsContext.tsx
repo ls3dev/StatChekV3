@@ -68,8 +68,8 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
       id: list._id, // Use Convex document ID as our list ID
       name: list.name,
       description: list.description,
-      players: list.players,
-      links: list.links,
+      players: list.players ?? [],
+      links: list.links ?? [],
       createdAt: list.createdAt,
       updatedAt: list.updatedAt,
     }));
@@ -180,7 +180,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
   const isPlayerInList = useCallback(
     (listId: string, playerId: string) => {
       const list = lists.find((l) => l.id === listId);
-      if (!list) return false;
+      if (!list || !list.players) return false;
       return list.players.some((p) => p.playerId === playerId);
     },
     [lists]

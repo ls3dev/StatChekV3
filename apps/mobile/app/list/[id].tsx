@@ -163,7 +163,7 @@ export default function ListDetailScreen() {
           sportsReferenceUrl: p.player.sportsReferenceUrl,
           hallOfFame: p.player.hallOfFame,
         })),
-        links: list.links.map((link) => ({
+        links: (list.links ?? []).map((link) => ({
           id: link.id,
           url: link.url,
           title: link.title,
@@ -456,7 +456,7 @@ export default function ListDetailScreen() {
         visible={showAddPlayerModal}
         onClose={() => setShowAddPlayerModal(false)}
         onAddPlayer={handleAddPlayer}
-        existingPlayerIds={list.players.map((p) => p.playerId)}
+        existingPlayerIds={(list.players ?? []).map((p) => p.playerId)}
       />
 
       <AddLinkModal
