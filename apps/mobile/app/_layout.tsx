@@ -1,3 +1,9 @@
+// Polyfill for iOS autofill callback handler (prevents Hermes crash)
+// Must be at the very top before any imports
+if (typeof global !== 'undefined') {
+  (global as any)._AutofillCallbackHandler = (global as any)._AutofillCallbackHandler || {};
+}
+
 import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';

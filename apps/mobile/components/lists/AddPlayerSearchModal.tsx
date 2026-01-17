@@ -113,7 +113,6 @@ export function AddPlayerSearchModal({
               placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
               value={query}
               onChangeText={setQuery}
-              autoFocus
               autoCapitalize="none"
               autoCorrect={false}
             />
