@@ -7,10 +7,14 @@ if (typeof global !== 'undefined') {
 import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
+
+// Prevent splash screen from auto-hiding until auth is determined
+SplashScreen.preventAutoHideAsync();
 
 import { initSentry } from '@/utils/sentry';
 
@@ -26,6 +30,7 @@ import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { AuthPromptModal } from '@/components/auth/AuthPromptModal';
 import { PaywallModal } from '@/components/PaywallModal';
+import { initializePlayerData } from '@/services/playerData';
 
 export const unstable_settings = {
   // Start with auth flow, will redirect to tabs after onboarding/auth
@@ -40,6 +45,8 @@ function AuthNavigator() {
 
   useEffect(() => {
     console.log('[NAV] AuthNavigator effect - status:', status, 'segments:', segments);
+
+    // Keep splash visible while loading
     if (status === 'loading') return;
 
     const inAuthGroup = segments[0] === '(auth)';
@@ -56,6 +63,9 @@ function AuthNavigator() {
       }
     }
     // Unauthenticated and guest users handle their own navigation
+
+    // Hide splash screen AFTER navigation decision is made
+    SplashScreen.hideAsync();
   }, [status, segments, router]);
 
   return null;
@@ -64,6 +74,11 @@ function AuthNavigator() {
 // Inner layout that has access to theme context
 function RootLayoutNav() {
   const { isDark } = useTheme();
+
+  // Pre-load player data after initial render (deferred with InteractionManager)
+  useEffect(() => {
+    initializePlayerData();
+  }, []);
 
   // Customize navigation themes to match our design
   const customDarkTheme = {

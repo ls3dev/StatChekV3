@@ -25,29 +25,13 @@ import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useListsContext } from '@/context/ListsContext';
 import { useAuth } from '@/context/AuthContext';
+import { getPlayerById } from '@/services/playerData';
 import type { Player, PlayerListItem } from '@/types';
 
 const SHARE_BASE_URL = 'https://statcheck.app/list';
 
-// Lazy load players data to avoid blocking main thread
-let playerMap: Map<string, Player> | null = null;
-
-const getPlayerMap = (): Map<string, Player> => {
-  if (!playerMap) {
-    // Only load when first accessed
-    const playersData = require('@/data/nba_playersv2.json') as Player[];
-    playerMap = new Map(playersData.map(p => [p.id, p]));
-  }
-  return playerMap;
-};
-
 // Type for player with full data
 type PlayerWithData = PlayerListItem & { player: Player };
-
-// Get player by ID from static data - O(1) lookup
-const getPlayerById = (id: string): Player | undefined => {
-  return getPlayerMap().get(id);
-};
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams();

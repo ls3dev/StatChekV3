@@ -1,19 +1,34 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useState } from 'react';
 
-import mlbPlayersData from '@/data/mlb_players.json';
-import nbaPlayersData from '@/data/nba_playersv2.json';
-import nflPlayersData from '@/data/nfl_players.json';
+import { getAllPlayers } from '@/services/playerData';
 import type { Player } from '@/types';
 
 export type Sport = 'NBA' | 'NFL' | 'MLB';
 
 const SPORT_STORAGE_KEY = '@selected_sport';
 
-const playersBySport: Record<Sport, Player[]> = {
-  NBA: nbaPlayersData as Player[],
-  NFL: nflPlayersData as Player[],
-  MLB: mlbPlayersData as Player[],
+// Lazy-loaded player data to avoid blocking app startup
+let nflPlayers: Player[] | null = null;
+let mlbPlayers: Player[] | null = null;
+
+const getPlayersBySport = (sport: Sport): Player[] => {
+  switch (sport) {
+    case 'NBA':
+      return getAllPlayers(); // Uses centralized service with InteractionManager
+    case 'NFL':
+      if (!nflPlayers) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        nflPlayers = require('@/data/nfl_players.json') as Player[];
+      }
+      return nflPlayers;
+    case 'MLB':
+      if (!mlbPlayers) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        mlbPlayers = require('@/data/mlb_players.json') as Player[];
+      }
+      return mlbPlayers;
+  }
 };
 
 export function usePlayerSearch() {
@@ -47,17 +62,16 @@ export function usePlayerSearch() {
     }
   }, [selectedSport, isLoaded]);
 
-  const players = playersBySport[selectedSport];
-
   const results = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
     if (!trimmed) return [];
 
+    const players = getPlayersBySport(selectedSport);
     return players.filter((player) => {
       const haystack = `${player.name} ${player.team} ${player.position}`.toLowerCase();
       return haystack.includes(trimmed);
     });
-  }, [players, query]);
+  }, [selectedSport, query]);
 
   const handleSportChange = (sport: Sport) => {
     setSelectedSport(sport);

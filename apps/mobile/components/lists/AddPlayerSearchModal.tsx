@@ -14,17 +14,8 @@ import {
 
 import { DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { getAllPlayers } from '@/services/playerData';
 import type { Player } from '@/types';
-
-// Lazy load players data
-let allPlayers: Player[] | null = null;
-
-const getPlayers = (): Player[] => {
-  if (!allPlayers) {
-    allPlayers = require('@/data/nba_playersv2.json') as Player[];
-  }
-  return allPlayers;
-};
 
 type AddPlayerSearchModalProps = {
   visible: boolean;
@@ -46,7 +37,7 @@ export function AddPlayerSearchModal({
     const trimmed = query.trim().toLowerCase();
     if (!trimmed) return [];
 
-    return getPlayers()
+    return getAllPlayers()
       .filter((player) => {
         // Exclude players already in list
         if (existingPlayerIds.includes(player.id)) return false;
