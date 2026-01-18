@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 
 export function Header() {
-  const { user, isLoading, isAuthenticated, signOut } = useAuth();
+  const { user, isLoading, isAuthenticated, status } = useAuth();
 
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = "/";
-  };
+  // Don't show header during onboarding
+  if (status === "onboarding") {
+    return null;
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-background-primary/80 backdrop-blur-lg border-b border-white/5">
@@ -38,28 +39,34 @@ export function Header() {
                 <span className="text-sm text-text-secondary">
                   {user?.name || user?.email}
                 </span>
-                <button
-                  onClick={handleSignOut}
-                  className="px-4 py-2 text-sm text-text-muted hover:text-text-primary border border-white/10 hover:border-white/20 rounded-lg transition-colors"
-                >
-                  Sign Out
-                </button>
+                <UserButton
+                  afterSignOutUrl="/"
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8",
+                    },
+                  }}
+                />
               </div>
             </>
           ) : (
             <>
               <Link
-                href="/auth/signin"
+                href="/lists"
                 className="text-text-secondary hover:text-text-primary transition-colors"
               >
-                Sign In
+                My Lists
               </Link>
-              <Link
-                href="/auth/signup"
-                className="px-4 py-2 bg-accent-purple hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                Sign Up
-              </Link>
+              <SignInButton mode="modal">
+                <button className="text-text-secondary hover:text-text-primary transition-colors">
+                  Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="px-4 py-2 bg-accent-purple hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+                  Sign Up
+                </button>
+              </SignUpButton>
             </>
           )}
         </div>

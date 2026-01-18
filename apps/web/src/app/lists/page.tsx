@@ -1,37 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@statcheck/convex";
 import { useAuth } from "@/hooks/useAuth";
 import { ListCard } from "@/components/ListCard";
 import { CreateListModal } from "@/components/CreateListModal";
-
-// Mock data for now - will be replaced with Convex
-type PlayerList = {
-  id: string;
-  name: string;
-  description?: string;
-  playerCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-  shareId?: string;
-};
-
-const mockLists: PlayerList[] = [];
+import { useState } from "react";
 
 export default function ListsPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const [lists, setLists] = useState<PlayerList[]>(mockLists);
+  const { userId, isUserReady, status } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Redirect if not authenticated
-  if (!isLoading && !isAuthenticated) {
-    router.push("/auth/signin");
-    return null;
-  }
+  // Redirect to onboarding if needed
+  useEffect(() => {
+    if (status === "onboarding") {
+      router.push("/onboarding");
+    }
+  }, [status, router]);
 
-  if (isLoading) {
+  // Query lists from Convex (skip if no userId yet)
+  const lists = useQuery(
+    api.userLists.getUserLists,
+    userId ? { userId } : "skip"
+  );
+
+  // Mutations
+  const createListMutation = useMutation(api.userLists.createList);
+  const deleteListMutation = useMutation(api.userLists.deleteList);
+
+  // Loading state
+  if (!isUserReady || status === "loading" || status === "onboarding") {
     return (
       <main className="min-h-screen bg-background-primary">
         <div className="max-w-5xl mx-auto px-6 py-12">
@@ -43,21 +44,27 @@ export default function ListsPage() {
     );
   }
 
-  const handleCreateList = (name: string, description: string) => {
-    const newList: PlayerList = {
-      id: crypto.randomUUID(),
-      name,
-      description: description || undefined,
-      playerCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setLists([newList, ...lists]);
-    setShowCreateModal(false);
+  const handleCreateList = async (name: string, description: string) => {
+    if (!userId) return;
+
+    try {
+      await createListMutation({
+        userId,
+        name,
+        description: description || undefined,
+      });
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error("Failed to create list:", error);
+    }
   };
 
-  const handleDeleteList = (id: string) => {
-    setLists(lists.filter((list) => list.id !== id));
+  const handleDeleteList = async (listId: string) => {
+    try {
+      await deleteListMutation({ listId: listId as any });
+    } catch (error) {
+      console.error("Failed to delete list:", error);
+    }
   };
 
   return (
@@ -93,15 +100,27 @@ export default function ListsPage() {
         </div>
 
         {/* Lists Grid */}
-        {lists.length === 0 ? (
+        {lists === undefined ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : lists.length === 0 ? (
           <EmptyState onCreateList={() => setShowCreateModal(true)} />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {lists.map((list) => (
               <ListCard
-                key={list.id}
-                list={list}
-                onDelete={() => handleDeleteList(list.id)}
+                key={list._id}
+                list={{
+                  id: list._id,
+                  name: list.name,
+                  description: list.description,
+                  playerCount: list.players.length,
+                  createdAt: new Date(list.createdAt),
+                  updatedAt: new Date(list.updatedAt),
+                  shareId: list.shareId,
+                }}
+                onDelete={() => handleDeleteList(list._id)}
               />
             ))}
           </div>

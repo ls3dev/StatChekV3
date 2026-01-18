@@ -1,3 +1,5 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -11,6 +13,16 @@ const nextConfig = {
         hostname: "**.basketball-reference.com",
       },
     ],
+  },
+  // Transpile workspace packages
+  transpilePackages: ["@statcheck/convex"],
+  // Resolve workspace package paths
+  webpack: (config) => {
+    config.resolve.alias["@statcheck/convex"] = path.resolve(
+      __dirname,
+      "../../packages/convex"
+    );
+    return config;
   },
 };
 

@@ -1,12 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { PlayerSearch } from "@/components/PlayerSearch";
 import { PlayerModal } from "@/components/PlayerModal";
 import type { Player } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function HomePage() {
+  const router = useRouter();
+  const { status } = useAuth();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+
+  // Redirect to onboarding if needed
+  useEffect(() => {
+    if (status === "onboarding") {
+      router.push("/onboarding");
+    }
+  }, [status, router]);
+
+  // Show loading while checking onboarding status
+  if (status === "loading" || status === "onboarding") {
+    return (
+      <main className="min-h-screen bg-background-primary flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background-primary">

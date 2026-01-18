@@ -1,18 +1,23 @@
 "use client";
 
-import { useSession, signIn, signUp, signOut } from "@/lib/auth-client";
+import { useAuthContext } from "@/context/AuthContext";
+import { useClerk } from "@clerk/nextjs";
 
 export function useAuth() {
-  const { data: session, isPending, error } = useSession();
+  const auth = useAuthContext();
+  const { openSignIn, openSignUp } = useClerk();
 
   return {
-    user: session?.user ?? null,
-    session: session?.session ?? null,
-    isLoading: isPending,
-    isAuthenticated: !!session?.user,
-    error,
-    signIn,
-    signUp,
-    signOut,
+    user: auth.user,
+    userId: auth.userId,
+    isLoading: auth.isLoading,
+    isAuthenticated: auth.isAuthenticated,
+    isGuest: auth.isGuest,
+    isUserReady: auth.isUserReady,
+    status: auth.status,
+    signIn: openSignIn,
+    signUp: openSignUp,
+    signOut: auth.signOut,
+    continueAsGuest: auth.continueAsGuest,
   };
 }
