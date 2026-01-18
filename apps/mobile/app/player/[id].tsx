@@ -5,16 +5,23 @@ import { StyleSheet } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { PlayerCard } from '@/components/PlayerCard';
-import players from '@/data/nba_playersv2.json';
 import type { Player } from '@/types';
 
-// Create a Map for O(1) player lookups
-const playerMap = new Map<string, Player>((players as Player[]).map(p => [p.id, p]));
+// Lazy load players data
+let playerMap: Map<string, Player> | null = null;
+
+const getPlayerById = (id: string): Player | undefined => {
+  if (!playerMap) {
+    const players = require('@/data/nba_playersv2.json') as Player[];
+    playerMap = new Map(players.map(p => [p.id, p]));
+  }
+  return playerMap.get(id);
+};
 
 export default function PlayerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const player = playerMap.get(id);
+  const player = getPlayerById(id);
 
   if (!player) {
     return (
