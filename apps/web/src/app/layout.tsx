@@ -6,7 +6,7 @@ import { Header } from "@/components/Header";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://statcheck.app";
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://statcheckapp.com";
 
 export const viewport: Viewport = {
   width: "device-width",
