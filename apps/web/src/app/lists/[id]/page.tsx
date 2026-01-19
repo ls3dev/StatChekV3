@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation } from "convex/react";
-import { api } from "@statcheck/convex";
+import { api } from "@convex/_generated/api";
 import { useAuthContext } from "@/context/AuthContext";
 import { useListsContext } from "@/context/ListsContext";
 import { PlayerSearch } from "@/components/PlayerSearch";

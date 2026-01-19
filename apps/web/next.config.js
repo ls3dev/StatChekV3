@@ -1,5 +1,3 @@
-const path = require("path");
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Skip ESLint and TypeScript errors during build (for Vercel)
@@ -28,16 +26,6 @@ const nextConfig = {
         hostname: "img.mlbstatic.com",
       },
     ],
-  },
-  // Transpile workspace packages
-  transpilePackages: ["@statcheck/convex"],
-  // Resolve workspace package paths
-  webpack: (config) => {
-    config.resolve.alias["@statcheck/convex"] = path.resolve(
-      __dirname,
-      "../../packages/convex"
-    );
-    return config;
   },
 };
 

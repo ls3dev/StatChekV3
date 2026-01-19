@@ -9,7 +9,7 @@ import React, {
 import { useQuery, useMutation } from "convex/react";
 import type { PlayerList, PlayerListItem, PlayerListLink } from "@/lib/types";
 import { useAuthContext } from "@/context/AuthContext";
-import { api } from "@statcheck/convex";
+import { api } from "@convex/_generated/api";
 
 type ListsContextValue = {
   lists: PlayerList[];

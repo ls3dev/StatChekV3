@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "@statcheck/convex";
+import { api } from "@convex/_generated/api";
 import type { Player } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 import { AddLinkModal } from "./AddLinkModal";

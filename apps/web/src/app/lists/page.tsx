@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "@statcheck/convex";
+import { api } from "@convex/_generated/api";
 import { useAuth } from "@/hooks/useAuth";
 import { ListCard } from "@/components/ListCard";
 import { CreateListModal } from "@/components/CreateListModal";

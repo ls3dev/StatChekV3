@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useConvexAuth, useMutation } from "convex/react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
-import { api } from "@statcheck/convex";
+import { api } from "@convex/_generated/api";
 import {
   hasCompletedOnboarding,
   getOrCreateAnonymousId,

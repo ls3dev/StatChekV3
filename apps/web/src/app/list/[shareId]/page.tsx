@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { fetchQuery } from "convex/nextjs";
-import { api } from "@statcheck/convex";
+import { api } from "@convex/_generated/api";
 
 interface Props {
   params: Promise<{ shareId: string }>;

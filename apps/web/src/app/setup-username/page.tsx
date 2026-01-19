@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "@statcheck/convex";
+import { api } from "@convex/_generated/api";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function SetupUsernamePage() {
