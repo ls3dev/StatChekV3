@@ -1,5 +1,0 @@
-{
-  "installCommand": "cd ../.. && npm install --prefix packages/convex && npm install --prefix apps/web",
-  "buildCommand": "npm run build",
-  "framework": "nextjs"
-}
