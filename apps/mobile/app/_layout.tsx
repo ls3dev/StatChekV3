@@ -1,10 +1,25 @@
+// Polyfill for iOS autofill callback handler (prevents Hermes crash)
+// Must be at the very top before any imports
+if (typeof global !== 'undefined') {
+  (global as any)._AutofillCallbackHandler = (global as any)._AutofillCallbackHandler || {};
+}
+
 import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
+
+// Prevent splash screen from auto-hiding until auth is determined
+SplashScreen.preventAutoHideAsync();
+
+import { initSentry } from '@/utils/sentry';
+
+// Initialize Sentry as early as possible
+initSentry();
 
 import { ConvexProviderWrapper } from '@/providers/ConvexProvider';
 import { RevenueCatProvider } from '@/providers/RevenueCatProvider';
@@ -15,6 +30,7 @@ import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { AuthPromptModal } from '@/components/auth/AuthPromptModal';
 import { PaywallModal } from '@/components/PaywallModal';
+import { initializePlayerData } from '@/services/playerData';
 
 export const unstable_settings = {
   // Start with auth flow, will redirect to tabs after onboarding/auth
@@ -28,25 +44,28 @@ function AuthNavigator() {
   const segments = useSegments();
 
   useEffect(() => {
+    console.log('[NAV] AuthNavigator effect - status:', status, 'segments:', segments);
+
+    // Keep splash visible while loading
     if (status === 'loading') return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
     if (status === 'onboarding') {
-      // First time user - show onboarding
+      console.log('[NAV] Redirecting to onboarding');
       router.replace('/(auth)/onboarding');
     } else if (status === 'authenticated') {
-      // Authenticated user - go to main app
+      // Only redirect authenticated users away from auth screens
+      // Guests navigate via onboarding screen directly (avoids race condition)
       if (inAuthGroup) {
+        console.log('[NAV] Authenticated user in auth group, redirecting to tabs');
         router.replace('/(tabs)');
       }
-    } else if (status === 'unauthenticated') {
-      // Not authenticated - show sign in (they can choose to continue as guest)
-      if (!inAuthGroup) {
-        router.replace('/(auth)/sign-in');
-      }
     }
-    // For 'guest' status, don't force redirect - let them browse
+    // Unauthenticated and guest users handle their own navigation
+
+    // Hide splash screen AFTER navigation decision is made
+    SplashScreen.hideAsync();
   }, [status, segments, router]);
 
   return null;
@@ -55,6 +74,11 @@ function AuthNavigator() {
 // Inner layout that has access to theme context
 function RootLayoutNav() {
   const { isDark } = useTheme();
+
+  // Pre-load player data after initial render (deferred with InteractionManager)
+  useEffect(() => {
+    initializePlayerData();
+  }, []);
 
   // Customize navigation themes to match our design
   const customDarkTheme = {
@@ -88,6 +112,8 @@ function RootLayoutNav() {
             <Stack>
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="list/[id]" options={{ headerShown: false }} />
+              <Stack.Screen name="player/[id]" options={{ headerShown: false }} />
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             </Stack>
             <AuthPromptModal />

@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, Alert } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useUser } from '@clerk/clerk-expo';
 
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
@@ -66,10 +67,18 @@ function SettingItem({ icon, iconColor, title, subtitle, onPress, rightElement, 
 
 export default function ProfileScreen() {
   const { isDark, toggleTheme } = useTheme();
-  const { isAuthenticated, user, signOut } = useAuth();
+  const { isAuthenticated, user, signOut, status } = useAuth();
   const { isProUser } = useRevenueCat();
+  const { isSignedIn: clerkIsSignedIn, user: clerkUser } = useUser();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  // User is considered "logged in" if either AuthContext or Clerk says so
+  const isLoggedIn = isAuthenticated || clerkIsSignedIn;
+  const displayUser = user || (clerkUser ? {
+    name: clerkUser.fullName || clerkUser.firstName || 'User',
+    email: clerkUser.primaryEmailAddress?.emailAddress,
+  } : null);
 
   const handleToggleTheme = async () => {
     await toggleTheme();
@@ -83,22 +92,15 @@ export default function ProfileScreen() {
     router.push('/(auth)/sign-up');
   };
 
-  const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            router.replace('/(auth)/sign-in');
-          },
-        },
-      ]
-    );
+  const handleSignOut = async () => {
+    console.log('[PROFILE] Sign out button pressed');
+    try {
+      await signOut();
+      console.log('[PROFILE] Sign out complete');
+      // Stay on tabs - user will see guest state with sign-in options
+    } catch (error) {
+      console.error('[PROFILE] Sign out error:', error);
+    }
   };
 
   const handleUpgradeToPro = () => {
@@ -141,21 +143,21 @@ export default function ProfileScreen() {
                 <Ionicons name="person" size={32} color={DesignTokens.accentPurple} />
               </View>
             </View>
-            {isAuthenticated && user ? (
+            {isLoggedIn && displayUser ? (
               <>
                 <Text
                   style={[
                     styles.profileName,
                     { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
                   ]}>
-                  {user.name || 'Sports Fan'}
+                  {displayUser.name || 'Sports Fan'}
                 </Text>
                 <Text
                   style={[
                     styles.profileSubtitle,
                     { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
                   ]}>
-                  {user.email}
+                  {displayUser.email}
                 </Text>
               </>
             ) : (
@@ -179,7 +181,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Auth Buttons */}
-          {!isAuthenticated && (
+          {!isLoggedIn && (
             <View style={styles.authButtons}>
               <Pressable onPress={handleSignUp} style={styles.authButtonContainer}>
                 <LinearGradient
@@ -317,8 +319,8 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Account Section - Only show for authenticated users */}
-        {isAuthenticated && (
+        {/* Account Section - Only show for logged in users */}
+        {isLoggedIn && (
           <View style={styles.section}>
             <Text
               style={[
@@ -352,6 +354,7 @@ export default function ProfileScreen() {
             Made with passion for sports
           </Text>
         </View>
+
       </ScrollView>
     </View>
   );

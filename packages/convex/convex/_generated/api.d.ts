@@ -8,13 +8,13 @@
  * @module
  */
 
-import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as playerLinks from "../playerLinks.js";
 import type * as recentPlayers from "../recentPlayers.js";
 import type * as sharedLists from "../sharedLists.js";
 import type * as userLists from "../userLists.js";
 import type * as userSettings from "../userSettings.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -23,13 +23,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth;
   http: typeof http;
   playerLinks: typeof playerLinks;
   recentPlayers: typeof recentPlayers;
   sharedLists: typeof sharedLists;
   userLists: typeof userLists;
   userSettings: typeof userSettings;
+  users: typeof users;
 }>;
 
 /**

@@ -1,24 +1,29 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { usePlayerSearch } from "@/hooks/usePlayerSearch";
+import { usePlayerSearch, Sport } from "@/hooks/usePlayerSearch";
 import type { Player } from "@/lib/types";
-import Image from "next/image";
 
 type PlayerSearchProps = {
   onPlayerSelect: (player: Player) => void;
 };
 
+const SPORTS: Sport[] = ["NBA", "NFL", "MLB"];
+
+const SPORT_CONFIG: Record<Sport, { icon: string; color: string }> = {
+  NBA: { icon: "🏀", color: "#F97316" },
+  NFL: { icon: "🏈", color: "#3B82F6" },
+  MLB: { icon: "⚾", color: "#22C55E" },
+};
+
 export function PlayerSearch({ onPlayerSelect }: PlayerSearchProps) {
-  const { query, setQuery, results, isLoading } = usePlayerSearch();
+  const { query, setQuery, results, isLoading, selectedSport, setSelectedSport } = usePlayerSearch();
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const showDropdown = isFocused && query.trim().length > 0;
-  const displayResults = results.slice(0, 5);
-  const remainingCount = results.length > 5 ? results.length - 5 : 0;
 
   // Reset selected index when results change
   useEffect(() => {
@@ -33,7 +38,7 @@ export function PlayerSearch({ onPlayerSelect }: PlayerSearchProps) {
       case "ArrowDown":
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev < displayResults.length - 1 ? prev + 1 : prev
+          prev < results.length - 1 ? prev + 1 : prev
         );
         break;
       case "ArrowUp":
@@ -42,8 +47,8 @@ export function PlayerSearch({ onPlayerSelect }: PlayerSearchProps) {
         break;
       case "Enter":
         e.preventDefault();
-        if (selectedIndex >= 0 && displayResults[selectedIndex]) {
-          handleSelect(displayResults[selectedIndex]);
+        if (selectedIndex >= 0 && results[selectedIndex]) {
+          handleSelect(results[selectedIndex]);
         }
         break;
       case "Escape":
@@ -109,7 +114,7 @@ export function PlayerSearch({ onPlayerSelect }: PlayerSearchProps) {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search players..."
+          placeholder={`Search ${selectedSport} players...`}
           className="flex-1 bg-transparent text-text-primary placeholder-text-muted outline-none"
         />
 
@@ -141,11 +146,37 @@ export function PlayerSearch({ onPlayerSelect }: PlayerSearchProps) {
         )}
       </div>
 
+      {/* Sport Selector */}
+      <div className="flex justify-center gap-2 mt-4">
+        {SPORTS.map((sport) => {
+          const config = SPORT_CONFIG[sport];
+          const isSelected = selectedSport === sport;
+          return (
+            <button
+              key={sport}
+              onClick={() => setSelectedSport(sport)}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
+                transition-all duration-200
+                ${isSelected
+                  ? "text-white shadow-lg"
+                  : "bg-card text-text-secondary hover:bg-white/10"
+                }
+              `}
+              style={isSelected ? { backgroundColor: config.color } : undefined}
+            >
+              <span>{config.icon}</span>
+              <span>{sport}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Dropdown Results */}
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className="absolute top-full left-0 right-0 mt-2 bg-card rounded-xl border border-white/10 shadow-xl overflow-hidden z-50"
+          className="absolute top-full left-0 right-0 mt-2 bg-[#1e1e2a] rounded-xl border border-white/20 shadow-2xl z-50 max-h-96 overflow-y-auto"
         >
           {results.length === 0 && !isLoading ? (
             <div className="px-4 py-8 text-center text-text-secondary">
@@ -153,19 +184,14 @@ export function PlayerSearch({ onPlayerSelect }: PlayerSearchProps) {
             </div>
           ) : (
             <>
-              {displayResults.map((player, index) => (
+              {results.map((player, index) => (
                 <SearchResult
-                  key={player.id}
+                  key={`${player.sport}-${player.id}`}
                   player={player}
                   isSelected={index === selectedIndex}
                   onSelect={() => handleSelect(player)}
                 />
               ))}
-              {remainingCount > 0 && (
-                <div className="px-4 py-2 text-sm text-text-muted text-center border-t border-white/5">
-                  +{remainingCount} more results
-                </div>
-              )}
             </>
           )}
         </div>
@@ -199,20 +225,35 @@ function SearchResult({
     <button
       onClick={onSelect}
       className={`
-        w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
-        ${isSelected ? "bg-white/10" : "hover:bg-white/5"}
-        ${isHallOfFame ? "border-l-4 border-gold bg-yellow-900/10" : ""}
+        w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors
+        border-b border-white/10 last:border-b-0
+        ${isSelected ? "bg-accent-purple/30 border-l-2 border-l-accent-purple" : "hover:bg-white/15"}
+        ${isHallOfFame ? "border-l-4 border-l-gold bg-yellow-900/20" : ""}
       `}
     >
       {/* Avatar */}
       {player.photoUrl ? (
-        <Image
+        <img
           src={player.photoUrl}
           alt={player.name}
           width={40}
           height={40}
           className={`w-10 h-10 rounded-full object-cover ${isHallOfFame ? "ring-2 ring-gold" : ""}`}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+          }}
         />
+      ) : null}
+      {player.photoUrl ? (
+        <div
+          className={`
+            hidden w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold
+            ${isHallOfFame ? "bg-yellow-900/30 text-gold" : "bg-accent-purple/20 text-accent-purple"}
+          `}
+        >
+          {initials}
+        </div>
       ) : (
         <div
           className={`
@@ -227,12 +268,12 @@ function SearchResult({
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div
-          className={`font-medium truncate ${isHallOfFame ? "text-gold" : "text-text-primary"}`}
+          className={`font-semibold text-[15px] truncate ${isHallOfFame ? "text-gold" : "text-white"}`}
         >
           {player.name}
         </div>
         {(displayTeam || displayPosition) && (
-          <div className="text-sm text-text-secondary truncate">
+          <div className="text-sm text-gray-400 truncate">
             {displayTeam && displayPosition
               ? `${displayTeam} · ${displayPosition}`
               : displayTeam || displayPosition}
@@ -240,12 +281,17 @@ function SearchResult({
         )}
       </div>
 
-      {/* HOF Badge */}
-      {isHallOfFame && (
-        <span className="text-xs font-semibold px-2 py-0.5 bg-yellow-900/30 text-gold rounded">
-          HOF
+      {/* Sport & HOF Badges */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {isHallOfFame && (
+          <span className="text-xs font-semibold px-2 py-0.5 bg-yellow-900/30 text-gold rounded">
+            HOF
+          </span>
+        )}
+        <span className="text-xs font-medium px-2 py-0.5 bg-white/10 text-text-secondary rounded">
+          {player.sport}
         </span>
-      )}
+      </div>
     </button>
   );
 }

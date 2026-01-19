@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import { useMutation } from 'convex/react';
 import { api } from '@statcheck/convex';
 
@@ -26,20 +25,13 @@ import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useListsContext } from '@/context/ListsContext';
 import { useAuth } from '@/context/AuthContext';
-import playersData from '@/data/nba_playersv2.json';
+import { getPlayerById } from '@/services/playerData';
 import type { Player, PlayerListItem } from '@/types';
 
 const SHARE_BASE_URL = 'https://statcheck.app/list';
 
-const allPlayers = playersData as Player[];
-
 // Type for player with full data
 type PlayerWithData = PlayerListItem & { player: Player };
-
-// Get player by ID from static data
-const getPlayerById = (id: string): Player | undefined => {
-  return allPlayers.find((p) => p.id === id);
-};
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -70,13 +62,15 @@ export default function ListDetailScreen() {
   // Map player IDs to full player data
   const playersWithData = useMemo((): PlayerWithData[] => {
     if (!list) return [];
+    if (!list.players || !Array.isArray(list.players)) return [];
     return list.players
+      .filter((item) => item && item.playerId) // Filter out invalid items
       .map((item) => ({
         ...item,
         player: getPlayerById(item.playerId),
       }))
       .filter((item): item is PlayerWithData => item.player !== undefined)
-      .sort((a, b) => a.order - b.order);
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [list]);
 
   // Determine the current mode based on player count
@@ -90,7 +84,7 @@ export default function ListDetailScreen() {
 
   // Handle drag end for reordering players (Ranking mode)
   const handleReorderPlayers = useCallback(
-    async (data: PlayerWithData[]) => {
+    async (data: (PlayerListItem & { player: Player })[]) => {
       if (!list) return;
       const reorderedItems: PlayerListItem[] = data.map((item, index) => ({
         playerId: item.playerId,
@@ -161,7 +155,7 @@ export default function ListDetailScreen() {
           sportsReferenceUrl: p.player.sportsReferenceUrl,
           hallOfFame: p.player.hallOfFame,
         })),
-        links: list.links.map((link) => ({
+        links: (list.links ?? []).map((link) => ({
           id: link.id,
           url: link.url,
           title: link.title,
@@ -233,12 +227,7 @@ export default function ListDetailScreen() {
     switch (currentMode) {
       case 'empty':
         return (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            layout={Layout.springify()}
-            style={styles.emptyContainer}
-          >
+          <View style={styles.emptyContainer}>
             <View
               style={[
                 styles.emptyCard,
@@ -274,19 +263,15 @@ export default function ListDetailScreen() {
                 <Text style={styles.emptyAddButtonText}>Add Player</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
+          </View>
         );
 
       case 'agenda':
         return (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            layout={Layout.springify()}
-          >
+          <View>
             <AgendaMode
               player={playersWithData[0].player}
-              links={list.links}
+              links={list?.links ?? []}
               isDark={isDark}
               onPlayerPress={() => setSelectedPlayer(playersWithData[0].player)}
               onAddPlayer={() => setShowAddPlayerModal(true)}
@@ -294,20 +279,16 @@ export default function ListDetailScreen() {
               onRemoveLink={handleRemoveLink}
               onRemovePlayer={() => handleRemovePlayer(playersWithData[0].playerId)}
             />
-          </Animated.View>
+          </View>
         );
 
       case 'vs':
         return (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            layout={Layout.springify()}
-          >
+          <View>
             <VSMode
               player1={playersWithData[0].player}
               player2={playersWithData[1].player}
-              links={list.links}
+              links={list?.links ?? []}
               isDark={isDark}
               onPlayer1Press={() => setSelectedPlayer(playersWithData[0].player)}
               onPlayer2Press={() => setSelectedPlayer(playersWithData[1].player)}
@@ -316,19 +297,15 @@ export default function ListDetailScreen() {
               onRemoveLink={handleRemoveLink}
               onRemovePlayer={handleRemovePlayer}
             />
-          </Animated.View>
+          </View>
         );
 
       case 'ranking':
         return (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            layout={Layout.springify()}
-          >
+          <View>
             <RankingMode
               players={playersWithData}
-              links={list.links}
+              links={list?.links ?? []}
               isDark={isDark}
               onPlayerPress={(player) => setSelectedPlayer(player)}
               onAddPlayer={() => setShowAddPlayerModal(true)}
@@ -337,7 +314,7 @@ export default function ListDetailScreen() {
               onAddLink={() => setShowAddLinkModal(true)}
               onRemoveLink={handleRemoveLink}
             />
-          </Animated.View>
+          </View>
         );
     }
   };
@@ -454,7 +431,7 @@ export default function ListDetailScreen() {
         visible={showAddPlayerModal}
         onClose={() => setShowAddPlayerModal(false)}
         onAddPlayer={handleAddPlayer}
-        existingPlayerIds={list.players.map((p) => p.playerId)}
+        existingPlayerIds={(list.players ?? []).map((p) => p.playerId)}
       />
 
       <AddLinkModal

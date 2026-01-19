@@ -210,7 +210,6 @@ export function AddPlayerToListModal({ visible, onClose, player }: AddPlayerToLi
                   placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
                   value={newListName}
                   onChangeText={setNewListName}
-                  autoFocus
                   maxLength={50}
                 />
               </View>

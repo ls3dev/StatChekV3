@@ -99,7 +99,6 @@ export function CreateListModal({ visible, onClose, onSave }: CreateListModalPro
               placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
               value={name}
               onChangeText={setName}
-              autoFocus
               maxLength={50}
             />
           </View>

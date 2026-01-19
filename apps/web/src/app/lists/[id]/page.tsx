@@ -1,35 +1,21 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { useAuth } from "@/hooks/useAuth";
+import { useMutation } from "convex/react";
+import { api } from "@statcheck/convex";
+import { useAuthContext } from "@/context/AuthContext";
+import { useListsContext } from "@/context/ListsContext";
 import { PlayerSearch } from "@/components/PlayerSearch";
 import { PlayerModal } from "@/components/PlayerModal";
-import type { Player } from "@/lib/types";
+import { AddLinkModal } from "@/components/AddLinkModal";
+import { AgendaMode } from "@/components/list-modes/AgendaMode";
+import { VSMode } from "@/components/list-modes/VSMode";
+import { RankingMode } from "@/components/list-modes/RankingMode";
+import type { Player, PlayerListItem } from "@/lib/types";
 
-type PlayerList = {
-  id: string;
-  name: string;
-  description?: string;
-  players: Player[];
-  createdAt: Date;
-  updatedAt: Date;
-  shareId?: string;
-};
-
-// Mock data - will be replaced with Convex
-const getMockList = (id: string): PlayerList | null => {
-  return {
-    id,
-    name: "My Favorite Players",
-    description: "A collection of the greatest basketball players",
-    players: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-};
+type PlayerWithData = PlayerListItem & { player: Player };
 
 export default function ListDetailPage({
   params,
@@ -38,25 +24,89 @@ export default function ListDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuthContext();
+  const createSharedListMutation = useMutation(api.sharedLists.createSharedList);
+  const {
+    getListById,
+    isLoaded,
+    addPlayerToList,
+    removePlayerFromList,
+    reorderPlayersInList,
+    addLinkToList,
+    removeLinkFromList,
+    updateList,
+  } = useListsContext();
 
-  const [list, setList] = useState<PlayerList | null>(() => getMockList(id));
+  const list = getListById(id);
+
+  const [playersWithData, setPlayersWithData] = useState<PlayerWithData[]>([]);
+  const [loadingPlayers, setLoadingPlayers] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(list?.name || "");
-  const [editDescription, setEditDescription] = useState(
-    list?.description || ""
-  );
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [showAddLink, setShowAddLink] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
+  // Fetch player data for all player IDs in the list
+  const fetchPlayerData = useCallback(async () => {
+    if (!list?.players || list.players.length === 0) {
+      setPlayersWithData([]);
+      setLoadingPlayers(false);
+      return;
+    }
+
+    setLoadingPlayers(true);
+    try {
+      const playerPromises = list.players.map(async (item) => {
+        try {
+          // Include sport param to scope lookup and avoid ID collision across sports
+          const url = `/api/players/${item.playerId}${item.sport ? `?sport=${item.sport}` : ""}`;
+          const res = await fetch(url);
+          if (!res.ok) return null;
+          const player: Player = await res.json();
+          return { ...item, player };
+        } catch {
+          return null;
+        }
+      });
+
+      const results = await Promise.all(playerPromises);
+      const validPlayers = results.filter(
+        (p): p is PlayerWithData => p !== null
+      );
+      setPlayersWithData(validPlayers);
+    } catch (error) {
+      console.error("Error fetching player data:", error);
+    } finally {
+      setLoadingPlayers(false);
+    }
+  }, [list?.players]);
+
+  useEffect(() => {
+    if (isLoaded && list) {
+      fetchPlayerData();
+    }
+  }, [isLoaded, list, fetchPlayerData]);
 
   // Redirect if not authenticated
-  if (!isLoading && !isAuthenticated) {
-    router.push("/auth/signin");
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push("/auth/signin");
+    }
+  }, [authLoading, isAuthenticated, router]);
 
-  if (isLoading) {
+  // Update edit state when list changes
+  useEffect(() => {
+    if (list) {
+      setEditName(list.name);
+      setEditDescription(list.description || "");
+    }
+  }, [list]);
+
+  if (authLoading || !isLoaded) {
     return (
       <main className="min-h-screen bg-background-primary">
         <div className="max-w-4xl mx-auto px-6 py-12">
@@ -66,6 +116,10 @@ export default function ListDetailPage({
         </div>
       </main>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   if (!list) {
@@ -91,45 +145,341 @@ export default function ListDetailPage({
     );
   }
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editName.trim()) {
-      setList({
-        ...list,
+      await updateList(list.id, {
         name: editName.trim(),
         description: editDescription.trim() || undefined,
-        updatedAt: new Date(),
       });
       setIsEditing(false);
     }
   };
 
-  const handleAddPlayer = (player: Player) => {
-    // Check if player already exists in list
-    if (list.players.some((p) => p.id === player.id)) {
-      return;
+  const handleAddPlayer = async (player: Player) => {
+    const success = await addPlayerToList(list.id, player.id, player.sport);
+    if (success) {
+      setShowAddPlayer(false);
     }
-
-    setList({
-      ...list,
-      players: [...list.players, player],
-      updatedAt: new Date(),
-    });
-    setShowAddPlayer(false);
   };
 
-  const handleRemovePlayer = (playerId: string) => {
-    setList({
-      ...list,
-      players: list.players.filter((p) => p.id !== playerId),
-      updatedAt: new Date(),
-    });
+  const handleRemovePlayer = async (playerId: string) => {
+    await removePlayerFromList(list.id, playerId);
+  };
+
+  const handleReorderPlayers = async (newOrder: PlayerWithData[]) => {
+    // Update local state immediately for responsiveness
+    setPlayersWithData(newOrder);
+
+    // Update backend with the new order (preserve sport field)
+    const reorderedItems: PlayerListItem[] = newOrder.map((item, index) => ({
+      playerId: item.playerId,
+      sport: item.sport,
+      order: index,
+      addedAt: item.addedAt,
+    }));
+    await reorderPlayersInList(list.id, reorderedItems);
+  };
+
+  const handleAddLink = async (url: string, title: string) => {
+    await addLinkToList(list.id, url, title);
+  };
+
+  const handleRemoveLink = async (linkId: string) => {
+    await removeLinkFromList(list.id, linkId);
   };
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/list/${list.shareId || list.id}`;
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (isSharing) return;
+
+    setIsSharing(true);
+    try {
+      // Create shared list snapshot with denormalized player data
+      const result = await createSharedListMutation({
+        name: list.name,
+        description: list.description,
+        players: playersWithData.map((p, index) => ({
+          playerId: p.playerId,
+          order: index,
+          name: p.player.name,
+          team: p.player.team,
+          position: p.player.position,
+          photoUrl: p.player.photoUrl,
+          sportsReferenceUrl: p.player.sportsReferenceUrl,
+          hallOfFame: p.player.hallOfFame,
+        })),
+        links: (list.links || []).map((link, index) => ({
+          id: link.id,
+          url: link.url,
+          title: link.title,
+          order: index,
+        })),
+        originalCreatedAt: list.createdAt,
+        originalUpdatedAt: list.updatedAt,
+        sharedByName: user?.name,
+      });
+
+      const shareUrl = `${window.location.origin}/list/${result.shareId}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Error creating shared list:", error);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  // Determine which mode to show based on player count
+  const playerCount = playersWithData.length;
+
+  const renderListMode = () => {
+    if (loadingPlayers) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-6 h-6 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+
+    if (playerCount === 0) {
+      // Empty state
+      return (
+        <div className="p-6">
+          {showAddPlayer ? (
+            <div className="bg-card rounded-2xl p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-text-primary">
+                  Add Player
+                </h2>
+                <button
+                  onClick={() => setShowAddPlayer(false)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5 text-text-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="relative z-50">
+                <PlayerSearch onPlayerSelect={handleAddPlayer} />
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-accent-purple/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-accent-purple"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-text-primary mb-1">
+                  No players yet
+                </h3>
+                <p className="text-text-secondary mb-6">
+                  Search and add players to your list
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddPlayer(true)}
+                className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-accent-purple to-accent-purple/80 hover:from-purple-500 hover:to-purple-600 text-white rounded-xl font-semibold transition-all"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Add Player
+              </button>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    if (playerCount === 1) {
+      // Agenda Mode - single player spotlight
+      return (
+        <>
+          {showAddPlayer ? (
+            <div className="p-6">
+              <div className="bg-card rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-text-primary">
+                    Add Player
+                  </h2>
+                  <button
+                    onClick={() => setShowAddPlayer(false)}
+                    className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <svg
+                      className="w-5 h-5 text-text-muted"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="relative z-50">
+                  <PlayerSearch onPlayerSelect={handleAddPlayer} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <AgendaMode
+              player={playersWithData[0].player}
+              links={list.links || []}
+              onPlayerPress={() => setSelectedPlayer(playersWithData[0].player)}
+              onAddPlayer={() => setShowAddPlayer(true)}
+              onAddLink={() => setShowAddLink(true)}
+              onRemoveLink={handleRemoveLink}
+              onRemovePlayer={() =>
+                handleRemovePlayer(playersWithData[0].playerId)
+              }
+            />
+          )}
+        </>
+      );
+    }
+
+    if (playerCount === 2) {
+      // VS Mode - head-to-head comparison
+      return (
+        <>
+          {showAddPlayer ? (
+            <div className="p-6">
+              <div className="bg-card rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-text-primary">
+                    Add Player
+                  </h2>
+                  <button
+                    onClick={() => setShowAddPlayer(false)}
+                    className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <svg
+                      className="w-5 h-5 text-text-muted"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="relative z-50">
+                  <PlayerSearch onPlayerSelect={handleAddPlayer} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <VSMode
+              player1={playersWithData[0].player}
+              player2={playersWithData[1].player}
+              links={list.links || []}
+              onPlayer1Press={() =>
+                setSelectedPlayer(playersWithData[0].player)
+              }
+              onPlayer2Press={() =>
+                setSelectedPlayer(playersWithData[1].player)
+              }
+              onAddPlayer={() => setShowAddPlayer(true)}
+              onAddLink={() => setShowAddLink(true)}
+              onRemoveLink={handleRemoveLink}
+              onRemovePlayer={handleRemovePlayer}
+            />
+          )}
+        </>
+      );
+    }
+
+    // Ranking Mode - 3+ players
+    return (
+      <>
+        {showAddPlayer ? (
+          <div className="p-6">
+            <div className="bg-card rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-text-primary">
+                  Add Player
+                </h2>
+                <button
+                  onClick={() => setShowAddPlayer(false)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5 text-text-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="relative z-50">
+                <PlayerSearch onPlayerSelect={handleAddPlayer} />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <RankingMode
+            players={playersWithData}
+            links={list.links || []}
+            onPlayerPress={(player) => setSelectedPlayer(player)}
+            onAddPlayer={() => setShowAddPlayer(true)}
+            onRemovePlayer={handleRemovePlayer}
+            onReorderPlayers={handleReorderPlayers}
+            onAddLink={() => setShowAddLink(true)}
+            onRemoveLink={handleRemoveLink}
+          />
+        )}
+      </>
+    );
   };
 
   return (
@@ -206,8 +556,7 @@ export default function ListDetailPage({
                   <p className="text-text-secondary">{list.description}</p>
                 )}
                 <p className="text-sm text-text-muted mt-2">
-                  {list.players.length}{" "}
-                  {list.players.length === 1 ? "player" : "players"}
+                  {playerCount} {playerCount === 1 ? "player" : "players"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -232,10 +581,13 @@ export default function ListDetailPage({
                 </button>
                 <button
                   onClick={handleShare}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  disabled={isSharing}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
                   title="Share list"
                 >
-                  {copied ? (
+                  {isSharing ? (
+                    <div className="w-5 h-5 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+                  ) : copied ? (
                     <svg
                       className="w-5 h-5 text-green-400"
                       fill="none"
@@ -270,93 +622,10 @@ export default function ListDetailPage({
           )}
         </div>
 
-        {/* Add Player Section */}
-        {showAddPlayer ? (
-          <div className="bg-card rounded-2xl p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-text-primary">
-                Add Player
-              </h2>
-              <button
-                onClick={() => setShowAddPlayer(false)}
-                className="p-1 hover:bg-white/10 rounded-full transition-colors"
-              >
-                <svg
-                  className="w-5 h-5 text-text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <PlayerSearch onPlayerSelect={handleAddPlayer} />
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowAddPlayer(true)}
-            className="w-full flex items-center justify-center gap-2 py-4 bg-card hover:bg-card-hover border-2 border-dashed border-white/10 hover:border-accent-purple/50 rounded-2xl text-text-secondary hover:text-accent-purple transition-colors mb-6"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Add Player
-          </button>
-        )}
-
-        {/* Players List */}
-        {list.players.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-accent-purple/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-accent-purple"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-1">
-              No players yet
-            </h3>
-            <p className="text-text-secondary">
-              Search and add players to your list
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {list.players.map((player) => (
-              <PlayerRow
-                key={player.id}
-                player={player}
-                onView={() => setSelectedPlayer(player)}
-                onRemove={() => handleRemovePlayer(player.id)}
-              />
-            ))}
-          </div>
-        )}
+        {/* List Mode Content */}
+        <div className="bg-card rounded-2xl">
+          {renderListMode()}
+        </div>
       </div>
 
       {/* Player Modal */}
@@ -365,102 +634,13 @@ export default function ListDetailPage({
         isOpen={!!selectedPlayer}
         onClose={() => setSelectedPlayer(null)}
       />
+
+      {/* Add Link Modal */}
+      <AddLinkModal
+        isOpen={showAddLink}
+        onClose={() => setShowAddLink(false)}
+        onSave={handleAddLink}
+      />
     </main>
-  );
-}
-
-function PlayerRow({
-  player,
-  onView,
-  onRemove,
-}: {
-  player: Player;
-  onView: () => void;
-  onRemove: () => void;
-}) {
-  const isHallOfFame = player.hallOfFame === true;
-  const displayTeam = player.team === "N/A" ? null : player.team;
-  const displayPosition = player.position === "N/A" ? null : player.position;
-
-  const initials = player.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  return (
-    <div
-      className={`
-        group flex items-center gap-4 p-4 bg-card hover:bg-card-hover rounded-xl transition-colors
-        ${isHallOfFame ? "border-l-4 border-gold" : ""}
-      `}
-    >
-      {/* Avatar */}
-      <button onClick={onView} className="flex-shrink-0">
-        {player.photoUrl ? (
-          <Image
-            src={player.photoUrl}
-            alt={player.name}
-            width={48}
-            height={48}
-            className={`w-12 h-12 rounded-full object-cover ${isHallOfFame ? "ring-2 ring-gold" : ""}`}
-          />
-        ) : (
-          <div
-            className={`
-              w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold
-              ${isHallOfFame ? "bg-yellow-900/30 text-gold" : "bg-accent-purple/20 text-accent-purple"}
-            `}
-          >
-            {initials}
-          </div>
-        )}
-      </button>
-
-      {/* Info */}
-      <button onClick={onView} className="flex-1 text-left min-w-0">
-        <div
-          className={`font-medium truncate ${isHallOfFame ? "text-gold" : "text-text-primary"}`}
-        >
-          {player.name}
-        </div>
-        {(displayTeam || displayPosition) && (
-          <div className="text-sm text-text-secondary truncate">
-            {displayTeam && displayPosition
-              ? `${displayTeam} · ${displayPosition}`
-              : displayTeam || displayPosition}
-          </div>
-        )}
-      </button>
-
-      {/* HOF Badge */}
-      {isHallOfFame && (
-        <span className="flex-shrink-0 text-xs font-semibold px-2 py-0.5 bg-yellow-900/30 text-gold rounded">
-          HOF
-        </span>
-      )}
-
-      {/* Remove Button */}
-      <button
-        onClick={onRemove}
-        className="flex-shrink-0 p-2 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-lg transition-all"
-        title="Remove from list"
-      >
-        <svg
-          className="w-4 h-4 text-red-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-          />
-        </svg>
-      </button>
-    </div>
   );
 }

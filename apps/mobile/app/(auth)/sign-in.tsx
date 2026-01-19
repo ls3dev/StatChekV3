@@ -20,7 +20,7 @@ import { DesignTokens, Typography } from '@/constants/theme';
 export default function SignInScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { signInWithPassword, signInWithOAuth } = useAuth();
+  const { signInWithPassword, signInWithOAuth, continueAsGuest } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,27 +52,34 @@ export default function SignInScreen() {
     }
   };
 
-  const handleOAuthSignIn = async (provider: 'discord' | 'twitter') => {
+  const handleOAuthSignIn = async (provider: 'apple' | 'google' | 'discord') => {
+    console.log('[SIGN-IN] OAuth started:', provider);
     setOauthLoading(provider);
     setError(null);
 
     try {
       const result = await signInWithOAuth(provider);
+      console.log('[SIGN-IN] OAuth result:', result);
 
       if (result.success) {
+        console.log('[SIGN-IN] OAuth success, navigating to tabs');
         router.replace('/(tabs)');
       } else {
+        console.log('[SIGN-IN] OAuth failed:', result.error);
         setError(result.error || `${provider} sign in failed`);
       }
     } catch (err: any) {
+      console.error('[SIGN-IN] OAuth error:', err);
       setError(err.message || `${provider} sign in failed`);
     } finally {
       setOauthLoading(null);
     }
   };
 
-  const handleContinueAsGuest = () => {
-    router.replace('/(tabs)');
+  const handleContinueAsGuest = async () => {
+    continueAsGuest();
+    // Use push instead of replace and go to specific tab
+    router.push('/(tabs)/');
   };
 
   const handleGoToSignUp = () => {
@@ -108,6 +115,39 @@ export default function SignInScreen() {
 
           {/* OAuth Buttons */}
           <View style={styles.oauthContainer}>
+            {/* Apple Sign In */}
+            <Pressable
+              style={[styles.oauthButton, styles.appleButton]}
+              onPress={() => handleOAuthSignIn('apple')}
+              disabled={isDisabled}
+            >
+              {oauthLoading === 'apple' ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
+                  <Text style={styles.oauthButtonText}>Continue with Apple</Text>
+                </>
+              )}
+            </Pressable>
+
+            {/* Google Sign In */}
+            <Pressable
+              style={[styles.oauthButton, styles.googleButton]}
+              onPress={() => handleOAuthSignIn('google')}
+              disabled={isDisabled}
+            >
+              {oauthLoading === 'google' ? (
+                <ActivityIndicator color="#000000" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={20} color="#000000" />
+                  <Text style={[styles.oauthButtonText, { color: '#000000' }]}>Continue with Google</Text>
+                </>
+              )}
+            </Pressable>
+
+            {/* Discord Sign In */}
             <Pressable
               style={[styles.oauthButton, styles.discordButton]}
               onPress={() => handleOAuthSignIn('discord')}
@@ -242,13 +282,16 @@ const styles = StyleSheet.create({
     borderRadius: DesignTokens.radius.lg,
     gap: DesignTokens.spacing.sm,
   },
-  discordButton: {
-    backgroundColor: '#5865F2',
-  },
-  twitterButton: {
+  appleButton: {
     backgroundColor: '#000000',
+  },
+  googleButton: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: DesignTokens.borderDark,
+  },
+  discordButton: {
+    backgroundColor: '#5865F2',
   },
   oauthButtonText: {
     ...Typography.headline,

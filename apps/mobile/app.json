@@ -10,8 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.statcheck.app",
-      "buildNumber": "1",
-      "supportsTablet": true
+      "buildNumber": "41",
+      "supportsTablet": true,
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -41,6 +45,15 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      "expo-apple-authentication",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "statcheck",
+          "project": "statcheck-mobile",
+          "uploadSourceMaps": false
+        }
       ]
     ],
     "experiments": {
@@ -48,10 +61,11 @@
       "reactCompiler": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "906272d7-0cf2-4c89-b6dc-8b63aa033de1"
+        "projectId": "77b143b8-bd48-49ad-927e-2dcf29f7c833"
       }
     },
-    "owner": "citizenlou"
+    "owner": "statcheck"
   }
 }

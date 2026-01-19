@@ -46,7 +46,7 @@ export function PaywallModal() {
 
           {/* Description */}
           <Text style={styles.description}>
-            Free accounts can create up to 3 lists. Upgrade to Pro for unlimited lists and more features!
+            Free accounts can create 1 list. Upgrade to Pro for unlimited lists and more features!
           </Text>
 
           {/* Features */}

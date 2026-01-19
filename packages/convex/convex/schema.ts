@@ -1,10 +1,19 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
-  // Auth tables from @convex-dev/auth (users, sessions, accounts, etc.)
-  ...authTables,
+  // Users table - synced from Clerk
+  users: defineTable({
+    clerkId: v.string(), // Clerk's user ID (identity.subject)
+    email: v.optional(v.string()),
+    name: v.optional(v.string()),
+    username: v.optional(v.string()), // Unique username chosen by user
+    image: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_username", ["username"]),
 
   // User Lists - private lists owned by users
   userLists: defineTable({
@@ -16,6 +25,7 @@ export default defineSchema({
     players: v.array(
       v.object({
         playerId: v.string(),
+        sport: v.optional(v.string()), // Sport for scoped player lookup
         order: v.number(),
         addedAt: v.number(),
       })

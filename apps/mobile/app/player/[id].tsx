@@ -5,13 +5,13 @@ import { StyleSheet } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { PlayerCard } from '@/components/PlayerCard';
-import players from '@/data/nba_playersv2.json';
+import { getPlayerById } from '@/services/playerData';
 import type { Player } from '@/types';
 
 export default function PlayerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const player = (players as Player[]).find((p) => p.id === id);
+  const player = getPlayerById(id);
 
   if (!player) {
     return (

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import Purchases, { CustomerInfo, PurchasesPackage } from 'react-native-purchases';
 import { Platform } from 'react-native';
 
-const REVENUECAT_API_KEY = 'test_ubBPFsmeTcQRWcObNmBNCvBvTTF';
+const REVENUECAT_API_KEY = 'appl_OzNmVPueEoumCUWTiucebUhQZxE';
 
 interface RevenueCatContextType {
   customerInfo: CustomerInfo | null;
@@ -23,16 +23,22 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
     const initRevenueCat = async () => {
       try {
         // Configure RevenueCat
         Purchases.configure({ apiKey: REVENUECAT_API_KEY });
+        setIsConfigured(true);
 
         // Get customer info
-        const info = await Purchases.getCustomerInfo();
-        setCustomerInfo(info);
+        try {
+          const info = await Purchases.getCustomerInfo();
+          setCustomerInfo(info);
+        } catch (e) {
+          console.log('Could not get customer info:', e);
+        }
 
         // Get available packages
         try {
@@ -42,10 +48,12 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
           }
         } catch (e) {
           // No offerings configured yet
-          console.log('No offerings available');
+          console.log('No offerings available:', e);
         }
       } catch (error) {
         console.error('RevenueCat init error:', error);
+        // Don't crash - just continue without RevenueCat
+        setIsConfigured(false);
       } finally {
         setIsLoading(false);
       }
@@ -53,15 +61,23 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
 
     initRevenueCat();
 
-    // Listen for customer info updates
+    // Listen for customer info updates (only if configured)
     const customerInfoListener = (info: CustomerInfo) => {
       setCustomerInfo(info);
     };
 
-    Purchases.addCustomerInfoUpdateListener(customerInfoListener);
+    try {
+      Purchases.addCustomerInfoUpdateListener(customerInfoListener);
+    } catch (e) {
+      console.log('Could not add listener:', e);
+    }
 
     return () => {
-      Purchases.removeCustomerInfoUpdateListener(customerInfoListener);
+      try {
+        Purchases.removeCustomerInfoUpdateListener(customerInfoListener);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
     };
   }, []);
 

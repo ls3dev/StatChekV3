@@ -14,10 +14,8 @@ import {
 
 import { DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import playersData from '@/data/nba_playersv2.json';
+import { getAllPlayers } from '@/services/playerData';
 import type { Player } from '@/types';
-
-const allPlayers = playersData as Player[];
 
 type AddPlayerSearchModalProps = {
   visible: boolean;
@@ -39,7 +37,7 @@ export function AddPlayerSearchModal({
     const trimmed = query.trim().toLowerCase();
     if (!trimmed) return [];
 
-    return allPlayers
+    return getAllPlayers()
       .filter((player) => {
         // Exclude players already in list
         if (existingPlayerIds.includes(player.id)) return false;
@@ -113,7 +111,6 @@ export function AddPlayerSearchModal({
               placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
               value={query}
               onChangeText={setQuery}
-              autoFocus
               autoCapitalize="none"
               autoCorrect={false}
             />

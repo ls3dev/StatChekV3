@@ -1,21 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { PlayerSearch } from "@/components/PlayerSearch";
 import { PlayerModal } from "@/components/PlayerModal";
 import type { Player } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function HomePage() {
+  const router = useRouter();
+  const { status } = useAuth();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+
+  // Redirect to onboarding if needed
+  useEffect(() => {
+    if (status === "onboarding") {
+      router.push("/onboarding");
+    }
+  }, [status, router]);
+
+  // Show loading while checking onboarding status
+  if (status === "loading" || status === "onboarding") {
+    return (
+      <main className="min-h-screen bg-background-primary flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background-primary">
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
+      <div className="relative">
         {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-background-primary to-background-primary" />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-background-primary to-background-primary overflow-hidden" />
 
-        <div className="relative max-w-4xl mx-auto px-6 py-16 md:py-24">
+        <div className="relative max-w-4xl mx-auto px-6 py-16 md:py-24 z-10">
           {/* Logo / Title */}
           <h1 className="text-5xl md:text-7xl font-bold mb-4 text-center bg-gradient-to-r from-accent-purple to-purple-400 bg-clip-text text-transparent">
             StatCheck
@@ -26,7 +46,22 @@ export default function HomePage() {
           </p>
 
           {/* Search */}
-          <PlayerSearch onPlayerSelect={setSelectedPlayer} />
+          <div className="relative z-50">
+            <PlayerSearch onPlayerSelect={setSelectedPlayer} />
+          </div>
+
+          {/* Create List CTA */}
+          <div className="mt-8 text-center">
+            <a
+              href="/lists"
+              className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-gradient-to-r from-accent-purple to-purple-600 hover:from-purple-500 hover:to-purple-700 rounded-xl font-bold hover:scale-105 transition-all shadow-lg shadow-purple-500/30"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Your List
+            </a>
+          </div>
         </div>
       </div>
 
@@ -39,7 +74,7 @@ export default function HomePage() {
           <FeatureCard
             icon="🔍"
             title="Search Players"
-            description="Find any NBA player instantly with our comprehensive database"
+            description="Find any player instantly with our comprehensive database"
           />
           <FeatureCard
             icon="📊"
@@ -61,10 +96,10 @@ export default function HomePage() {
             Try searching for a player
           </h2>
           <p className="text-text-secondary mb-6">
-            Type a name like &quot;LeBron&quot;, &quot;Jordan&quot;, or &quot;Curry&quot; in the search box above
+            Type a name like &quot;LeBron&quot;, &quot;Mahomes&quot;, or &quot;Ohtani&quot; in the search box above
           </p>
           <div className="flex flex-wrap justify-center gap-2">
-            {["LeBron James", "Michael Jordan", "Stephen Curry", "Kobe Bryant"].map(
+            {["LeBron James", "Patrick Mahomes", "Shohei Ohtani", "Travis Kelce"].map(
               (name) => (
                 <span
                   key={name}
@@ -81,7 +116,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-5xl mx-auto px-6 text-center text-text-muted">
-          <p>&copy; 2025 StatCheck. Built for basketball fans.</p>
+          <p>&copy; 2025 StatCheck. Built for sports fans.</p>
         </div>
       </footer>
 

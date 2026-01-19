@@ -90,6 +90,7 @@ export const addPlayerToList = mutation({
   args: {
     listId: v.id("userLists"),
     playerId: v.string(),
+    sport: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const list = await ctx.db.get(args.listId);
@@ -109,6 +110,7 @@ export const addPlayerToList = mutation({
         ...list.players,
         {
           playerId: args.playerId,
+          sport: args.sport,
           order: list.players.length,
           addedAt: Date.now(),
         },
@@ -155,6 +157,7 @@ export const reorderPlayersInList = mutation({
     newOrder: v.array(
       v.object({
         playerId: v.string(),
+        sport: v.optional(v.string()),
         order: v.number(),
         addedAt: v.number(),
       })
