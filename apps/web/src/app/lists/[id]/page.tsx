@@ -3,6 +3,8 @@
 import { useState, useEffect, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useMutation } from "convex/react";
+import { api } from "@statcheck/convex";
 import { useAuthContext } from "@/context/AuthContext";
 import { useListsContext } from "@/context/ListsContext";
 import { PlayerSearch } from "@/components/PlayerSearch";
@@ -22,7 +24,8 @@ export default function ListDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuthContext();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuthContext();
+  const createSharedListMutation = useMutation(api.sharedLists.createSharedList);
   const {
     getListById,
     isLoaded,
@@ -45,6 +48,7 @@ export default function ListDetailPage({
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   // Fetch player data for all player IDs in the list
   const fetchPlayerData = useCallback(async () => {
@@ -185,10 +189,44 @@ export default function ListDetailPage({
   };
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/list/${list.id}`;
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (isSharing) return;
+
+    setIsSharing(true);
+    try {
+      // Create shared list snapshot with denormalized player data
+      const result = await createSharedListMutation({
+        name: list.name,
+        description: list.description,
+        players: playersWithData.map((p, index) => ({
+          playerId: p.playerId,
+          order: index,
+          name: p.player.name,
+          team: p.player.team,
+          position: p.player.position,
+          photoUrl: p.player.photoUrl,
+          sportsReferenceUrl: p.player.sportsReferenceUrl,
+          hallOfFame: p.player.hallOfFame,
+        })),
+        links: (list.links || []).map((link, index) => ({
+          id: link.id,
+          url: link.url,
+          title: link.title,
+          order: index,
+        })),
+        originalCreatedAt: list.createdAt,
+        originalUpdatedAt: list.updatedAt,
+        sharedByName: user?.name,
+      });
+
+      const shareUrl = `${window.location.origin}/list/${result.shareId}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Error creating shared list:", error);
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   // Determine which mode to show based on player count
@@ -543,10 +581,13 @@ export default function ListDetailPage({
                 </button>
                 <button
                   onClick={handleShare}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  disabled={isSharing}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
                   title="Share list"
                 >
-                  {copied ? (
+                  {isSharing ? (
+                    <div className="w-5 h-5 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+                  ) : copied ? (
                     <svg
                       className="w-5 h-5 text-green-400"
                       fill="none"
