@@ -11,8 +11,15 @@ import { useState } from "react";
 
 export default function ListsPage() {
   const router = useRouter();
-  const { userId, isUserReady, status, needsUsername } = useAuth();
+  const { userId, isUserReady, status, needsUsername, isAuthenticated, isLoading } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Redirect to sign-in if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/auth/signin");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   // Redirect to onboarding if needed
   useEffect(() => {
@@ -27,6 +34,19 @@ export default function ListsPage() {
       router.push("/setup-username");
     }
   }, [needsUsername, router]);
+
+  // Don't render anything while checking auth or if not authenticated
+  if (isLoading || !isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-background-primary">
+        <div className="max-w-5xl mx-auto px-6 py-12">
+          <div className="flex items-center justify-center py-24">
+            <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   // Query lists from Convex (skip if no userId yet)
   const lists = useQuery(
