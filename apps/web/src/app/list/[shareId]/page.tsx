@@ -4,7 +4,7 @@ import { fetchQuery } from "convex/nextjs";
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://statcheckapp.com";
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.statcheckapp.com";
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://coordinated-gazelle-93.convex.cloud";
 
 interface Props {
