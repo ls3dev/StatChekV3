@@ -22,6 +22,7 @@ export default defineSchema({
     players: v.array(
       v.object({
         playerId: v.string(),
+        sport: v.optional(v.string()), // Sport for scoped player lookup
         order: v.number(),
         addedAt: v.number(),
       })

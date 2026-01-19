@@ -31,11 +31,11 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-background-primary">
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
+      <div className="relative">
         {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-background-primary to-background-primary" />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-background-primary to-background-primary overflow-hidden" />
 
-        <div className="relative max-w-4xl mx-auto px-6 py-16 md:py-24">
+        <div className="relative max-w-4xl mx-auto px-6 py-16 md:py-24 z-10">
           {/* Logo / Title */}
           <h1 className="text-5xl md:text-7xl font-bold mb-4 text-center bg-gradient-to-r from-accent-purple to-purple-400 bg-clip-text text-transparent">
             StatCheck
@@ -46,7 +46,9 @@ export default function HomePage() {
           </p>
 
           {/* Search */}
-          <PlayerSearch onPlayerSelect={setSelectedPlayer} />
+          <div className="relative z-50">
+            <PlayerSearch onPlayerSelect={setSelectedPlayer} />
+          </div>
         </div>
       </div>
 
@@ -59,7 +61,7 @@ export default function HomePage() {
           <FeatureCard
             icon="🔍"
             title="Search Players"
-            description="Find any NBA player instantly with our comprehensive database"
+            description="Find any player instantly with our comprehensive database"
           />
           <FeatureCard
             icon="📊"
@@ -81,10 +83,10 @@ export default function HomePage() {
             Try searching for a player
           </h2>
           <p className="text-text-secondary mb-6">
-            Type a name like &quot;LeBron&quot;, &quot;Jordan&quot;, or &quot;Curry&quot; in the search box above
+            Type a name like &quot;LeBron&quot;, &quot;Mahomes&quot;, or &quot;Ohtani&quot; in the search box above
           </p>
           <div className="flex flex-wrap justify-center gap-2">
-            {["LeBron James", "Michael Jordan", "Stephen Curry", "Kobe Bryant"].map(
+            {["LeBron James", "Patrick Mahomes", "Shohei Ohtani", "Travis Kelce"].map(
               (name) => (
                 <span
                   key={name}
@@ -101,7 +103,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-5xl mx-auto px-6 text-center text-text-muted">
-          <p>&copy; 2025 StatCheck. Built for basketball fans.</p>
+          <p>&copy; 2025 StatCheck. Built for sports fans.</p>
         </div>
       </footer>
 
