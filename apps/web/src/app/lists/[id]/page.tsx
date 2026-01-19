@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, use, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, use, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -24,7 +24,9 @@ export default function ListDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading: authLoading, user } = useAuthContext();
+  const autoShareTriggered = useRef(false);
   const createSharedListMutation = useMutation(api.sharedLists.createSharedList);
   const {
     getListById,
@@ -105,6 +107,25 @@ export default function ListDetailPage({
       setEditDescription(list.description || "");
     }
   }, [list]);
+
+  // Auto-trigger share if ?share=true is in URL (from ListCard redirect)
+  useEffect(() => {
+    if (
+      searchParams.get("share") === "true" &&
+      !autoShareTriggered.current &&
+      !loadingPlayers &&
+      playersWithData.length > 0 &&
+      list
+    ) {
+      autoShareTriggered.current = true;
+      // Remove the query param from URL
+      router.replace(`/lists/${id}`, { scroll: false });
+      // Trigger share after a brief delay to ensure everything is ready
+      setTimeout(() => {
+        handleShare();
+      }, 100);
+    }
+  }, [searchParams, loadingPlayers, playersWithData, list, id, router]);
 
   if (authLoading || !isLoaded) {
     return (
