@@ -240,9 +240,43 @@ export default function ListDetailPage({
       });
 
       const shareUrl = `${window.location.origin}/list/${result.shareId}`;
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+
+      // Try to copy to clipboard with fallback
+      let copySuccess = false;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(shareUrl);
+          copySuccess = true;
+        }
+      } catch (clipboardError) {
+        console.warn("Clipboard API failed:", clipboardError);
+      }
+
+      // Fallback: use textarea method
+      if (!copySuccess) {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          copySuccess = document.execCommand("copy");
+        } catch (execError) {
+          console.warn("execCommand copy failed:", execError);
+        }
+        document.body.removeChild(textArea);
+      }
+
+      if (copySuccess) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        // Last resort: prompt user to copy manually
+        window.prompt("Copy this share link:", shareUrl);
+      }
     } catch (error) {
       console.error("Error creating shared list:", error);
     } finally {
