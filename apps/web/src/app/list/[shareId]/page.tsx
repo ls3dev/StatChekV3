@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@convex/_generated/api";
+import type { Metadata } from "next";
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://statcheck.vercel.app";
 
 interface Props {
   params: Promise<{ shareId: string }>;
@@ -10,15 +13,26 @@ interface Props {
 // Fetch shared list from Convex
 async function getSharedList(shareId: string) {
   try {
+    console.log(`[SharedList] Fetching list with shareId: ${shareId}`);
+    console.log(`[SharedList] CONVEX_URL: ${process.env.NEXT_PUBLIC_CONVEX_URL ? "set" : "NOT SET"}`);
+
     const list = await fetchQuery(api.sharedLists.getSharedList, { shareId });
+
+    if (list) {
+      console.log(`[SharedList] Found list: ${list.name}`);
+    } else {
+      console.log(`[SharedList] No list found for shareId: ${shareId}`);
+    }
+
     return list;
   } catch (error) {
-    console.error("Failed to fetch shared list:", error);
+    console.error("[SharedList] Failed to fetch shared list:", error);
+    console.error("[SharedList] Error details:", JSON.stringify(error, null, 2));
     return null;
   }
 }
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { shareId } = await params;
   const list = await getSharedList(shareId);
 
@@ -28,7 +42,7 @@ export async function generateMetadata({ params }: Props) {
 
   const playerNames = list.players
     .slice(0, 3)
-    .map((p, i) => `${i + 1}. ${p.name}`)
+    .map((p: { name: string }, i: number) => `${i + 1}. ${p.name}`)
     .join(", ");
   const description =
     list.description ||
@@ -37,14 +51,16 @@ export async function generateMetadata({ params }: Props) {
   return {
     title: `${list.name} | StatCheck`,
     description,
+    metadataBase: new URL(baseUrl),
     openGraph: {
       title: list.name,
       description,
       type: "website",
+      url: `${baseUrl}/list/${shareId}`,
       siteName: "StatCheck",
       images: [
         {
-          url: "/og-image.png", // Default OG image
+          url: `${baseUrl}/og-image.png`,
           width: 1200,
           height: 630,
           alt: list.name,
@@ -55,6 +71,7 @@ export async function generateMetadata({ params }: Props) {
       card: "summary_large_image",
       title: list.name,
       description,
+      images: [`${baseUrl}/og-image.png`],
     },
   };
 }

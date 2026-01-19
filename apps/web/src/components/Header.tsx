@@ -14,7 +14,7 @@ export function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-background-primary/80 backdrop-blur-lg border-b border-white/5">
-      <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="max-w-5xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link
           href="/"
@@ -24,7 +24,7 @@ export function Header() {
         </Link>
 
         {/* Auth Section */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {isLoading ? (
             <div className="w-4 h-4 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
           ) : isAuthenticated ? (
@@ -35,8 +35,8 @@ export function Header() {
               >
                 My Lists
               </Link>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-text-secondary">
+              <div className="flex items-center gap-2 md:gap-3">
+                <span className="hidden md:inline text-sm text-text-secondary">
                   {user?.username ? `@${user.username}` : user?.name || user?.email}
                 </span>
                 <Link
@@ -82,7 +82,7 @@ export function Header() {
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <button className="px-4 py-2 bg-accent-purple hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+                <button className="px-3 py-1.5 md:px-4 md:py-2 bg-accent-purple hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
                   Sign Up
                 </button>
               </SignUpButton>
