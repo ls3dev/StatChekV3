@@ -4,7 +4,7 @@ import { fetchQuery } from "convex/nextjs";
 import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://statcheck.vercel.app";
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://statcheck.app";
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://coordinated-gazelle-93.convex.cloud";
 
 interface Props {
@@ -46,20 +46,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "List Not Found | StatCheck" };
   }
 
+  // Build a rich description
   const playerNames = list.players
-    .slice(0, 3)
+    .slice(0, 5)
     .map((p: { name: string }, i: number) => `${i + 1}. ${p.name}`)
-    .join(", ");
-  const description =
-    list.description ||
-    `${list.players.length} players: ${playerNames}${list.players.length > 3 ? "..." : ""}`;
+    .join(" • ");
+
+  const byLine = list.sharedByName ? `Shared by ${list.sharedByName}` : "";
+  const playerCount = `${list.players.length} player${list.players.length !== 1 ? "s" : ""}`;
+
+  // Use custom description if available, otherwise generate one
+  const description = list.description
+    ? `${list.description} • ${playerCount}${byLine ? ` • ${byLine}` : ""}`
+    : `${playerCount}: ${playerNames}${list.players.length > 5 ? "..." : ""}${byLine ? ` • ${byLine}` : ""}`;
+
+  // Title includes author if available
+  const ogTitle = list.sharedByName
+    ? `${list.name} by ${list.sharedByName}`
+    : list.name;
 
   return {
     title: `${list.name} | StatCheck`,
     description,
     metadataBase: new URL(baseUrl),
     openGraph: {
-      title: list.name,
+      title: ogTitle,
       description,
       type: "website",
       url: `${baseUrl}/list/${shareId}`,
@@ -69,15 +80,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           url: `${baseUrl}/og-image.png`,
           width: 1200,
           height: 630,
-          alt: list.name,
+          alt: `${list.name} - Player Rankings on StatCheck`,
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: list.name,
+      title: ogTitle,
       description,
       images: [`${baseUrl}/og-image.png`],
+      creator: list.sharedByName ? `@${list.sharedByName}` : undefined,
     },
   };
 }
