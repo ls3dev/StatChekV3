@@ -11,7 +11,7 @@ import { useState } from "react";
 
 export default function ListsPage() {
   const router = useRouter();
-  const { userId, isUserReady, status } = useAuth();
+  const { userId, isUserReady, status, needsUsername } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Redirect to onboarding if needed
@@ -20,6 +20,13 @@ export default function ListsPage() {
       router.push("/onboarding");
     }
   }, [status, router]);
+
+  // Redirect to setup-username if authenticated but no username
+  useEffect(() => {
+    if (needsUsername) {
+      router.push("/setup-username");
+    }
+  }, [needsUsername, router]);
 
   // Query lists from Convex (skip if no userId yet)
   const lists = useQuery(
@@ -118,7 +125,6 @@ export default function ListsPage() {
                   playerCount: list.players.length,
                   createdAt: new Date(list.createdAt),
                   updatedAt: new Date(list.updatedAt),
-                  shareId: list.shareId,
                 }}
                 onDelete={() => handleDeleteList(list._id)}
               />

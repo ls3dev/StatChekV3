@@ -28,6 +28,7 @@ interface User {
   id: string;
   email?: string;
   name?: string;
+  username?: string;
   image?: string;
 }
 
@@ -40,6 +41,7 @@ interface AuthContextType {
   isGuest: boolean;
   isLoading: boolean;
   isUserReady: boolean;
+  needsUsername: boolean;
   signOut: () => Promise<void>;
   continueAsGuest: () => void;
 }
@@ -78,6 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               id: convexUser.id,
               email: convexUser.email,
               name: convexUser.name,
+              username: convexUser.username,
               image: convexUser.image,
             });
           }
@@ -91,19 +94,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
     syncUser();
   }, [convexIsAuthenticated, clerkUser, getOrCreateUser]);
 
-  // Check onboarding status on mount (client-side only)
+  // Check onboarding status on mount and when navigating (client-side only)
   useEffect(() => {
     const checkOnboarding = () => {
       const onboardingComplete = hasCompletedOnboarding();
       if (!onboardingComplete) {
         setStatus("onboarding");
+      } else if (status === "onboarding") {
+        // Onboarding was just completed, transition to loading to trigger auth check
+        setStatus("loading");
       }
       setOnboardingChecked(true);
       const anonId = getOrCreateAnonymousId();
       setAnonymousId(anonId);
     };
     checkOnboarding();
-  }, []);
+
+    // Listen for onboarding complete event (same tab)
+    const handleOnboardingComplete = () => {
+      setStatus("loading");
+    };
+    window.addEventListener("onboarding-complete", handleOnboardingComplete);
+
+    // Listen for storage changes (other tabs)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "statcheck_onboarding_complete" && e.newValue === "true") {
+        setStatus("loading");
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("onboarding-complete", handleOnboardingComplete);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [status]);
 
   // Update status based on Convex auth state
   useEffect(() => {
@@ -154,6 +179,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return anonymousId !== null;
   }, [status, convexIsAuthenticated, user?.id, anonymousId]);
 
+  // needsUsername: true when authenticated but no username set
+  const needsUsername = useMemo(() => {
+    return status === "authenticated" && user !== null && !user.username;
+  }, [status, user]);
+
   const value: AuthContextType = {
     status,
     user,
@@ -163,6 +193,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isGuest: status === "guest" || status === "unauthenticated",
     isLoading: status === "loading",
     isUserReady,
+    needsUsername,
     signOut: handleSignOut,
     continueAsGuest,
   };

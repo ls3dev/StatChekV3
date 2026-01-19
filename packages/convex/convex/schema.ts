@@ -7,10 +7,13 @@ export default defineSchema({
     clerkId: v.string(), // Clerk's user ID (identity.subject)
     email: v.optional(v.string()),
     name: v.optional(v.string()),
+    username: v.optional(v.string()), // Unique username chosen by user
     image: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_clerk_id", ["clerkId"]),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_username", ["username"]),
 
   // User Lists - private lists owned by users
   userLists: defineTable({
