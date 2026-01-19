@@ -1,17 +1,20 @@
 {
   "expo": {
-    "name": "StatChek",
-    "slug": "statchek",
+    "name": "StatCheck",
+    "slug": "statcheck",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "statchek",
+    "scheme": "statcheck",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "com.statchek.app",
-      "buildNumber": "1",
-      "supportsTablet": true
+      "bundleIdentifier": "com.statcheck.app",
+      "buildNumber": "10",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +24,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.statcheck.app"
     },
     "web": {
       "output": "static",
@@ -45,6 +49,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "906272d7-0cf2-4c89-b6dc-8b63aa033de1"
+      }
+    },
+    "owner": "citizenlou"
   }
 }
