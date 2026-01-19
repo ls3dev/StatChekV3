@@ -5,6 +5,7 @@ import { api } from "@convex/_generated/api";
 import type { Metadata } from "next";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://statcheck.vercel.app";
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://coordinated-gazelle-93.convex.cloud";
 
 interface Props {
   params: Promise<{ shareId: string }>;
@@ -14,9 +15,14 @@ interface Props {
 async function getSharedList(shareId: string) {
   try {
     console.log(`[SharedList] Fetching list with shareId: ${shareId}`);
-    console.log(`[SharedList] CONVEX_URL: ${process.env.NEXT_PUBLIC_CONVEX_URL ? "set" : "NOT SET"}`);
+    console.log(`[SharedList] CONVEX_URL: ${convexUrl}`);
 
-    const list = await fetchQuery(api.sharedLists.getSharedList, { shareId });
+    // Explicitly pass the URL to ensure it works in server components
+    const list = await fetchQuery(
+      api.sharedLists.getSharedList,
+      { shareId },
+      { url: convexUrl }
+    );
 
     if (list) {
       console.log(`[SharedList] Found list: ${list.name}`);
