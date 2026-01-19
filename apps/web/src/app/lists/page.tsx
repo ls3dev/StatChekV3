@@ -1,18 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useAuth } from "@/hooks/useAuth";
 import { ListCard } from "@/components/ListCard";
 import { CreateListModal } from "@/components/CreateListModal";
-import { useState } from "react";
 
 export default function ListsPage() {
   const router = useRouter();
   const { userId, isUserReady, status, needsUsername, isAuthenticated, isLoading } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  // Query lists from Convex (skip if no userId yet)
+  const lists = useQuery(
+    api.userLists.getUserLists,
+    userId ? { userId } : "skip"
+  );
+
+  // Mutations
+  const createListMutation = useMutation(api.userLists.createList);
+  const deleteListMutation = useMutation(api.userLists.deleteList);
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -47,16 +57,6 @@ export default function ListsPage() {
       </main>
     );
   }
-
-  // Query lists from Convex (skip if no userId yet)
-  const lists = useQuery(
-    api.userLists.getUserLists,
-    userId ? { userId } : "skip"
-  );
-
-  // Mutations
-  const createListMutation = useMutation(api.userLists.createList);
-  const deleteListMutation = useMutation(api.userLists.deleteList);
 
   // Loading state
   if (!isUserReady || status === "loading" || status === "onboarding") {
