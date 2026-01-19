@@ -16,6 +16,8 @@ export function hasCompletedOnboarding(): boolean {
 export function setOnboardingComplete(): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(ONBOARDING_COMPLETE_KEY, "true");
+  // Dispatch custom event for same-tab listeners
+  window.dispatchEvent(new CustomEvent("onboarding-complete"));
 }
 
 /**

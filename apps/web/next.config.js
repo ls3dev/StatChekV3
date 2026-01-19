@@ -12,6 +12,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "**.basketball-reference.com",
       },
+      {
+        protocol: "https",
+        hostname: "static.www.nfl.com",
+      },
+      {
+        protocol: "https",
+        hostname: "img.mlbstatic.com",
+      },
     ],
   },
   // Transpile workspace packages

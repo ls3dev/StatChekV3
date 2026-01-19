@@ -49,6 +49,19 @@ export default function HomePage() {
           <div className="relative z-50">
             <PlayerSearch onPlayerSelect={setSelectedPlayer} />
           </div>
+
+          {/* Create List CTA */}
+          <div className="mt-8 text-center">
+            <a
+              href="/lists"
+              className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-gradient-to-r from-accent-purple to-purple-600 hover:from-purple-500 hover:to-purple-700 rounded-xl font-bold hover:scale-105 transition-all shadow-lg shadow-purple-500/30"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Your List
+            </a>
+          </div>
         </div>
       </div>
 
