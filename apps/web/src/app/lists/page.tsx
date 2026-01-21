@@ -10,7 +10,7 @@ import { CreateListModal } from "@/components/CreateListModal";
 
 export default function ListsPage() {
   const router = useRouter();
-  const { userId, isUserReady, status, needsUsername, isAuthenticated, isLoading } = useAuth();
+  const { userId, isUserReady, status, isAuthenticated, isLoading } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
@@ -38,12 +38,6 @@ export default function ListsPage() {
     }
   }, [status, router]);
 
-  // Redirect to setup-username if authenticated but no username
-  useEffect(() => {
-    if (needsUsername) {
-      router.push("/setup-username");
-    }
-  }, [needsUsername, router]);
 
   // Don't render anything while checking auth or if not authenticated
   if (isLoading || !isAuthenticated) {

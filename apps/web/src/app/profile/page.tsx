@@ -8,7 +8,7 @@ import { useListsContext } from "@/context/ListsContext";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isUserReady, isAuthenticated, status, signOut, needsUsername } = useAuth();
+  const { user, isUserReady, isAuthenticated, status, signOut } = useAuth();
   const { lists, isLoaded } = useListsContext();
 
   // Redirect to onboarding if needed
@@ -18,12 +18,6 @@ export default function ProfilePage() {
     }
   }, [status, router]);
 
-  // Redirect to setup-username if authenticated but no username
-  useEffect(() => {
-    if (needsUsername) {
-      router.push("/setup-username");
-    }
-  }, [needsUsername, router]);
 
   // Redirect unauthenticated users
   useEffect(() => {
