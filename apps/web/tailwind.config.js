@@ -28,9 +28,16 @@ module.exports = {
           DEFAULT: "#FFD700",
           secondary: "#FFA500",
         },
+        // Sport-specific colors
+        sport: {
+          nba: "#F97316",
+          nfl: "#22C55E",
+          mlb: "#3B82F6",
+        },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        display: ["var(--font-outfit)", "system-ui", "sans-serif"],
       },
     },
   },

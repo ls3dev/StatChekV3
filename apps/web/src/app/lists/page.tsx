@@ -139,6 +139,7 @@ export default function ListsPage() {
                   playerCount: list.players.length,
                   createdAt: new Date(list.createdAt),
                   updatedAt: new Date(list.updatedAt),
+                  players: list.players,
                 }}
                 onDelete={() => handleDeleteList(list._id)}
               />
