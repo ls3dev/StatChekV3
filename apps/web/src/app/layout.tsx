@@ -14,29 +14,29 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "StatCheck - Share Your Player Lists",
-  description: "View and share basketball player lists",
+  title: "StatCheck: The 2nd Brain for Sports Fans",
+  description: "The 2nd brain for sports fans. Create and share player lists.",
   metadataBase: new URL(baseUrl),
   openGraph: {
-    title: "StatCheck",
-    description: "View and share basketball player lists",
+    title: "StatCheck: The 2nd Brain for Sports Fans",
+    description: "The 2nd brain for sports fans. Create and share player lists.",
     type: "website",
     url: baseUrl,
     siteName: "StatCheck",
     images: [
       {
-        url: "/og-image.png",
+        url: `${baseUrl}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "StatCheck - Share Your Player Lists",
+        alt: "StatCheck: The 2nd Brain for Sports Fans",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "StatCheck",
-    description: "View and share basketball player lists",
-    images: ["/og-image.png"],
+    title: "StatCheck: The 2nd Brain for Sports Fans",
+    description: "The 2nd brain for sports fans. Create and share player lists.",
+    images: [`${baseUrl}/og-image.png`],
   },
 };
 
