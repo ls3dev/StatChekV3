@@ -4,3 +4,4 @@ lxml>=5.0.0
 tqdm>=4.66.0
 tenacity>=8.2.0
 rapidfuzz>=3.5.0
+cloudscraper>=1.2.0

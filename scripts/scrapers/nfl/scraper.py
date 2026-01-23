@@ -2,13 +2,18 @@
 
 import json
 import time
+import socket
 import logging
 from pathlib import Path
 from typing import List, Set, Dict
 
-import requests
+import cloudscraper
+import urllib3.util.connection as urllib3_connection
 from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
+
+# Force IPv4 to avoid network issues in WSL
+urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
 from config import (
     PFR_BASE_URL,
@@ -37,11 +42,7 @@ class ProBowlScraper:
 
     def __init__(self, project_root: Path):
         self.project_root = project_root
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "StatCheck App - Educational/Research Purpose",
-            "Accept": "text/html,application/xhtml+xml",
-        })
+        self.session = cloudscraper.create_scraper()
         self.scraped_players: Dict[str, dict] = {}  # url -> player data
         self.current_year = PROBOWL_START_YEAR
         self.existing_urls: Set[str] = set()
@@ -118,12 +119,11 @@ class ProBowlScraper:
             players = parse_probowl_year_page(html, year)
             logger.info(f"Found {len(players)} players in {year} Pro Bowl")
             return players
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
+        except Exception as e:
+            error_str = str(e)
+            if "404" in error_str or "Not Found" in error_str:
                 logger.warning(f"No Pro Bowl data for {year}")
                 return []
-            raise
-        except Exception as e:
             logger.error(f"Error scraping year {year}: {e}")
             return []
 
