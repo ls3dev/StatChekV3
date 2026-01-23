@@ -146,4 +146,43 @@ export default defineSchema({
     .index("by_share_id", ["shareId"])
     .index("by_user", ["userId"])
     .index("by_shared_at", ["sharedAt"]),
+
+  // Shared Players - public snapshots of individual players for sharing
+  sharedPlayers: defineTable({
+    shareId: v.string(),
+
+    // Denormalized player data (snapshot at share time)
+    playerId: v.string(),
+    name: v.string(),
+    sport: v.string(),
+    team: v.string(),
+    position: v.string(),
+    number: v.string(),
+    photoUrl: v.optional(v.string()),
+    sportsReferenceUrl: v.optional(v.string()),
+    stats: v.optional(v.any()),
+    hallOfFame: v.optional(v.boolean()),
+
+    // Links attached to the player
+    links: v.array(
+      v.object({
+        id: v.string(),
+        url: v.string(),
+        title: v.string(),
+        order: v.number(),
+      })
+    ),
+
+    // Ownership
+    sharedByName: v.optional(v.string()),
+
+    // Timestamps
+    sharedAt: v.number(),
+
+    // Metadata
+    isPublic: v.boolean(),
+    viewCount: v.number(),
+  })
+    .index("by_share_id", ["shareId"])
+    .index("by_shared_at", ["sharedAt"]),
 });

@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMutation } from 'convex/react';
+import { api } from '@convex/_generated/api';
 
 import { BrandGradient, DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
@@ -42,6 +44,9 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddToListModal, setShowAddToListModal] = useState(false);
   const [editingLink, setEditingLink] = useState<PlayerLink | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+
+  const createSharedPlayer = useMutation(api.sharedPlayers.createSharedPlayer);
 
   const {
     getLinksForPlayer,
@@ -119,6 +124,52 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
     .toUpperCase();
 
   const atLimit = isAtLimit(player.id);
+
+  const handleSharePlayer = async () => {
+    try {
+      setIsSharing(true);
+
+      // Create shared player with current links
+      const links = playerLinks.map((link, index) => ({
+        id: link.id,
+        url: link.url,
+        title: link.title,
+        order: index,
+      }));
+
+      const { shareId } = await createSharedPlayer({
+        playerId: player.id,
+        name: player.name,
+        sport: player.sport || 'NFL',
+        team: player.team,
+        position: player.position,
+        number: player.number || '',
+        photoUrl: player.photoUrl,
+        sportsReferenceUrl: player.sportsReferenceUrl,
+        stats: player.stats,
+        hallOfFame: player.hallOfFame,
+        links,
+      });
+
+      const shareUrl = `https://statcheck.app/player/${shareId}`;
+
+      // Use native share sheet
+      await Share.share({
+        message: `Check out ${player.name} on StatCheck!\n${shareUrl}`,
+        url: shareUrl,
+        title: `${player.name} - StatCheck`,
+      });
+    } catch (error) {
+      console.error('Failed to share player:', error);
+      if (Platform.OS === 'web') {
+        window.alert('Failed to share player. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to share player. Please try again.');
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   // Determine player status styling
   const isHallOfFame = player.hallOfFame === true;
@@ -320,6 +371,29 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
                 { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
               ]}>
               Add to List
+            </Text>
+          </TouchableOpacity>
+
+          {/* Share Player Button */}
+          <TouchableOpacity
+            style={[
+              styles.addToListButton,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+            ]}
+            onPress={handleSharePlayer}
+            disabled={isSharing}
+            activeOpacity={0.8}>
+            <Ionicons
+              name={isSharing ? 'hourglass-outline' : 'share-outline'}
+              size={20}
+              color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
+            />
+            <Text
+              style={[
+                styles.addToListButtonText,
+                { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+              ]}>
+              {isSharing ? 'Sharing...' : 'Share Player'}
             </Text>
           </TouchableOpacity>
         </View>

@@ -12,6 +12,7 @@ import type * as http from "../http.js";
 import type * as playerLinks from "../playerLinks.js";
 import type * as recentPlayers from "../recentPlayers.js";
 import type * as sharedLists from "../sharedLists.js";
+import type * as sharedPlayers from "../sharedPlayers.js";
 import type * as userLists from "../userLists.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
@@ -27,6 +28,7 @@ declare const fullApi: ApiFromModules<{
   playerLinks: typeof playerLinks;
   recentPlayers: typeof recentPlayers;
   sharedLists: typeof sharedLists;
+  sharedPlayers: typeof sharedPlayers;
   userLists: typeof userLists;
   userSettings: typeof userSettings;
   users: typeof users;

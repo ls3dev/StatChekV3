@@ -5,26 +5,14 @@ import { PostHogProvider as PHProvider, usePostHog } from "posthog-js/react";
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-console.log("[PostHog] Module loaded");
-
 // Initialize PostHog only on client side
-if (typeof window !== "undefined") {
-  const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-  const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
-
-  console.log("[PostHog] Key exists:", !!posthogKey, "Host:", posthogHost);
-
-  if (posthogKey) {
-    posthog.init(posthogKey, {
-      api_host: posthogHost,
-      person_profiles: "identified_only",
-      capture_pageview: false, // We capture manually for better SPA support
-      capture_pageleave: true,
-    });
-    console.log("[PostHog] Initialized successfully");
-  } else {
-    console.warn("[PostHog] Missing NEXT_PUBLIC_POSTHOG_KEY - analytics disabled");
-  }
+if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
+    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+    person_profiles: "identified_only",
+    capture_pageview: false, // We capture manually for better SPA support
+    capture_pageleave: true,
+  });
 }
 
 // Component to track page views in Next.js App Router

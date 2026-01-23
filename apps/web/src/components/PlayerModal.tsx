@@ -20,6 +20,8 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
   const { isAuthenticated, userId } = useAuth();
   const [showAddedMessage, setShowAddedMessage] = useState(false);
   const [showAddLink, setShowAddLink] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [showCopiedMessage, setShowCopiedMessage] = useState(false);
 
   // Query player links (receipts)
   const playerLinks = useQuery(
@@ -32,6 +34,7 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
   // Mutations
   const addPlayerLink = useMutation(api.playerLinks.addPlayerLink);
   const deletePlayerLink = useMutation(api.playerLinks.deletePlayerLink);
+  const createSharedPlayer = useMutation(api.sharedPlayers.createSharedPlayer);
 
   // Close on escape key
   useEffect(() => {
@@ -88,6 +91,47 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
       await deletePlayerLink({ linkId: linkId as any });
     } catch (error) {
       console.error("Failed to delete receipt:", error);
+    }
+  };
+
+  const handleSharePlayer = async () => {
+    if (!player) return;
+
+    try {
+      setIsSharing(true);
+
+      // Create shared player with current links
+      const links = (playerLinks || []).map((link, index) => ({
+        id: link._id,
+        url: link.url,
+        title: link.title,
+        order: index,
+      }));
+
+      const { shareId } = await createSharedPlayer({
+        playerId: player.id,
+        name: player.name,
+        sport: player.sport || "NFL",
+        team: player.team,
+        position: player.position,
+        number: player.number || "",
+        photoUrl: player.photoUrl,
+        sportsReferenceUrl: player.sportsReferenceUrl,
+        stats: player.stats,
+        hallOfFame: player.hallOfFame,
+        links,
+      });
+
+      const shareUrl = `https://www.statcheckapp.com/player/${shareId}`;
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      setShowCopiedMessage(true);
+      setTimeout(() => setShowCopiedMessage(false), 2000);
+    } catch (error) {
+      console.error("Failed to share player:", error);
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -319,29 +363,56 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
             )}
           </div>
 
-          {/* Add to List Button */}
-          {isAuthenticated ? (
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            {/* Add to List Button */}
+            {isAuthenticated ? (
+              <button
+                onClick={() => {
+                  // TODO: Open add to list modal
+                  setShowAddedMessage(true);
+                  setTimeout(() => setShowAddedMessage(false), 2000);
+                }}
+                className="flex-1 py-3 bg-accent-purple hover:bg-purple-500 text-white font-semibold rounded-xl transition-colors"
+              >
+                {showAddedMessage ? "Coming soon!" : "Add to List"}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  onClose();
+                  router.push("/auth/signin");
+                }}
+                className="flex-1 py-3 bg-accent-purple hover:bg-purple-500 text-white font-semibold rounded-xl transition-colors"
+              >
+                Sign in to Add to List
+              </button>
+            )}
+
+            {/* Share Button */}
             <button
-              onClick={() => {
-                // TODO: Open add to list modal
-                setShowAddedMessage(true);
-                setTimeout(() => setShowAddedMessage(false), 2000);
-              }}
-              className="w-full py-3 bg-accent-purple hover:bg-purple-500 text-white font-semibold rounded-xl transition-colors"
+              onClick={handleSharePlayer}
+              disabled={isSharing}
+              className="px-4 py-3 bg-card hover:bg-card-hover border border-white/10 text-text-primary font-semibold rounded-xl transition-colors flex items-center gap-2"
+              title="Share player card"
             >
-              {showAddedMessage ? "Coming soon!" : "Add to List"}
+              {isSharing ? (
+                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : showCopiedMessage ? (
+                <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              )}
+              {showCopiedMessage ? "Copied!" : "Share"}
             </button>
-          ) : (
-            <button
-              onClick={() => {
-                onClose();
-                router.push("/auth/signin");
-              }}
-              className="w-full py-3 bg-accent-purple hover:bg-purple-500 text-white font-semibold rounded-xl transition-colors"
-            >
-              Sign in to Add to List
-            </button>
-          )}
+          </div>
         </div>
       </div>
 
