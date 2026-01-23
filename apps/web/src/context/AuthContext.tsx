@@ -16,6 +16,7 @@ import {
   hasCompletedOnboarding,
   getOrCreateAnonymousId,
 } from "@/utils/storage";
+import { posthog } from "@/providers/PostHogProvider";
 
 type AuthStatus =
   | "loading"
@@ -83,12 +84,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
               username: convexUser.username,
               image: convexUser.image,
             });
+
+            // Identify user in PostHog
+            posthog.identify(convexUser.id, {
+              email: convexUser.email,
+              name: convexUser.name,
+              username: convexUser.username,
+            });
           }
         } catch (error) {
           console.error("Failed to sync user:", error);
         }
       } else if (!convexIsAuthenticated) {
         setUser(null);
+        // Reset PostHog identity on logout
+        posthog.reset();
       }
     };
     syncUser();

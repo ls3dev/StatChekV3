@@ -29,6 +29,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "louis.sutton.iii@gmail.com",
+        "ascAppId": "6757631333",
+        "appleTeamId": "369W833N9L"
+      }
+    }
   }
 }

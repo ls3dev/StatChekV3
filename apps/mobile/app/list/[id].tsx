@@ -25,6 +25,7 @@ import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useListsContext } from '@/context/ListsContext';
 import { useAuth } from '@/context/AuthContext';
+import { usePlayerData } from '@/context/PlayerDataContext';
 import { getPlayerById } from '@/services/playerData';
 import type { Player, PlayerListItem } from '@/types';
 
@@ -48,6 +49,7 @@ export default function ListDetailScreen() {
     addLinkToList,
     removeLinkFromList,
   } = useListsContext();
+  const { isLoaded: isPlayerDataLoaded, isLoading: isPlayerDataLoading } = usePlayerData();
 
   const createSharedList = useMutation(api.sharedLists.createSharedList);
 
@@ -63,6 +65,7 @@ export default function ListDetailScreen() {
   const playersWithData = useMemo((): PlayerWithData[] => {
     if (!list) return [];
     if (!list.players || !Array.isArray(list.players)) return [];
+    if (!isPlayerDataLoaded) return []; // Wait for player data to load
     return list.players
       .filter((item) => item && item.playerId) // Filter out invalid items
       .map((item) => ({
@@ -71,7 +74,7 @@ export default function ListDetailScreen() {
       }))
       .filter((item): item is PlayerWithData => item.player !== undefined)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }, [list]);
+  }, [list, isPlayerDataLoaded]);
 
   // Determine the current mode based on player count
   const currentMode = useMemo(() => {
@@ -216,6 +219,48 @@ export default function ListDetailScreen() {
               { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
             ]}>
             List not found
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Show loading state while player data is loading
+  if (isPlayerDataLoading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: isDark ? DesignTokens.backgroundPrimaryDark : DesignTokens.backgroundPrimary,
+            paddingTop: insets.top,
+          },
+        ]}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
+            />
+          </TouchableOpacity>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+            ]}
+            numberOfLines={1}>
+            {list.name}
+          </Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={DesignTokens.accentPurple} />
+          <Text
+            style={[
+              styles.loadingText,
+              { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+            ]}>
+            Loading players...
           </Text>
         </View>
       </View>
@@ -555,6 +600,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   notFoundText: {
+    ...Typography.body,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: DesignTokens.spacing.md,
+  },
+  loadingText: {
     ...Typography.body,
   },
 });

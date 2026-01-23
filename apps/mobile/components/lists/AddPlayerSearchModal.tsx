@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
+import { DesignTokens, PlayerStatusColors, SportColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { getAllPlayers } from '@/services/playerData';
 import type { Player } from '@/types';
@@ -33,15 +33,21 @@ export function AddPlayerSearchModal({
   const { isDark } = useTheme();
   const [query, setQuery] = useState('');
 
+  // Helper to get composite ID for a player
+  const getCompositeId = (player: Player) => `${player.sport}_${player.id}`;
+
   const results = React.useMemo(() => {
     const trimmed = query.trim().toLowerCase();
     if (!trimmed) return [];
 
     return getAllPlayers()
       .filter((player) => {
-        // Exclude players already in list
-        if (existingPlayerIds.includes(player.id)) return false;
-        const haystack = `${player.name} ${player.team} ${player.position}`.toLowerCase();
+        // Exclude players already in list (check both composite and legacy IDs)
+        const compositeId = getCompositeId(player);
+        if (existingPlayerIds.includes(compositeId) || existingPlayerIds.includes(player.id)) {
+          return false;
+        }
+        const haystack = `${player.name} ${player.team} ${player.position} ${player.sport}`.toLowerCase();
         return haystack.includes(trimmed);
       })
       .slice(0, 20); // Limit results
@@ -52,8 +58,10 @@ export function AddPlayerSearchModal({
     onClose();
   };
 
-  const handleSelect = (playerId: string) => {
-    onAddPlayer(playerId);
+  const handleSelect = (player: Player) => {
+    // Use composite ID for new players: sport_id
+    const compositeId = getCompositeId(player);
+    onAddPlayer(compositeId);
     setQuery('');
   };
 
@@ -153,10 +161,10 @@ export function AddPlayerSearchModal({
             ) : (
               results.map((player) => (
                 <PlayerSearchResult
-                  key={player.id}
+                  key={`${player.sport}_${player.id}`}
                   player={player}
                   isDark={isDark}
-                  onSelect={() => handleSelect(player.id)}
+                  onSelect={() => handleSelect(player)}
                 />
               ))
             )}
@@ -200,6 +208,12 @@ function PlayerSearchResult({
   const displayTeam = player.team === 'N/A' ? null : player.team;
   const displayPosition = player.position === 'N/A' ? null : player.position;
 
+  // Get sport color
+  const sportColor = player.sport === 'NBA' ? SportColors.NBA.primary
+    : player.sport === 'NFL' ? SportColors.NFL.primary
+    : player.sport === 'MLB' ? SportColors.MLB.primary
+    : SportColors.default.primary;
+
   return (
     <TouchableOpacity
       style={[
@@ -231,14 +245,19 @@ function PlayerSearchResult({
 
       {/* Info */}
       <View style={styles.resultInfo}>
-        <Text
-          style={[
-            styles.resultName,
-            { color: accentColor || (isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary) },
-          ]}
-          numberOfLines={1}>
-          {player.name}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text
+            style={[
+              styles.resultName,
+              { color: accentColor || (isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary) },
+            ]}
+            numberOfLines={1}>
+            {player.name}
+          </Text>
+          <View style={[styles.sportBadge, { backgroundColor: sportColor + '20' }]}>
+            <Text style={[styles.sportBadgeText, { color: sportColor }]}>{player.sport}</Text>
+          </View>
+        </View>
         {(displayTeam || displayPosition) && (
           <Text
             style={[
@@ -334,9 +353,24 @@ const styles = StyleSheet.create({
   resultInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
   resultName: {
     ...Typography.headline,
-    marginBottom: 2,
+    flexShrink: 1,
+  },
+  sportBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  sportBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   resultMeta: {
     ...Typography.caption,

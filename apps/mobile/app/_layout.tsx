@@ -26,11 +26,11 @@ import { RevenueCatProvider } from '@/providers/RevenueCatProvider';
 import { ListsProvider } from '@/context/ListsContext';
 import { PlayerLinksProvider } from '@/context/PlayerLinksContext';
 import { RecentPlayersProvider } from '@/context/RecentPlayersContext';
+import { PlayerDataProvider } from '@/context/PlayerDataContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { AuthPromptModal } from '@/components/auth/AuthPromptModal';
 import { PaywallModal } from '@/components/PaywallModal';
-import { initializePlayerData } from '@/services/playerData';
 
 export const unstable_settings = {
   // Start with auth flow, will redirect to tabs after onboarding/auth
@@ -75,11 +75,6 @@ function AuthNavigator() {
 function RootLayoutNav() {
   const { isDark } = useTheme();
 
-  // Pre-load player data after initial render (deferred with InteractionManager)
-  useEffect(() => {
-    initializePlayerData();
-  }, []);
-
   // Customize navigation themes to match our design
   const customDarkTheme = {
     ...DarkTheme,
@@ -106,22 +101,24 @@ function RootLayoutNav() {
   return (
     <NavigationThemeProvider value={isDark ? customDarkTheme : customLightTheme}>
       <AuthNavigator />
-      <ListsProvider>
-        <PlayerLinksProvider>
-          <RecentPlayersProvider>
-            <Stack>
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="list/[id]" options={{ headerShown: false }} />
-              <Stack.Screen name="player/[id]" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            </Stack>
-            <AuthPromptModal />
-            <PaywallModal />
-            <StatusBar style={isDark ? 'light' : 'dark'} />
-          </RecentPlayersProvider>
-        </PlayerLinksProvider>
-      </ListsProvider>
+      <PlayerDataProvider>
+        <ListsProvider>
+          <PlayerLinksProvider>
+            <RecentPlayersProvider>
+              <Stack>
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="list/[id]" options={{ headerShown: false }} />
+                <Stack.Screen name="player/[id]" options={{ headerShown: false }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+              </Stack>
+              <AuthPromptModal />
+              <PaywallModal />
+              <StatusBar style={isDark ? 'light' : 'dark'} />
+            </RecentPlayersProvider>
+          </PlayerLinksProvider>
+        </ListsProvider>
+      </PlayerDataProvider>
     </NavigationThemeProvider>
   );
 }

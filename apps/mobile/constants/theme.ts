@@ -106,6 +106,56 @@ export const DesignTokens = {
   },
 } as const;
 
+// Sport-specific colors matching web design
+export const SportColors = {
+  NBA: {
+    primary: '#F97316', // Orange-500
+    background: 'rgba(249, 115, 22, 0.1)',
+    backgroundDark: 'rgba(249, 115, 22, 0.15)',
+  },
+  NFL: {
+    primary: '#22C55E', // Green-500
+    background: 'rgba(34, 197, 94, 0.1)',
+    backgroundDark: 'rgba(34, 197, 94, 0.15)',
+  },
+  MLB: {
+    primary: '#3B82F6', // Blue-500
+    background: 'rgba(59, 130, 246, 0.1)',
+    backgroundDark: 'rgba(59, 130, 246, 0.15)',
+  },
+  default: {
+    primary: '#A78BFA', // Existing accentPurple
+    background: 'rgba(167, 139, 250, 0.1)',
+    backgroundDark: 'rgba(167, 139, 250, 0.15)',
+  },
+} as const;
+
+// Sport theme configuration (matching web)
+export const SPORT_THEMES = {
+  NBA: {
+    icon: '🏀',
+    label: 'NBA',
+    ...SportColors.NBA,
+  },
+  NFL: {
+    icon: '🏈',
+    label: 'NFL',
+    ...SportColors.NFL,
+  },
+  MLB: {
+    icon: '⚾',
+    label: 'MLB',
+    ...SportColors.MLB,
+  },
+  default: {
+    icon: '📋',
+    label: 'List',
+    ...SportColors.default,
+  },
+} as const;
+
+export type SportType = 'NBA' | 'NFL' | 'MLB';
+
 // Player status colors for Hall of Fame and retired players
 export const PlayerStatusColors = {
   hallOfFame: {
