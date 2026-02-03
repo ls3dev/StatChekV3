@@ -18,6 +18,7 @@ interface User {
   id: string;
   email?: string;
   name?: string;
+  username?: string;
   image?: string;
 }
 
@@ -93,6 +94,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               id: convexUser.id,
               email: convexUser.email,
               name: convexUser.name,
+              username: convexUser.username,
               image: convexUser.image,
             });
             setSentryUser({

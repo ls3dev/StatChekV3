@@ -44,6 +44,7 @@ export function PlayerCardBottomSheet({ player, isVisible, onDismiss }: PlayerCa
   }, [isVisible, translateY, backdropOpacity]);
 
   const panGesture = Gesture.Pan()
+    .activeOffsetY(10)
     .onUpdate((event) => {
       // Only allow dragging down (positive translateY)
       if (event.translationY > 0) {

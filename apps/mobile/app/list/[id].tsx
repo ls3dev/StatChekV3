@@ -166,7 +166,7 @@ export default function ListDetailScreen() {
         })),
         originalCreatedAt: list.createdAt,
         originalUpdatedAt: list.updatedAt,
-        sharedByName: user?.name || undefined,
+        sharedByName: user?.username || user?.name || undefined,
       });
 
       // Create the shareable URL
