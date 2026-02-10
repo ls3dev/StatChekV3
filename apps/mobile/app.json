@@ -54,7 +54,8 @@
           "project": "statcheck-mobile",
           "uploadSourceMaps": false
         }
-      ]
+      ],
+      "expo-clipboard"
     ],
     "experiments": {
       "typedRoutes": true,
