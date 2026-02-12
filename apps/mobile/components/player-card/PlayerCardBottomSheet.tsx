@@ -22,7 +22,7 @@ type PlayerCardBottomSheetProps = {
 };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.75;
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.85;
 const DISMISS_THRESHOLD = 150;
 
 export function PlayerCardBottomSheet({ player, isVisible, onDismiss }: PlayerCardBottomSheetProps) {

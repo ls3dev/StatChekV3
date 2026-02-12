@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
-import { Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useMutation } from 'convex/react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ActivityIndicator, Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMutation, useAction } from 'convex/react';
 import { api } from '@statcheck/convex';
 
 import { BrandGradient, DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { useListsContext } from '@/context/ListsContext';
+import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { usePlayerLinks } from '@/hooks/usePlayerLinks';
 import type { Player, PlayerLink } from '@/types';
 
@@ -15,6 +17,9 @@ import { AddLinkModal } from '../AddLinkModal';
 import { DraggableLinkList } from '../DraggableLinkList';
 import { LinkItem } from '../LinkItem';
 import { AddPlayerToListModal } from '../lists';
+import { PlayerStatsCard } from '../nba/PlayerStatsCard';
+import { ContractCard } from '../nba/ContractCard';
+import { PlayerCardTabs, type PlayerCardTab } from './PlayerCardTabs';
 
 type PlayerCardContentProps = {
   player: Player;
@@ -38,14 +43,69 @@ const getPositionColor = (position: string) => {
   return positionColors[position] || DesignTokens.accentPurple;
 };
 
+interface BasicStats {
+  games_played: number;
+  min: string;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  turnover: number;
+  fg_pct: number;
+  fg3_pct: number;
+  ft_pct: number;
+}
+
+interface AdvancedStats {
+  per: number;
+  ts_pct: number;
+  usg_pct: number;
+  net_rating: number;
+  off_rating: number;
+  def_rating: number;
+}
+
+interface Contract {
+  season: number;
+  amount: number;
+  currency: string;
+}
+
 export function PlayerCardContent({ player }: PlayerCardContentProps) {
   const { isDark } = useTheme();
+  const { isProUser } = useRevenueCat();
+  const { setShowPaywall } = useListsContext();
   const [imageError, setImageError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddToListModal, setShowAddToListModal] = useState(false);
   const [editingLink, setEditingLink] = useState<PlayerLink | null>(null);
   const [isSharing, setIsSharing] = useState(false);
 
+  // Tab state
+  const isNBA = player.sport?.toUpperCase() === 'NBA';
+  const [activeTab, setActiveTab] = useState<PlayerCardTab>(isNBA ? 'stats' : 'links');
+
+  // Ball Don't Lie player data
+  const [bdlPlayerId, setBdlPlayerId] = useState<number | null>(null);
+  const [isSearchingPlayer, setIsSearchingPlayer] = useState(false);
+  const [playerNotFound, setPlayerNotFound] = useState(false);
+
+  // Stats state
+  const [basicStats, setBasicStats] = useState<BasicStats | null>(null);
+  const [advancedStats, setAdvancedStats] = useState<AdvancedStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  // Contract state
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [isLoadingContracts, setIsLoadingContracts] = useState(false);
+
+  // Convex actions
+  const searchPlayerByName = useAction(api.nba.searchPlayerByName);
+  const getPlayerStats = useAction(api.nba.getPlayerStats);
+  const getAdvancedStats = useAction(api.nba.getAdvancedStats);
+  const getPlayerContract = useAction(api.nba.getPlayerContract);
   const createSharedPlayer = useMutation(api.sharedPlayers.createSharedPlayer);
 
   const {
@@ -69,6 +129,99 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
     createdAt: 0,
   };
 
+  // Search for player in Ball Don't Lie API on mount (NBA only)
+  useEffect(() => {
+    if (!isNBA) return;
+
+    const searchPlayer = async () => {
+      setIsSearchingPlayer(true);
+      setPlayerNotFound(false);
+
+      try {
+        const result = await searchPlayerByName({ name: player.name });
+        if (result.playerId) {
+          setBdlPlayerId(result.playerId);
+        } else {
+          setPlayerNotFound(true);
+        }
+      } catch (error) {
+        console.error('Failed to search player:', error);
+        setPlayerNotFound(true);
+      } finally {
+        setIsSearchingPlayer(false);
+      }
+    };
+
+    searchPlayer();
+  }, [player.name, isNBA, searchPlayerByName]);
+
+  // Fetch stats when tab changes to 'stats' and we have playerId
+  useEffect(() => {
+    if (activeTab !== 'stats' || !bdlPlayerId || basicStats) return;
+
+    const fetchStats = async () => {
+      setIsLoadingStats(true);
+      setStatsError(null);
+
+      try {
+        // Fetch basic stats
+        const basicResult = await getPlayerStats({ playerId: bdlPlayerId });
+        if (basicResult.stats) {
+          setBasicStats(basicResult.stats as unknown as BasicStats);
+        }
+
+        // Fetch advanced stats if Pro user
+        if (isProUser) {
+          const advancedResult = await getAdvancedStats({ playerId: bdlPlayerId });
+          if (advancedResult.stats && !advancedResult.requiresPro) {
+            setAdvancedStats(advancedResult.stats as unknown as AdvancedStats);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+        setStatsError('Failed to load stats');
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, [activeTab, bdlPlayerId, basicStats, isProUser, getPlayerStats, getAdvancedStats]);
+
+  // Fetch contracts when tab changes to 'contract' and user is Pro
+  useEffect(() => {
+    if (activeTab !== 'contract' || !bdlPlayerId || contracts.length > 0) return;
+
+    const fetchContracts = async () => {
+      if (!isProUser) return; // Don't fetch if not Pro
+
+      setIsLoadingContracts(true);
+
+      try {
+        const result = await getPlayerContract({ playerId: bdlPlayerId });
+        if (result.contracts && !result.requiresPro) {
+          setContracts(
+            result.contracts.map((c) => ({
+              season: c.season,
+              amount: c.amount,
+              currency: c.currency,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Failed to fetch contracts:', error);
+      } finally {
+        setIsLoadingContracts(false);
+      }
+    };
+
+    fetchContracts();
+  }, [activeTab, bdlPlayerId, contracts.length, isProUser, getPlayerContract]);
+
+  const handleUnlockPress = useCallback(() => {
+    setShowPaywall(true);
+  }, [setShowPaywall]);
+
   const handleAddPress = () => {
     if (isAtLimit(player.id)) {
       if (Platform.OS === 'web') {
@@ -79,7 +232,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
           "You've reached the free limit of 3 links. Upgrade to Pro for unlimited links!",
           [
             { text: 'Maybe Later', style: 'cancel' },
-            { text: 'Upgrade', onPress: () => console.log('Navigate to Pro') },
+            { text: 'Upgrade', onPress: () => setShowPaywall(true) },
           ]
         );
       }
@@ -185,6 +338,236 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
     return [BrandGradient.start, BrandGradient.end];
   };
 
+  // Render tab content
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'stats':
+        if (isSearchingPlayer) {
+          return (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+              <Text style={[styles.loadingText, isDark && styles.textSecondary]}>
+                Finding player...
+              </Text>
+            </View>
+          );
+        }
+
+        if (playerNotFound) {
+          return (
+            <View style={styles.emptyContainer}>
+              <Ionicons
+                name="stats-chart-outline"
+                size={32}
+                color={DesignTokens.textMuted}
+              />
+              <Text style={[styles.emptyText, isDark && styles.textSecondary]}>
+                Stats not available for this player
+              </Text>
+            </View>
+          );
+        }
+
+        return (
+          <PlayerStatsCard
+            basicStats={basicStats}
+            advancedStats={advancedStats}
+            isLoading={isLoadingStats}
+            isProUser={isProUser}
+            onUnlockPress={handleUnlockPress}
+          />
+        );
+
+      case 'contract':
+        if (isSearchingPlayer) {
+          return (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+              <Text style={[styles.loadingText, isDark && styles.textSecondary]}>
+                Finding player...
+              </Text>
+            </View>
+          );
+        }
+
+        if (playerNotFound) {
+          return (
+            <View style={styles.emptyContainer}>
+              <Ionicons
+                name="document-text-outline"
+                size={32}
+                color={DesignTokens.textMuted}
+              />
+              <Text style={[styles.emptyText, isDark && styles.textSecondary]}>
+                Contract not available for this player
+              </Text>
+            </View>
+          );
+        }
+
+        if (!isProUser) {
+          return (
+            <ContractCard
+              contracts={[]}
+              isLocked={true}
+              onUnlockPress={handleUnlockPress}
+            />
+          );
+        }
+
+        if (isLoadingContracts) {
+          return (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+              <Text style={[styles.loadingText, isDark && styles.textSecondary]}>
+                Loading contract...
+              </Text>
+            </View>
+          );
+        }
+
+        return (
+          <ContractCard
+            contracts={contracts}
+            playerName={player.name}
+            isLocked={false}
+          />
+        );
+
+      case 'links':
+      default:
+        return (
+          <>
+            {/* Links Section */}
+            <View style={styles.linksSection}>
+              <Text
+                style={[
+                  styles.linksLabel,
+                  { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+                ]}>
+                QUICK LINKS
+              </Text>
+
+              {/* Sports Reference Link (default) */}
+              {player.sportsReferenceUrl && (
+                <View style={styles.linkItem}>
+                  <LinkItem link={sportsReferenceLink} onEdit={() => {}} onDelete={() => {}} isDefault />
+                </View>
+              )}
+
+              {/* Custom Links */}
+              {playerLinks.length > 0 && (
+                <DraggableLinkList
+                  links={playerLinks}
+                  onReorder={handleReorderLinks}
+                  onEdit={handleEdit}
+                  onDelete={deleteLink}
+                />
+              )}
+
+              {/* Empty State */}
+              {playerLinks.length === 0 && !player.sportsReferenceUrl && (
+                <View style={styles.emptyState}>
+                  <Ionicons
+                    name="link-outline"
+                    size={32}
+                    color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+                  />
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+                    ]}>
+                    No links yet
+                  </Text>
+                  <Text
+                    style={[
+                      styles.emptySubtext,
+                      { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+                    ]}>
+                    Add custom links to this player
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Buttons */}
+            <View style={styles.buttonContainer}>
+              {/* Add Link Button */}
+              <TouchableOpacity
+                style={[styles.addButton, atLimit && styles.addButtonDisabled]}
+                onPress={handleAddPress}
+                activeOpacity={0.8}>
+                <LinearGradient
+                  colors={atLimit ? ['#9CA3AF', '#9CA3AF'] : [BrandGradient.start, BrandGradient.end]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.addButtonGradient}>
+                  <Ionicons name="add" size={20} color="#fff" />
+                  <Text style={styles.addButtonText}>Add Link</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {atLimit && (
+                <Text
+                  style={[
+                    styles.limitText,
+                    { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+                  ]}>
+                  Free limit reached (3/3)
+                </Text>
+              )}
+
+              {/* Add to List Button */}
+              <TouchableOpacity
+                style={[
+                  styles.addToListButton,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+                ]}
+                onPress={() => setShowAddToListModal(true)}
+                activeOpacity={0.8}>
+                <Ionicons
+                  name="list"
+                  size={20}
+                  color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
+                />
+                <Text
+                  style={[
+                    styles.addToListButtonText,
+                    { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+                  ]}>
+                  Add to List
+                </Text>
+              </TouchableOpacity>
+
+              {/* Share Player Button */}
+              <TouchableOpacity
+                style={[
+                  styles.addToListButton,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+                ]}
+                onPress={handleSharePlayer}
+                disabled={isSharing}
+                activeOpacity={0.8}>
+                <Ionicons
+                  name={isSharing ? 'hourglass-outline' : 'share-outline'}
+                  size={20}
+                  color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
+                />
+                <Text
+                  style={[
+                    styles.addToListButtonText,
+                    { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+                  ]}>
+                  {isSharing ? 'Sharing...' : 'Share Player'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        );
+    }
+  };
+
   return (
     <View
       style={[
@@ -272,130 +655,18 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
           ]}
         />
 
-        {/* Links Section */}
-        <View style={styles.linksSection}>
-          <Text
-            style={[
-              styles.linksLabel,
-              { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
-            ]}>
-            QUICK LINKS
-          </Text>
-
-          {/* Sports Reference Link (default) */}
-          {player.sportsReferenceUrl && (
-            <View style={styles.linkItem}>
-              <LinkItem link={sportsReferenceLink} onEdit={() => {}} onDelete={() => {}} isDefault />
-            </View>
-          )}
-
-          {/* Custom Links */}
-          {playerLinks.length > 0 && (
-            <DraggableLinkList
-              links={playerLinks}
-              onReorder={handleReorderLinks}
-              onEdit={handleEdit}
-              onDelete={deleteLink}
-            />
-          )}
-
-          {/* Empty State */}
-          {playerLinks.length === 0 && !player.sportsReferenceUrl && (
-            <View style={styles.emptyState}>
-              <Ionicons
-                name="link-outline"
-                size={32}
-                color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
-              />
-              <Text
-                style={[
-                  styles.emptyText,
-                  { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
-                ]}>
-                No links yet
-              </Text>
-              <Text
-                style={[
-                  styles.emptySubtext,
-                  { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
-                ]}>
-                Add custom links to this player
-              </Text>
-            </View>
-          )}
+        {/* Tabs (NBA only shows all tabs, others just Links) */}
+        <View style={styles.tabsContainer}>
+          <PlayerCardTabs
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            sport={player.sport}
+          />
         </View>
 
-        {/* Buttons */}
-        <View style={styles.buttonContainer}>
-          {/* Add Link Button */}
-          <TouchableOpacity
-            style={[styles.addButton, atLimit && styles.addButtonDisabled]}
-            onPress={handleAddPress}
-            activeOpacity={0.8}>
-            <LinearGradient
-              colors={atLimit ? ['#9CA3AF', '#9CA3AF'] : [BrandGradient.start, BrandGradient.end]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.addButtonGradient}>
-              <Ionicons name="add" size={20} color="#fff" />
-              <Text style={styles.addButtonText}>Add Link</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {atLimit && (
-            <Text
-              style={[
-                styles.limitText,
-                { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
-              ]}>
-              Free limit reached (3/3)
-            </Text>
-          )}
-
-          {/* Add to List Button */}
-          <TouchableOpacity
-            style={[
-              styles.addToListButton,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
-            ]}
-            onPress={() => setShowAddToListModal(true)}
-            activeOpacity={0.8}>
-            <Ionicons
-              name="list"
-              size={20}
-              color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
-            />
-            <Text
-              style={[
-                styles.addToListButtonText,
-                { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
-              ]}>
-              Add to List
-            </Text>
-          </TouchableOpacity>
-
-          {/* Share Player Button */}
-          <TouchableOpacity
-            style={[
-              styles.addToListButton,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
-            ]}
-            onPress={handleSharePlayer}
-            disabled={isSharing}
-            activeOpacity={0.8}>
-            <Ionicons
-              name={isSharing ? 'hourglass-outline' : 'share-outline'}
-              size={20}
-              color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
-            />
-            <Text
-              style={[
-                styles.addToListButtonText,
-                { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
-              ]}>
-              {isSharing ? 'Sharing...' : 'Share Player'}
-            </Text>
-          </TouchableOpacity>
+        {/* Tab Content */}
+        <View style={styles.tabContent}>
+          {renderTabContent()}
         </View>
       </ScrollView>
 
@@ -438,21 +709,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignTokens.spacing.xl,
   },
   photo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: DesignTokens.spacing.md,
   },
   photoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: DesignTokens.spacing.md,
   },
   placeholderText: {
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: '700',
     letterSpacing: 1,
   },
@@ -482,8 +753,30 @@ const styles = StyleSheet.create({
     height: 1,
     marginHorizontal: DesignTokens.spacing.lg,
   },
-  linksSection: {
+  tabsContainer: {
     paddingHorizontal: DesignTokens.spacing.lg,
+    paddingTop: DesignTokens.spacing.md,
+  },
+  tabContent: {
+    paddingHorizontal: DesignTokens.spacing.lg,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: DesignTokens.spacing.xl,
+    gap: DesignTokens.spacing.sm,
+  },
+  loadingText: {
+    ...Typography.body,
+    color: DesignTokens.textMuted,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: DesignTokens.spacing.xl,
+    gap: DesignTokens.spacing.sm,
+  },
+  linksSection: {
     paddingTop: DesignTokens.spacing.md,
   },
   linksLabel: {
@@ -509,7 +802,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   buttonContainer: {
-    paddingHorizontal: DesignTokens.spacing.lg,
     paddingTop: DesignTokens.spacing.lg,
     alignItems: 'center',
     gap: DesignTokens.spacing.xs,
@@ -550,5 +842,8 @@ const styles = StyleSheet.create({
   addToListButtonText: {
     ...Typography.headline,
     fontSize: 15,
+  },
+  textSecondary: {
+    color: DesignTokens.textSecondaryDark,
   },
 });

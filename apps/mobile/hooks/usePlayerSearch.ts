@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useState } from 'react';
 
+import { useSport, Sport } from '@/context/SportContext';
 import { getAllPlayers } from '@/services/playerData';
 import type { Player } from '@/types';
 
-export type Sport = 'NBA' | 'NFL' | 'MLB';
+export type { Sport } from '@/context/SportContext';
 
 const SPORT_STORAGE_KEY = '@selected_sport';
 
@@ -33,10 +34,10 @@ const getPlayersBySport = (sport: Sport): Player[] => {
 
 export function usePlayerSearch() {
   const [query, setQuery] = useState('');
-  const [selectedSport, setSelectedSport] = useState<Sport>('NBA');
+  const { selectedSport, setSelectedSport } = useSport();
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load saved sport preference on mount
+  // Load saved sport preference on mount (only once)
   useEffect(() => {
     const loadSavedSport = async () => {
       try {
@@ -51,7 +52,7 @@ export function usePlayerSearch() {
       }
     };
     loadSavedSport();
-  }, []);
+  }, [setSelectedSport]);
 
   // Save sport preference when it changes
   useEffect(() => {

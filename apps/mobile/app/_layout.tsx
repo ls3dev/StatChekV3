@@ -29,6 +29,7 @@ import { RecentPlayersProvider } from '@/context/RecentPlayersContext';
 import { PlayerDataProvider } from '@/context/PlayerDataContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { SportProvider } from '@/context/SportContext';
 import { AuthPromptModal } from '@/components/auth/AuthPromptModal';
 import { PaywallModal } from '@/components/PaywallModal';
 
@@ -131,7 +132,9 @@ export default function RootLayout() {
           <RevenueCatProvider>
             <AuthProvider>
               <ThemeProvider>
-                <RootLayoutNav />
+                <SportProvider>
+                  <RootLayoutNav />
+                </SportProvider>
               </ThemeProvider>
             </AuthProvider>
           </RevenueCatProvider>
