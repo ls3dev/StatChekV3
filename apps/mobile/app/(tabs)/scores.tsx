@@ -104,7 +104,7 @@ export default function ScoresScreen() {
   // Fetch games on mount and when date/sport changes
   React.useEffect(() => {
     fetchGames();
-  }, [selectedDate, selectedSport]);
+  }, [fetchGames]);
 
   const handleRefresh = useCallback(() => {
     fetchGames(true);

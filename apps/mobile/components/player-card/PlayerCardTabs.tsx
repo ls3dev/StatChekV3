@@ -1,19 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-  useAnimatedStyle,
-  withTiming,
-  useSharedValue,
-  runOnJS,
-} from 'react-native-reanimated';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 export type PlayerCardTab = 'stats' | 'contract' | 'links';
 
@@ -50,8 +39,6 @@ export function PlayerCardTabs({
 
   const handleTabPress = (tab: PlayerCardTab) => {
     if (disabledTabs.includes(tab)) return;
-
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     onTabChange(tab);
   };
 

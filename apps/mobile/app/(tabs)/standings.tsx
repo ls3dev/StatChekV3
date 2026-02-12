@@ -91,7 +91,7 @@ export default function StandingsScreen() {
   // Fetch standings on mount and when sport changes
   React.useEffect(() => {
     fetchStandings();
-  }, [selectedSport]);
+  }, [fetchStandings]);
 
   const handleRefresh = useCallback(() => {
     fetchStandings(true);

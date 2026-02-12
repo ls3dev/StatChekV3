@@ -143,7 +143,7 @@ export default function TeamDetailScreen() {
     if (teamId) {
       fetchData();
     }
-  }, [teamId]);
+  }, [teamId, fetchData]);
 
   const handleRefresh = useCallback(() => {
     fetchData(true);
