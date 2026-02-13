@@ -1,17 +1,101 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAction } from "convex/react";
+import { api } from "@convex/_generated/api";
 import { PlayerSearch } from "@/components/PlayerSearch";
 import { PlayerModal } from "@/components/PlayerModal";
 import type { Player } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
+import { getNBATeamLogoUrl } from "@/lib/nbaTeamLogos";
+
+const NBA_TEAMS: { id: number; name: string; city: string; abbreviation: string }[] = [
+  { id: 1, name: "Hawks", city: "Atlanta", abbreviation: "ATL" },
+  { id: 2, name: "Celtics", city: "Boston", abbreviation: "BOS" },
+  { id: 3, name: "Nets", city: "Brooklyn", abbreviation: "BKN" },
+  { id: 4, name: "Hornets", city: "Charlotte", abbreviation: "CHA" },
+  { id: 5, name: "Bulls", city: "Chicago", abbreviation: "CHI" },
+  { id: 6, name: "Cavaliers", city: "Cleveland", abbreviation: "CLE" },
+  { id: 7, name: "Mavericks", city: "Dallas", abbreviation: "DAL" },
+  { id: 8, name: "Nuggets", city: "Denver", abbreviation: "DEN" },
+  { id: 9, name: "Pistons", city: "Detroit", abbreviation: "DET" },
+  { id: 10, name: "Warriors", city: "Golden State", abbreviation: "GSW" },
+  { id: 11, name: "Rockets", city: "Houston", abbreviation: "HOU" },
+  { id: 12, name: "Pacers", city: "Indiana", abbreviation: "IND" },
+  { id: 13, name: "Clippers", city: "LA", abbreviation: "LAC" },
+  { id: 14, name: "Lakers", city: "Los Angeles", abbreviation: "LAL" },
+  { id: 15, name: "Grizzlies", city: "Memphis", abbreviation: "MEM" },
+  { id: 16, name: "Heat", city: "Miami", abbreviation: "MIA" },
+  { id: 17, name: "Bucks", city: "Milwaukee", abbreviation: "MIL" },
+  { id: 18, name: "Timberwolves", city: "Minnesota", abbreviation: "MIN" },
+  { id: 19, name: "Pelicans", city: "New Orleans", abbreviation: "NOP" },
+  { id: 20, name: "Knicks", city: "New York", abbreviation: "NYK" },
+  { id: 21, name: "Thunder", city: "Oklahoma City", abbreviation: "OKC" },
+  { id: 22, name: "Magic", city: "Orlando", abbreviation: "ORL" },
+  { id: 23, name: "76ers", city: "Philadelphia", abbreviation: "PHI" },
+  { id: 24, name: "Suns", city: "Phoenix", abbreviation: "PHX" },
+  { id: 25, name: "Trail Blazers", city: "Portland", abbreviation: "POR" },
+  { id: 26, name: "Kings", city: "Sacramento", abbreviation: "SAC" },
+  { id: 27, name: "Spurs", city: "San Antonio", abbreviation: "SAS" },
+  { id: 28, name: "Raptors", city: "Toronto", abbreviation: "TOR" },
+  { id: 29, name: "Jazz", city: "Utah", abbreviation: "UTA" },
+  { id: 30, name: "Wizards", city: "Washington", abbreviation: "WAS" },
+];
+
+interface Leader {
+  player: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    position: string;
+    team: { abbreviation: string };
+  };
+  value: number;
+  rank: number;
+}
+
+type LeaderCategory = "pts" | "reb" | "ast";
+
+const LEADER_LABELS: Record<LeaderCategory, string> = {
+  pts: "Points",
+  reb: "Rebounds",
+  ast: "Assists",
+};
 
 export default function HomePage() {
   const router = useRouter();
   const { status } = useAuth();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+
+  // League leaders state
+  const [leaders, setLeaders] = useState<Record<string, Leader[]>>({});
+  const [selectedCategory, setSelectedCategory] = useState<LeaderCategory>("pts");
+  const [isLoadingLeaders, setIsLoadingLeaders] = useState(true);
+
+  const getLeaders = useAction(api.nba.getLeaders);
+
+  const fetchLeaders = useCallback(async () => {
+    setIsLoadingLeaders(true);
+    try {
+      // Fetch all three categories in parallel
+      const [ptsResult, rebResult, astResult] = await Promise.all([
+        getLeaders({ statType: "pts" }),
+        getLeaders({ statType: "reb" }),
+        getLeaders({ statType: "ast" }),
+      ]);
+      setLeaders({
+        pts: (ptsResult.leaders as Leader[]).slice(0, 5),
+        reb: (rebResult.leaders as Leader[]).slice(0, 5),
+        ast: (astResult.leaders as Leader[]).slice(0, 5),
+      });
+    } catch (err) {
+      console.error("Failed to fetch leaders:", err);
+    } finally {
+      setIsLoadingLeaders(false);
+    }
+  }, [getLeaders]);
 
   // Redirect to onboarding if needed
   useEffect(() => {
@@ -19,6 +103,12 @@ export default function HomePage() {
       router.push("/onboarding");
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (status !== "loading" && status !== "onboarding") {
+      fetchLeaders();
+    }
+  }, [status]);
 
   // Show loading while checking onboarding status
   if (status === "loading" || status === "onboarding") {
@@ -28,6 +118,8 @@ export default function HomePage() {
       </main>
     );
   }
+
+  const currentLeaders = leaders[selectedCategory] || [];
 
   return (
     <main className="min-h-screen bg-background-primary">
@@ -68,34 +160,110 @@ export default function HomePage() {
 
       {/* Quick Actions */}
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <QuickActionCard icon="📋" title="My Lists" href="/lists" />
           <QuickActionCard icon="🏀" title="NBA Scores" href="/scores" />
-          <QuickActionCard icon="🏆" title="NBA Standings" href="/standings" />
+          <QuickActionCard icon="🏆" title="Standings" href="/standings" />
+          <QuickActionCard icon="⚔️" title="VS Compare" href="/vs" />
         </div>
       </div>
 
-      {/* Try it Section */}
-      <div className="max-w-3xl mx-auto px-6 py-16">
-        <div className="bg-card rounded-2xl p-8 text-center">
-          <h2 className="text-2xl font-bold mb-4 text-text-primary">
-            Try searching for a player
+      {/* Season League Leaders */}
+      <div className="max-w-5xl mx-auto px-6 pb-12">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-text-primary">
+            NBA League Leaders
           </h2>
-          <p className="text-text-secondary mb-6">
-            Type a name like &quot;LeBron&quot;, &quot;Mahomes&quot;, or &quot;Ohtani&quot; in the search box above
-          </p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {["LeBron James", "Patrick Mahomes", "Shohei Ohtani", "Travis Kelce"].map(
-              (name) => (
-                <span
-                  key={name}
-                  className="px-3 py-1 bg-accent-purple/20 text-accent-purple rounded-full text-sm"
-                >
-                  {name}
-                </span>
-              )
-            )}
+          <Link
+            href="/standings"
+            className="text-sm text-accent-purple hover:text-purple-400 transition-colors"
+          >
+            View Standings
+          </Link>
+        </div>
+
+        {/* Category Tabs */}
+        <div className="flex gap-1 p-1 bg-background-secondary rounded-xl mb-4 max-w-xs">
+          {(["pts", "reb", "ast"] as LeaderCategory[]).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                selectedCategory === cat
+                  ? "bg-accent-purple text-white"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              {LEADER_LABELS[cat]}
+            </button>
+          ))}
+        </div>
+
+        {isLoadingLeaders ? (
+          <div className="flex justify-center py-10">
+            <div className="w-6 h-6 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
           </div>
+        ) : currentLeaders.length > 0 ? (
+          <div className="bg-card rounded-xl overflow-hidden">
+            {currentLeaders.map((leader, index) => (
+              <div
+                key={leader.player.id}
+                className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-b-0 hover:bg-white/5 transition-colors"
+              >
+                <span className={`w-6 text-center font-bold text-sm ${
+                  index === 0 ? "text-accent-purple" : "text-text-muted"
+                }`}>
+                  {index + 1}
+                </span>
+                <img
+                  src={getNBATeamLogoUrl(leader.player.team.abbreviation)}
+                  alt={leader.player.team.abbreviation}
+                  className="w-6 h-6 object-contain"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-text-primary text-sm truncate">
+                    {leader.player.first_name} {leader.player.last_name}
+                  </p>
+                  <p className="text-xs text-text-muted">
+                    {leader.player.team.abbreviation} · {leader.player.position}
+                  </p>
+                </div>
+                <span className="text-lg font-bold text-text-primary tabular-nums">
+                  {leader.value.toFixed(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-card rounded-xl p-6 text-center text-text-muted text-sm">
+            No leader data available
+          </div>
+        )}
+      </div>
+
+      {/* NBA Teams */}
+      <div className="max-w-5xl mx-auto px-6 pb-12">
+        <h2 className="text-xl font-bold text-text-primary mb-4">
+          NBA Teams
+        </h2>
+        <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 md:gap-3">
+          {NBA_TEAMS.map((team) => (
+            <Link
+              key={team.id}
+              href={`/team/${team.id}`}
+              className="flex flex-col items-center gap-1.5 p-2 md:p-3 rounded-xl hover:bg-card hover:scale-105 transition-all group"
+              title={`${team.city} ${team.name}`}
+            >
+              <img
+                src={getNBATeamLogoUrl(team.abbreviation)}
+                alt={team.abbreviation}
+                className="w-10 h-10 md:w-12 md:h-12 object-contain"
+              />
+              <span className="text-[10px] md:text-xs font-medium text-text-muted group-hover:text-text-primary transition-colors">
+                {team.abbreviation}
+              </span>
+            </Link>
+          ))}
         </div>
       </div>
 

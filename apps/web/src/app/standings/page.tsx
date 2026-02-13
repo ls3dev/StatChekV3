@@ -147,13 +147,18 @@ function ComingSoonSport({ sport }: { sport: string }) {
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="w-16 h-16 rounded-2xl bg-accent-purple/10 flex items-center justify-center mb-4">
         {sport === "NFL" ? (
-          <svg className="w-8 h-8 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+          <svg className="w-9 h-9 text-accent-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <ellipse cx="12" cy="12" rx="10" ry="6" transform="rotate(-45 12 12)" />
+            <line x1="12" y1="8.5" x2="12" y2="15.5" />
+            <line x1="10.5" y1="10" x2="13.5" y2="10" />
+            <line x1="10.5" y1="12" x2="13.5" y2="12" />
+            <line x1="10.5" y1="14" x2="13.5" y2="14" />
           </svg>
         ) : (
-          <svg className="w-8 h-8 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12.5c0-3 2.5-5.5 5-5.5s5 2.5 5 5.5" />
+          <svg className="w-9 h-9 text-accent-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M5.5 7.5c1.5 1.5 1.5 3.5 0 5s-1.5 3.5 0 5" />
+            <path d="M18.5 6.5c-1.5 1.5-1.5 3.5 0 5s1.5 3.5 0 5" />
           </svg>
         )}
       </div>
