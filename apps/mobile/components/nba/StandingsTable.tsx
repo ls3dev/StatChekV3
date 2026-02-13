@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { DesignTokens, Typography } from '@/constants/theme';
+import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
 import { useTheme } from '@/context/ThemeContext';
 
 interface Team {
@@ -95,18 +97,26 @@ export function StandingsTable({ standings, conference, onTeamPress }: Standings
                 {index + 1}
               </Text>
               <View style={styles.teamCell}>
-                <Text
-                  style={[styles.teamAbbr, isDark && styles.textDark]}
-                  numberOfLines={1}
-                >
-                  {standing.team.abbreviation}
-                </Text>
-                <Text
-                  style={[styles.teamName, isDark && styles.textSecondary]}
-                  numberOfLines={1}
-                >
-                  {standing.team.city}
-                </Text>
+                <Image
+                  source={{ uri: getNBATeamLogoUrl(standing.team.abbreviation) }}
+                  style={styles.teamLogo}
+                  contentFit="contain"
+                  transition={200}
+                />
+                <View style={styles.teamTextCell}>
+                  <Text
+                    style={[styles.teamAbbr, isDark && styles.textDark]}
+                    numberOfLines={1}
+                  >
+                    {standing.team.abbreviation}
+                  </Text>
+                  <Text
+                    style={[styles.teamName, isDark && styles.textSecondary]}
+                    numberOfLines={1}
+                  >
+                    {standing.team.city}
+                  </Text>
+                </View>
               </View>
               <Text style={[styles.stat, isDark && styles.textDark]}>
                 {standing.wins}
@@ -190,7 +200,17 @@ const styles = StyleSheet.create({
   },
   teamCell: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingLeft: DesignTokens.spacing.xs,
+    gap: DesignTokens.spacing.sm,
+  },
+  teamLogo: {
+    width: 28,
+    height: 28,
+  },
+  teamTextCell: {
+    flex: 1,
   },
   teamAbbr: {
     ...Typography.headline,
