@@ -9,6 +9,8 @@ export default defineSchema({
     name: v.optional(v.string()),
     username: v.optional(v.string()), // Unique username chosen by user
     image: v.optional(v.string()),
+    isProUser: v.optional(v.boolean()),
+    proExpiresAt: v.optional(v.union(v.number(), v.null())),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
