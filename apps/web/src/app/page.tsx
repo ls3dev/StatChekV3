@@ -71,6 +71,7 @@ export default function HomePage() {
 
   // League leaders state
   const [leaders, setLeaders] = useState<Record<string, Leader[]>>({});
+  const [playerPhotos, setPlayerPhotos] = useState<Record<string, string>>({});
   const [selectedCategory, setSelectedCategory] = useState<LeaderCategory>("pts");
   const [isLoadingLeaders, setIsLoadingLeaders] = useState(true);
 
@@ -85,11 +86,26 @@ export default function HomePage() {
         getLeaders({ statType: "reb" }),
         getLeaders({ statType: "ast" }),
       ]);
-      setLeaders({
+      const allLeaders = {
         pts: (ptsResult.leaders as Leader[]).slice(0, 5),
         reb: (rebResult.leaders as Leader[]).slice(0, 5),
         ast: (astResult.leaders as Leader[]).slice(0, 5),
+      };
+      setLeaders(allLeaders);
+
+      // Fetch player photos
+      const uniqueNames = new Set<string>();
+      Object.values(allLeaders).flat().forEach(l => {
+        uniqueNames.add(`${l.player.first_name} ${l.player.last_name}`);
       });
+      try {
+        const res = await fetch(`/api/players/photos?names=${encodeURIComponent([...uniqueNames].join(","))}`);
+        if (res.ok) {
+          setPlayerPhotos(await res.json());
+        }
+      } catch {
+        // Photos are non-critical, silently fail
+      }
     } catch (err) {
       console.error("Failed to fetch leaders:", err);
     } finally {
@@ -215,13 +231,21 @@ export default function HomePage() {
                 }`}>
                   {index + 1}
                 </span>
-                {leader.player.team?.abbreviation && (
-                  <img
-                    src={getNBATeamLogoUrl(leader.player.team.abbreviation)}
-                    alt={leader.player.team.abbreviation}
-                    className="w-6 h-6 object-contain"
-                  />
-                )}
+                {(() => {
+                  const fullName = `${leader.player.first_name} ${leader.player.last_name}`;
+                  const photoUrl = playerPhotos[fullName];
+                  return photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={fullName}
+                      className="w-8 h-8 rounded-full object-cover bg-white/10"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-text-muted">
+                      {leader.player.first_name[0]}{leader.player.last_name[0]}
+                    </div>
+                  );
+                })()}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-text-primary text-sm truncate">
                     {leader.player.first_name} {leader.player.last_name}
