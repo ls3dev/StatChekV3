@@ -1,30 +1,7 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-// Public routes that don't require authentication
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/onboarding",
-  "/list/(.*)",
-  "/lists",
-  "/scores",
-  "/standings",
-  "/vs",
-  "/team/(.*)",
-  "/player/(.*)",
-  "/auth/(.*)",
-  "/api/players/(.*)",
-  "/favicon.ico",
-  "/icon(.*)",
-]);
-
-export default clerkMiddleware(async (auth, req) => {
-  // Allow public routes without authentication
-  if (isPublicRoute(req)) {
-    return;
-  }
-  // For other routes, let Clerk handle auth
-  // But don't force sign-in - we support guest mode
-});
+// All routes are public — auth is handled client-side (guest mode supported)
+export default clerkMiddleware();
 
 export const config = {
   matcher: [
