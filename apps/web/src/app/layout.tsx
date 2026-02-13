@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "StatCheck: The 2nd Brain for Sports Fans",
   description: "The 2nd brain for sports fans. Create and share player lists.",
   metadataBase: new URL(baseUrl),
+  icons: {
+    icon: "/favicon.ico",
+  },
   openGraph: {
     title: "StatCheck: The 2nd Brain for Sports Fans",
     description: "The 2nd brain for sports fans. Create and share player lists.",
