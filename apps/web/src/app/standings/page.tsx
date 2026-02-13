@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@convex/_generated/api";
 import { getNBATeamLogoUrl } from "@/lib/nbaTeamLogos";
 
+type Sport = "NBA" | "NFL" | "MLB";
 type Conference = "East" | "West";
 
 interface Standing {
@@ -141,8 +142,33 @@ function StandingsTable({
   );
 }
 
+function ComingSoonSport({ sport }: { sport: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-accent-purple/10 flex items-center justify-center mb-4">
+        {sport === "NFL" ? (
+          <svg className="w-8 h-8 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+          </svg>
+        ) : (
+          <svg className="w-8 h-8 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12.5c0-3 2.5-5.5 5-5.5s5 2.5 5 5.5" />
+          </svg>
+        )}
+      </div>
+      <h3 className="text-xl font-bold text-text-primary mb-2">{sport} Standings</h3>
+      <p className="text-text-secondary mb-1">Coming Soon</p>
+      <p className="text-sm text-text-muted max-w-xs">
+        {sport} standings and rankings are on the way. Stay tuned!
+      </p>
+    </div>
+  );
+}
+
 export default function StandingsPage() {
   const router = useRouter();
+  const [selectedSport, setSelectedSport] = useState<Sport>("NBA");
   const [selectedConference, setSelectedConference] =
     useState<Conference>("East");
   const [standings, setStandings] = useState<Standing[]>([]);
@@ -170,8 +196,10 @@ export default function StandingsPage() {
   }, [getStandings]);
 
   useEffect(() => {
-    fetchStandings();
-  }, []);
+    if (selectedSport === "NBA") {
+      fetchStandings();
+    }
+  }, [selectedSport]);
 
   const handleTeamClick = useCallback(
     (teamId: number) => {
@@ -187,87 +215,119 @@ export default function StandingsPage() {
   return (
     <main className="min-h-screen bg-background-primary">
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8">
-        <h1 className="text-3xl font-bold text-text-primary mb-1">
+        <h1 className="text-3xl font-bold text-text-primary mb-6">
           Standings
         </h1>
-        {seasonLabel && (
-          <p className="text-sm text-text-secondary mb-6">
-            {seasonLabel} Season
-          </p>
-        )}
 
-        {/* Conference Selector */}
-        <div className="flex gap-2 mb-6">
-          {(["East", "West"] as Conference[]).map((conf) => (
+        {/* Sport Tabs */}
+        <div className="flex gap-1 p-1 bg-background-secondary rounded-xl mb-6">
+          {(["NBA", "NFL", "MLB"] as Sport[]).map((sport) => (
             <button
-              key={conf}
-              onClick={() => setSelectedConference(conf)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedConference === conf
-                  ? "bg-accent-purple text-white"
-                  : "bg-background-secondary text-text-secondary hover:text-text-primary"
+              key={sport}
+              onClick={() => setSelectedSport(sport)}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                selectedSport === sport
+                  ? "bg-accent-purple text-white shadow-lg shadow-purple-500/20"
+                  : "text-text-secondary hover:text-text-primary"
               }`}
             >
-              {conf === "East" ? "Eastern" : "Western"}
+              {sport}
+              {sport !== "NBA" && (
+                <span className={`ml-1.5 text-[10px] font-medium uppercase ${
+                  selectedSport === sport ? "text-white/70" : "text-text-muted"
+                }`}>
+                  Soon
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {/* Legend */}
-        <div className="flex justify-center gap-6 mb-4">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-xs text-text-secondary">Playoff spot</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-accent-purple" />
-            <span className="text-xs text-text-secondary">Play-in (7-10)</span>
-          </div>
-        </div>
-
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <svg
-              className="w-12 h-12 text-red-500 mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <p className="text-text-secondary mb-4">{error}</p>
-            <button
-              onClick={fetchStandings}
-              className="px-4 py-2 bg-accent-purple text-white rounded-lg text-sm font-medium hover:bg-purple-500 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
+        {/* NFL / MLB Coming Soon */}
+        {selectedSport !== "NBA" ? (
+          <ComingSoonSport sport={selectedSport} />
         ) : (
-          <div className="bg-card rounded-xl overflow-hidden">
-            <StandingsTable
-              standings={standings}
-              conference={selectedConference}
-              onTeamClick={handleTeamClick}
-            />
-          </div>
-        )}
+          <>
+            {seasonLabel && (
+              <p className="text-sm text-text-secondary mb-4">
+                {seasonLabel} Season
+              </p>
+            )}
 
-        {/* Cache info */}
-        {cachedAt && !isLoading && (
-          <p className="text-xs text-text-muted text-center mt-4">
-            Updated {new Date(cachedAt).toLocaleTimeString()}
-          </p>
+            {/* Conference Selector */}
+            <div className="flex gap-2 mb-6">
+              {(["East", "West"] as Conference[]).map((conf) => (
+                <button
+                  key={conf}
+                  onClick={() => setSelectedConference(conf)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedConference === conf
+                      ? "bg-accent-purple text-white"
+                      : "bg-background-secondary text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  {conf === "East" ? "Eastern" : "Western"}
+                </button>
+              ))}
+            </div>
+
+            {/* Legend */}
+            <div className="flex justify-center gap-6 mb-4">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-xs text-text-secondary">Playoff spot</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-accent-purple" />
+                <span className="text-xs text-text-secondary">Play-in (7-10)</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <svg
+                  className="w-12 h-12 text-red-500 mb-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-text-secondary mb-4">{error}</p>
+                <button
+                  onClick={fetchStandings}
+                  className="px-4 py-2 bg-accent-purple text-white rounded-lg text-sm font-medium hover:bg-purple-500 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : (
+              <div className="bg-card rounded-xl overflow-hidden">
+                <StandingsTable
+                  standings={standings}
+                  conference={selectedConference}
+                  onTeamClick={handleTeamClick}
+                />
+              </div>
+            )}
+
+            {/* Cache info */}
+            {cachedAt && !isLoading && (
+              <p className="text-xs text-text-muted text-center mt-4">
+                Updated {new Date(cachedAt).toLocaleTimeString()}
+              </p>
+            )}
+          </>
         )}
       </div>
     </main>

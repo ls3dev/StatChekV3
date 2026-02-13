@@ -29,6 +29,7 @@ interface Game {
   visitor_team_score: number;
 }
 
+type Sport = "NBA" | "NFL" | "MLB";
 type DateOffset = -1 | 0 | 1;
 
 function formatDate(offset: DateOffset): string {
@@ -153,7 +154,32 @@ function ScoreCard({ game }: { game: Game }) {
   );
 }
 
+function ComingSoonSport({ sport }: { sport: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-accent-purple/10 flex items-center justify-center mb-4">
+        {sport === "NFL" ? (
+          <svg className="w-8 h-8 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+          </svg>
+        ) : (
+          <svg className="w-8 h-8 text-accent-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12.5c0-3 2.5-5.5 5-5.5s5 2.5 5 5.5" />
+          </svg>
+        )}
+      </div>
+      <h3 className="text-xl font-bold text-text-primary mb-2">{sport} Scores</h3>
+      <p className="text-text-secondary mb-1">Coming Soon</p>
+      <p className="text-sm text-text-muted max-w-xs">
+        {sport} scores and live game updates are on the way. Stay tuned!
+      </p>
+    </div>
+  );
+}
+
 export default function ScoresPage() {
+  const [selectedSport, setSelectedSport] = useState<Sport>("NBA");
   const [selectedDate, setSelectedDate] = useState<DateOffset>(0);
   const [games, setGames] = useState<Game[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -180,8 +206,10 @@ export default function ScoresPage() {
   }, [getGames, selectedDate]);
 
   useEffect(() => {
-    fetchGames();
-  }, [selectedDate]);
+    if (selectedSport === "NBA") {
+      fetchGames();
+    }
+  }, [selectedDate, selectedSport]);
 
   const { liveGames, completedGames, scheduledGames } = useMemo(() => {
     const live: Game[] = [];
@@ -210,116 +238,147 @@ export default function ScoresPage() {
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-8">
         <h1 className="text-3xl font-bold text-text-primary mb-6">Scores</h1>
 
-        {/* Date Selector */}
-        <div className="flex gap-2 mb-6">
-          {([-1, 0, 1] as DateOffset[]).map((offset) => (
+        {/* Sport Tabs */}
+        <div className="flex gap-1 p-1 bg-background-secondary rounded-xl mb-6">
+          {(["NBA", "NFL", "MLB"] as Sport[]).map((sport) => (
             <button
-              key={offset}
-              onClick={() => setSelectedDate(offset)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedDate === offset
-                  ? "bg-accent-purple text-white"
-                  : "bg-background-secondary text-text-secondary hover:text-text-primary"
+              key={sport}
+              onClick={() => setSelectedSport(sport)}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                selectedSport === sport
+                  ? "bg-accent-purple text-white shadow-lg shadow-purple-500/20"
+                  : "text-text-secondary hover:text-text-primary"
               }`}
             >
-              {formatDisplayDate(offset)}
+              {sport}
+              {sport !== "NBA" && (
+                <span className={`ml-1.5 text-[10px] font-medium uppercase ${
+                  selectedSport === sport ? "text-white/70" : "text-text-muted"
+                }`}>
+                  Soon
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <svg
-              className="w-12 h-12 text-red-500 mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <p className="text-text-secondary mb-4">{error}</p>
-            <button
-              onClick={fetchGames}
-              className="px-4 py-2 bg-accent-purple text-white rounded-lg text-sm font-medium hover:bg-purple-500 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        ) : games.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <svg
-              className="w-12 h-12 text-text-muted mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M20 12H4"
-              />
-            </svg>
-            <p className="text-text-secondary">
-              No games {formatDisplayDate(selectedDate).toLowerCase()}
-            </p>
-          </div>
+        {/* NFL / MLB Coming Soon */}
+        {selectedSport !== "NBA" ? (
+          <ComingSoonSport sport={selectedSport} />
         ) : (
-          <div>
-            {/* Live Games */}
-            {liveGames.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center gap-1.5 bg-red-500/10 px-2 py-1 rounded w-fit mb-3">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-xs font-bold text-red-500">LIVE</span>
-                </div>
-                {liveGames.map((game) => (
-                  <ScoreCard key={game.id} game={game} />
-                ))}
-              </div>
-            )}
+          <>
+            {/* Date Selector */}
+            <div className="flex gap-2 mb-6">
+              {([-1, 0, 1] as DateOffset[]).map((offset) => (
+                <button
+                  key={offset}
+                  onClick={() => setSelectedDate(offset)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedDate === offset
+                      ? "bg-accent-purple text-white"
+                      : "bg-background-secondary text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  {formatDisplayDate(offset)}
+                </button>
+              ))}
+            </div>
 
-            {/* Scheduled Games */}
-            {scheduledGames.length > 0 && (
-              <div className="mb-6">
-                <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-3">
-                  Upcoming
+            {/* Content */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <svg
+                  className="w-12 h-12 text-red-500 mb-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-text-secondary mb-4">{error}</p>
+                <button
+                  onClick={fetchGames}
+                  className="px-4 py-2 bg-accent-purple text-white rounded-lg text-sm font-medium hover:bg-purple-500 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : games.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <svg
+                  className="w-12 h-12 text-text-muted mb-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M20 12H4"
+                  />
+                </svg>
+                <p className="text-text-secondary">
+                  No games {formatDisplayDate(selectedDate).toLowerCase()}
                 </p>
-                {scheduledGames.map((game) => (
-                  <ScoreCard key={game.id} game={game} />
-                ))}
+              </div>
+            ) : (
+              <div>
+                {/* Live Games */}
+                {liveGames.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-1.5 bg-red-500/10 px-2 py-1 rounded w-fit mb-3">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-xs font-bold text-red-500">LIVE</span>
+                    </div>
+                    {liveGames.map((game) => (
+                      <ScoreCard key={game.id} game={game} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Scheduled Games */}
+                {scheduledGames.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-3">
+                      Upcoming
+                    </p>
+                    {scheduledGames.map((game) => (
+                      <ScoreCard key={game.id} game={game} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Completed Games */}
+                {completedGames.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-3">
+                      Final
+                    </p>
+                    {completedGames.map((game) => (
+                      <ScoreCard key={game.id} game={game} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Cache info */}
+                {cachedAt && (
+                  <p className="text-xs text-text-muted text-center mt-4">
+                    Updated {new Date(cachedAt).toLocaleTimeString()}
+                  </p>
+                )}
               </div>
             )}
-
-            {/* Completed Games */}
-            {completedGames.length > 0 && (
-              <div className="mb-6">
-                <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-3">
-                  Final
-                </p>
-                {completedGames.map((game) => (
-                  <ScoreCard key={game.id} game={game} />
-                ))}
-              </div>
-            )}
-
-            {/* Cache info */}
-            {cachedAt && (
-              <p className="text-xs text-text-muted text-center mt-4">
-                Updated {new Date(cachedAt).toLocaleTimeString()}
-              </p>
-            )}
-          </div>
+          </>
         )}
       </div>
     </main>

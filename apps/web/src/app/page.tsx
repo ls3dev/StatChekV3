@@ -12,21 +12,6 @@ export default function HomePage() {
   const router = useRouter();
   const { status } = useAuth();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const showToast = (message: string) => {
-    setToast(message);
-    setTimeout(() => setToast(null), 2500);
-  };
-
-  const focusSearch = () => {
-    // Find the search input and focus it
-    const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
-    if (searchInput) {
-      searchInput.focus();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
 
   // Redirect to onboarding if needed
   useEffect(() => {
@@ -83,23 +68,12 @@ export default function HomePage() {
 
       {/* Quick Actions */}
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-          <QuickActionCard icon="🔍" title="Search" onClick={focusSearch} />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           <QuickActionCard icon="📋" title="My Lists" href="/lists" />
-          <QuickActionCard icon="🏀" title="Scores" href="/scores" />
-          <QuickActionCard icon="🏆" title="Standings" href="/standings" />
-          <QuickActionCard icon="⭐" title="Fantasy" comingSoon onComingSoon={() => showToast("Fantasy coming soon!")} />
+          <QuickActionCard icon="🏀" title="NBA Scores" href="/scores" />
+          <QuickActionCard icon="🏆" title="NBA Standings" href="/standings" />
         </div>
       </div>
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4">
-          <div className="bg-card border border-white/10 px-5 py-3 rounded-xl shadow-lg text-text-primary text-sm font-medium">
-            {toast}
-          </div>
-        </div>
-      )}
 
       {/* Try it Section */}
       <div className="max-w-3xl mx-auto px-6 py-16">
@@ -146,51 +120,18 @@ function QuickActionCard({
   icon,
   title,
   href,
-  onClick,
-  comingSoon,
-  onComingSoon,
 }: {
   icon: string;
   title: string;
-  href?: string;
-  onClick?: () => void;
-  comingSoon?: boolean;
-  onComingSoon?: () => void;
+  href: string;
 }) {
-  const baseStyles = "flex flex-col items-center justify-center gap-2 p-4 md:p-5 rounded-xl transition-all text-center";
-
-  if (comingSoon) {
-    return (
-      <button
-        onClick={onComingSoon}
-        className={`${baseStyles} bg-card/50 text-text-muted cursor-pointer hover:bg-card/70`}
-      >
-        <span className="text-2xl md:text-3xl opacity-50">{icon}</span>
-        <span className="text-sm font-medium">{title}</span>
-        <span className="text-[10px] uppercase tracking-wide opacity-60">Soon</span>
-      </button>
-    );
-  }
-
-  if (href) {
-    return (
-      <Link
-        href={href}
-        className={`${baseStyles} bg-card hover:bg-card/80 hover:scale-105 text-text-primary`}
-      >
-        <span className="text-2xl md:text-3xl">{icon}</span>
-        <span className="text-sm font-medium">{title}</span>
-      </Link>
-    );
-  }
-
   return (
-    <button
-      onClick={onClick}
-      className={`${baseStyles} bg-card hover:bg-card/80 hover:scale-105 text-text-primary`}
+    <Link
+      href={href}
+      className="flex flex-col items-center justify-center gap-2 p-4 md:p-5 rounded-xl transition-all text-center bg-card hover:bg-card/80 hover:scale-105 text-text-primary"
     >
       <span className="text-2xl md:text-3xl">{icon}</span>
       <span className="text-sm font-medium">{title}</span>
-    </button>
+    </Link>
   );
 }
