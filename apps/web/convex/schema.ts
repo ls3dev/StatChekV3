@@ -146,4 +146,91 @@ export default defineSchema({
     .index("by_share_id", ["shareId"])
     .index("by_user", ["userId"])
     .index("by_shared_at", ["sharedAt"]),
+
+  // Shared Players - public snapshots of individual players for sharing
+  sharedPlayers: defineTable({
+    shareId: v.string(),
+
+    // Denormalized player data (snapshot at share time)
+    playerId: v.string(),
+    name: v.string(),
+    sport: v.string(),
+    team: v.string(),
+    position: v.string(),
+    number: v.string(),
+    photoUrl: v.optional(v.string()),
+    sportsReferenceUrl: v.optional(v.string()),
+    stats: v.optional(v.any()),
+    hallOfFame: v.optional(v.boolean()),
+
+    // Links attached to the player
+    links: v.array(
+      v.object({
+        id: v.string(),
+        url: v.string(),
+        title: v.string(),
+        order: v.number(),
+      })
+    ),
+
+    // Ownership
+    sharedByName: v.optional(v.string()),
+
+    // Timestamps
+    sharedAt: v.number(),
+
+    // Metadata
+    isPublic: v.boolean(),
+    viewCount: v.number(),
+  })
+    .index("by_share_id", ["shareId"])
+    .index("by_shared_at", ["sharedAt"]),
+
+  // ========================================
+  // NBA Data Cache Tables (Ball Don't Lie API)
+  // ========================================
+
+  // Standings cache - Conference/Division standings
+  nbaStandingsCache: defineTable({
+    season: v.number(), // e.g., 2025
+    data: v.any(), // Full standings response
+    cachedAt: v.number(), // Unix timestamp for TTL checks
+  }).index("by_season", ["season"]),
+
+  // Games cache - Daily game scores
+  nbaGamesCache: defineTable({
+    date: v.string(), // YYYY-MM-DD format
+    data: v.any(), // Games array for the day
+    cachedAt: v.number(),
+  }).index("by_date", ["date"]),
+
+  // Player stats cache - Season averages per player
+  nbaPlayerStatsCache: defineTable({
+    playerId: v.number(), // Ball Don't Lie player ID
+    season: v.number(),
+    data: v.any(), // Season averages (basic + advanced)
+    cachedAt: v.number(),
+  }).index("by_player_season", ["playerId", "season"]),
+
+  // Contracts cache - Player/Team contract data
+  nbaContractsCache: defineTable({
+    entityType: v.union(v.literal("player"), v.literal("team")),
+    entityId: v.number(), // Player ID or Team ID
+    data: v.any(), // Contract details
+    cachedAt: v.number(),
+  }).index("by_entity", ["entityType", "entityId"]),
+
+  // Injuries cache - Current injury reports (global, not per-player)
+  nbaInjuriesCache: defineTable({
+    data: v.any(), // All current injuries
+    cachedAt: v.number(),
+  }),
+
+  // Leaders cache - League stat leaders
+  nbaLeadersCache: defineTable({
+    season: v.number(),
+    statType: v.string(), // e.g., "pts", "reb", "ast"
+    data: v.any(), // Leaders array
+    cachedAt: v.number(),
+  }).index("by_season_stat", ["season", "statType"]),
 });

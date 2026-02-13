@@ -86,8 +86,8 @@ export default function HomePage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
           <QuickActionCard icon="🔍" title="Search" onClick={focusSearch} />
           <QuickActionCard icon="📋" title="My Lists" href="/lists" />
-          <QuickActionCard icon="🏈" title="Live Games" comingSoon onComingSoon={() => showToast("Live Games coming soon!")} />
-          <QuickActionCard icon="🏆" title="Standings" comingSoon onComingSoon={() => showToast("Standings coming soon!")} />
+          <QuickActionCard icon="🏀" title="Scores" href="/scores" />
+          <QuickActionCard icon="🏆" title="Standings" href="/standings" />
           <QuickActionCard icon="⭐" title="Fantasy" comingSoon onComingSoon={() => showToast("Fantasy coming soon!")} />
         </div>
       </div>

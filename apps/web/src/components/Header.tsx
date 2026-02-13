@@ -25,6 +25,18 @@ export function Header() {
 
         {/* Auth Section */}
         <div className="flex items-center gap-2 md:gap-4">
+          <Link
+            href="/scores"
+            className="text-text-secondary hover:text-text-primary transition-colors text-sm"
+          >
+            Scores
+          </Link>
+          <Link
+            href="/standings"
+            className="text-text-secondary hover:text-text-primary transition-colors text-sm"
+          >
+            Standings
+          </Link>
           {isLoading ? (
             <div className="w-4 h-4 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
           ) : isAuthenticated ? (
