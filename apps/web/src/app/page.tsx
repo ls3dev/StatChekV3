@@ -215,17 +215,19 @@ export default function HomePage() {
                 }`}>
                   {index + 1}
                 </span>
-                <img
-                  src={getNBATeamLogoUrl(leader.player.team.abbreviation)}
-                  alt={leader.player.team.abbreviation}
-                  className="w-6 h-6 object-contain"
-                />
+                {leader.player.team?.abbreviation && (
+                  <img
+                    src={getNBATeamLogoUrl(leader.player.team.abbreviation)}
+                    alt={leader.player.team.abbreviation}
+                    className="w-6 h-6 object-contain"
+                  />
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-text-primary text-sm truncate">
                     {leader.player.first_name} {leader.player.last_name}
                   </p>
                   <p className="text-xs text-text-muted">
-                    {leader.player.team.abbreviation} · {leader.player.position}
+                    {leader.player.team?.abbreviation ?? "FA"} · {leader.player.position}
                   </p>
                 </div>
                 <span className="text-lg font-bold text-text-primary tabular-nums">
