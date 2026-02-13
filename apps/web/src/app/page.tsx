@@ -77,6 +77,32 @@ export default function HomePage() {
 
   const getLeaders = useAction(api.nba.getLeaders);
 
+  const handleLeaderClick = useCallback(async (leader: Leader) => {
+    const name = `${leader.player.first_name} ${leader.player.last_name}`;
+    try {
+      const res = await fetch(`/api/players/search?q=${encodeURIComponent(name)}&sport=NBA`);
+      if (res.ok) {
+        const results: Player[] = await res.json();
+        if (results.length > 0) {
+          setSelectedPlayer(results[0]);
+          return;
+        }
+      }
+    } catch {
+      // Fall through to constructed player
+    }
+    // Fallback: construct a Player from leader data
+    setSelectedPlayer({
+      id: String(leader.player.id),
+      name,
+      sport: "NBA",
+      team: leader.player.team?.abbreviation ?? "N/A",
+      position: leader.player.position || "N/A",
+      number: "0",
+      photoUrl: playerPhotos[name],
+    });
+  }, [playerPhotos]);
+
   const fetchLeaders = useCallback(async () => {
     setIsLoadingLeaders(true);
     try {
@@ -224,7 +250,8 @@ export default function HomePage() {
             {currentLeaders.map((leader, index) => (
               <div
                 key={leader.player.id}
-                className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-b-0 hover:bg-white/5 transition-colors"
+                onClick={() => handleLeaderClick(leader)}
+                className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-b-0 hover:bg-white/5 transition-colors cursor-pointer"
               >
                 <span className={`w-6 text-center font-bold text-sm ${
                   index === 0 ? "text-accent-purple" : "text-text-muted"
