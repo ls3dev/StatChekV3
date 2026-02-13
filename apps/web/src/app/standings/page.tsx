@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useAction, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@convex/_generated/api";
+import { getNBATeamLogoUrl } from "@/lib/nbaTeamLogos";
 
 type Conference = "East" | "West";
 
@@ -101,12 +102,21 @@ function StandingsTable({
                   {index + 1}
                 </td>
                 <td className="py-2.5 px-2">
-                  <p className="font-semibold text-text-primary">
-                    {standing.team.abbreviation}
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    {standing.team.city}
-                  </p>
+                  <div className="flex items-center gap-2.5">
+                    <img
+                      src={getNBATeamLogoUrl(standing.team.abbreviation)}
+                      alt={standing.team.abbreviation}
+                      className="w-7 h-7 object-contain"
+                    />
+                    <div>
+                      <p className="font-semibold text-text-primary">
+                        {standing.team.abbreviation}
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        {standing.team.city}
+                      </p>
+                    </div>
+                  </div>
                 </td>
                 <td className="py-2.5 px-2 text-center text-text-primary">
                   {standing.wins}

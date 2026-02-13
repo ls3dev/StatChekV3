@@ -23,8 +23,8 @@ export function Header() {
           StatCheck
         </Link>
 
-        {/* Auth Section */}
-        <div className="flex items-center gap-2 md:gap-4">
+        {/* Center Nav - Scores & Standings */}
+        <nav className="flex items-center gap-4">
           <Link
             href="/scores"
             className="text-text-secondary hover:text-text-primary transition-colors text-sm"
@@ -37,6 +37,10 @@ export function Header() {
           >
             Standings
           </Link>
+        </nav>
+
+        {/* Right Section - Lists & Auth */}
+        <div className="flex items-center gap-2 md:gap-4">
           {isLoading ? (
             <div className="w-4 h-4 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
           ) : isAuthenticated ? (

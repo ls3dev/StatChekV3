@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
+import { getNBATeamLogoUrl } from "@/lib/nbaTeamLogos";
 
 const TEAM_NAMES: Record<
   number,
@@ -64,6 +65,106 @@ interface Injury {
   return_date: string | null;
 }
 
+interface Game {
+  id: number;
+  date: string;
+  status: string;
+  period: number;
+  time: string;
+  postseason: boolean;
+  home_team: {
+    id: number;
+    full_name: string;
+    abbreviation: string;
+    city: string;
+    name: string;
+  };
+  home_team_score: number;
+  visitor_team: {
+    id: number;
+    full_name: string;
+    abbreviation: string;
+    city: string;
+    name: string;
+  };
+  visitor_team_score: number;
+}
+
+function TeamScoreCard({ game }: { game: Game }) {
+  const isLive = game.status === "In Progress";
+  const isFinal = game.status === "Final";
+  const isScheduled = !isLive && !isFinal;
+
+  const homeWinning = game.home_team_score > game.visitor_team_score;
+  const visitorWinning = game.visitor_team_score > game.home_team_score;
+
+  const getStatusText = () => {
+    if (isLive) return `Q${game.period} ${game.time}`;
+    if (isFinal) return "Final";
+    return game.status;
+  };
+
+  const getStatusColor = () => {
+    if (isLive) return "text-red-500";
+    if (isFinal) return "text-text-muted";
+    return "text-text-secondary";
+  };
+
+  return (
+    <div className="bg-card rounded-xl p-4 relative">
+      {isLive && (
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-red-500/10 px-2 py-0.5 rounded">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-xs font-bold text-red-500">LIVE</span>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`text-xs font-medium ${getStatusColor()}`}>
+          {getStatusText()}
+        </span>
+        {game.postseason && (
+          <span className="bg-accent-purple px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
+            PLAYOFFS
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <p className={`font-semibold ${isFinal && visitorWinning ? "text-text-primary font-bold" : "text-text-primary"}`}>
+              {game.visitor_team.abbreviation}
+            </p>
+            <p className="text-xs text-text-secondary">{game.visitor_team.city}</p>
+          </div>
+          {!isScheduled && (
+            <span className={`text-xl font-bold tabular-nums ${isFinal && visitorWinning ? "text-text-primary" : isFinal ? "text-text-muted" : "text-text-primary"}`}>
+              {game.visitor_team_score}
+            </span>
+          )}
+        </div>
+
+        <div className="border-t border-white/5" />
+
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <p className={`font-semibold ${isFinal && homeWinning ? "text-text-primary font-bold" : "text-text-primary"}`}>
+              {game.home_team.abbreviation}
+            </p>
+            <p className="text-xs text-text-secondary">{game.home_team.city}</p>
+          </div>
+          {!isScheduled && (
+            <span className={`text-xl font-bold tabular-nums ${isFinal && homeWinning ? "text-text-primary" : isFinal ? "text-text-muted" : "text-text-primary"}`}>
+              {game.home_team_score}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function formatCurrency(amount: number) {
   if (amount >= 1_000_000) {
     return `$${(amount / 1_000_000).toFixed(1)}M`;
@@ -92,17 +193,35 @@ export default function TeamDetailPage() {
 
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [injuries, setInjuries] = useState<Injury[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [isLoadingContracts, setIsLoadingContracts] = useState(true);
   const [isLoadingInjuries, setIsLoadingInjuries] = useState(true);
+  const [isLoadingGames, setIsLoadingGames] = useState(true);
   const [contractsRequiresPro, setContractsRequiresPro] = useState(false);
   const [injuriesRequiresPro, setInjuriesRequiresPro] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const getTeamContracts = useAction(api.nba.getTeamContracts);
   const getInjuries = useAction(api.nba.getInjuries);
+  const getGames = useAction(api.nba.getGames);
 
   const fetchData = useCallback(async () => {
     setError(null);
+
+    // Fetch today's games for this team
+    setIsLoadingGames(true);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const result = await getGames({ date: today });
+      const teamGames = (result.games as Game[]).filter(
+        (g) => g.home_team.id === teamId || g.visitor_team.id === teamId
+      );
+      setGames(teamGames);
+    } catch (err: any) {
+      console.error("Failed to fetch games:", err);
+    } finally {
+      setIsLoadingGames(false);
+    }
 
     // Fetch contracts
     setIsLoadingContracts(true);
@@ -135,7 +254,7 @@ export default function TeamDetailPage() {
     } finally {
       setIsLoadingInjuries(false);
     }
-  }, [getTeamContracts, getInjuries, teamId]);
+  }, [getTeamContracts, getInjuries, getGames, teamId]);
 
   useEffect(() => {
     if (teamId) {
@@ -178,6 +297,22 @@ export default function TeamDetailPage() {
     });
     return { totalSalary, playerCount: playerContracts.length };
   }, [contracts, playerContracts]);
+
+  const { liveGames, scheduledGames, completedGames } = useMemo(() => {
+    const live: Game[] = [];
+    const scheduled: Game[] = [];
+    const completed: Game[] = [];
+    games.forEach((game) => {
+      if (game.status === "In Progress") {
+        live.push(game);
+      } else if (game.status === "Final") {
+        completed.push(game);
+      } else {
+        scheduled.push(game);
+      }
+    });
+    return { liveGames: live, scheduledGames: scheduled, completedGames: completed };
+  }, [games]);
 
   if (!teamInfo) {
     return (
@@ -226,12 +361,74 @@ export default function TeamDetailPage() {
 
         {/* Team Header */}
         <div className="bg-card rounded-xl p-6 text-center mb-6 border-b border-white/5">
+          <img
+            src={getNBATeamLogoUrl(teamInfo.abbreviation)}
+            alt={`${teamInfo.city} ${teamInfo.name}`}
+            className="w-20 h-20 object-contain mx-auto mb-3"
+          />
           <p className="text-4xl font-extrabold text-accent-purple">
             {teamInfo.abbreviation}
           </p>
           <p className="text-text-secondary mt-1">
             {teamInfo.city} {teamInfo.name}
           </p>
+        </div>
+
+        {/* Today's Games Section */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <svg
+              className="w-5 h-5 text-accent-purple"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h2 className="text-lg font-semibold text-text-primary flex-1">
+              Today&apos;s Games
+            </h2>
+          </div>
+
+          {isLoadingGames ? (
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : games.length === 0 ? (
+            <div className="bg-card rounded-xl p-4 flex items-center gap-3">
+              <svg
+                className="w-5 h-5 text-text-muted"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <p className="text-text-secondary">No games today</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {liveGames.map((game) => (
+                <TeamScoreCard key={game.id} game={game} />
+              ))}
+              {scheduledGames.map((game) => (
+                <TeamScoreCard key={game.id} game={game} />
+              ))}
+              {completedGames.map((game) => (
+                <TeamScoreCard key={game.id} game={game} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Injury Report Section */}
