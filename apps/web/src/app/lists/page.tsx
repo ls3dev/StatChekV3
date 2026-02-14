@@ -7,11 +7,15 @@ import { api } from "@convex/_generated/api";
 import { useAuth } from "@/hooks/useAuth";
 import { ListCard } from "@/components/ListCard";
 import { CreateListModal } from "@/components/CreateListModal";
+import { PaywallModal } from "@/components/PaywallModal";
+
+const FREE_LIST_LIMIT = 1;
 
 export default function ListsPage() {
   const router = useRouter();
-  const { userId, isUserReady, status, isAuthenticated, isLoading } = useAuth();
+  const { userId, isUserReady, status, isAuthenticated, isLoading, isProUser } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // Query lists from Convex (skip if no userId yet)
@@ -65,8 +69,24 @@ export default function ListsPage() {
     );
   }
 
+  const handleNewListClick = () => {
+    // Check list limit for non-Pro users
+    if (!isProUser && lists && lists.length >= FREE_LIST_LIMIT) {
+      setShowPaywall(true);
+      return;
+    }
+    setShowCreateModal(true);
+  };
+
   const handleCreateList = async (name: string, description: string) => {
     if (!userId) return;
+
+    // Double-check limit
+    if (!isProUser && lists && lists.length >= FREE_LIST_LIMIT) {
+      setShowPaywall(true);
+      setShowCreateModal(false);
+      return;
+    }
 
     try {
       await createListMutation({
@@ -100,7 +120,7 @@ export default function ListsPage() {
             </p>
           </div>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={handleNewListClick}
             className="flex items-center gap-2 px-5 py-2.5 bg-accent-purple hover:bg-purple-500 text-white font-medium rounded-xl transition-colors"
           >
             <svg
@@ -126,7 +146,7 @@ export default function ListsPage() {
             <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
           </div>
         ) : lists.length === 0 ? (
-          <EmptyState onCreateList={() => setShowCreateModal(true)} />
+          <EmptyState onCreateList={handleNewListClick} />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {lists.map((list) => (
@@ -153,6 +173,12 @@ export default function ListsPage() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreate={handleCreateList}
+      />
+
+      {/* Paywall Modal */}
+      <PaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
       />
     </main>
   );

@@ -31,6 +31,8 @@ interface User {
   name?: string;
   username?: string;
   image?: string;
+  isProUser?: boolean;
+  proExpiresAt?: number | null;
 }
 
 interface AuthContextType {
@@ -42,6 +44,7 @@ interface AuthContextType {
   isGuest: boolean;
   isLoading: boolean;
   isUserReady: boolean;
+  isProUser: boolean;
   needsUsername: boolean;
   signOut: () => Promise<void>;
   continueAsGuest: () => void;
@@ -83,6 +86,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
               name: convexUser.name,
               username: convexUser.username,
               image: convexUser.image,
+              isProUser: convexUser.isProUser,
+              proExpiresAt: convexUser.proExpiresAt,
             });
 
             // Identify user in PostHog
@@ -194,6 +199,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return status === "authenticated" && user !== null && !user.username;
   }, [status, user]);
 
+  const isProUser = useMemo(() => {
+    return user?.isProUser === true;
+  }, [user?.isProUser]);
+
   const value: AuthContextType = {
     status,
     user,
@@ -203,6 +212,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isGuest: status === "guest" || status === "unauthenticated",
     isLoading: status === "loading",
     isUserReady,
+    isProUser,
     needsUsername,
     signOut: handleSignOut,
     continueAsGuest,

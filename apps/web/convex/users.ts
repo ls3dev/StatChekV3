@@ -34,6 +34,8 @@ export const getOrCreateUser = mutation({
         name: identity.name,
         username: existingUser.username,
         image: identity.pictureUrl,
+        isProUser: existingUser.isProUser ?? false,
+        proExpiresAt: existingUser.proExpiresAt ?? null,
       };
     }
 
@@ -54,6 +56,8 @@ export const getOrCreateUser = mutation({
       name: identity.name,
       username: undefined,
       image: identity.pictureUrl,
+      isProUser: false,
+      proExpiresAt: null,
     };
   },
 });
@@ -83,6 +87,8 @@ export const getCurrentUser = query({
         name: identity.name,
         username: undefined,
         image: identity.pictureUrl,
+        isProUser: false,
+        proExpiresAt: null,
       };
     }
 
@@ -93,6 +99,8 @@ export const getCurrentUser = query({
       name: user.name,
       username: user.username,
       image: user.image,
+      isProUser: user.isProUser ?? false,
+      proExpiresAt: user.proExpiresAt ?? null,
     };
   },
 });

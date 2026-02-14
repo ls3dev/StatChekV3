@@ -14,6 +14,7 @@ export function useAuth() {
     isAuthenticated: auth.isAuthenticated,
     isGuest: auth.isGuest,
     isUserReady: auth.isUserReady,
+    isProUser: auth.isProUser,
     needsUsername: auth.needsUsername,
     status: auth.status,
     signIn: openSignIn,

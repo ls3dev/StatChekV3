@@ -5,16 +5,23 @@ import React, {
   useCallback,
   useContext,
   useMemo,
+  useState,
 } from "react";
 import { useQuery, useMutation } from "convex/react";
 import type { PlayerList, PlayerListItem, PlayerListLink } from "@/lib/types";
 import { useAuthContext } from "@/context/AuthContext";
 import { api } from "@convex/_generated/api";
 
+const FREE_LIST_LIMIT = 1;
+
 type ListsContextValue = {
   lists: PlayerList[];
   isLoaded: boolean;
   isSyncing: boolean;
+  // Paywall
+  showPaywall: boolean;
+  setShowPaywall: (show: boolean) => void;
+  canCreateList: boolean;
   // List CRUD
   createList: (
     name: string,
@@ -51,7 +58,8 @@ type ListsContextValue = {
 const ListsContext = createContext<ListsContextValue | undefined>(undefined);
 
 export function ListsProvider({ children }: { children: React.ReactNode }) {
-  const { userId, isAuthenticated, isUserReady } = useAuthContext();
+  const { userId, isAuthenticated, isUserReady, isProUser } = useAuthContext();
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Query all user lists from Convex (real-time subscription)
   // Only query when user is fully ready to prevent race conditions
@@ -92,11 +100,20 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
   const isLoaded = convexLists !== undefined;
   const isSyncing = false;
 
-  // Create a new list
+  // Check if user can create more lists (Pro users unlimited, free users limited)
+  const canCreateList = isProUser || lists.length < FREE_LIST_LIMIT;
+
+  // Create a new list (checks limit for non-Pro users)
   const createList = useCallback(
     async (name: string, description?: string): Promise<PlayerList | null> => {
       try {
         if (!isAuthenticated) {
+          return null;
+        }
+
+        // Check list limit for non-Pro users
+        if (!isProUser && lists.length >= FREE_LIST_LIMIT) {
+          setShowPaywall(true);
           return null;
         }
 
@@ -125,7 +142,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
     },
-    [userId, isAuthenticated, isUserReady, createListMutation]
+    [userId, isAuthenticated, isUserReady, isProUser, lists.length, createListMutation]
   );
 
   // Update list name/description
@@ -269,6 +286,9 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
         lists,
         isLoaded,
         isSyncing,
+        showPaywall,
+        setShowPaywall,
+        canCreateList,
         createList,
         updateList,
         deleteList,

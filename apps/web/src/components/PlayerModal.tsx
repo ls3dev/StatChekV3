@@ -69,6 +69,7 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
   const [showAddLink, setShowAddLink] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [showCopiedMessage, setShowCopiedMessage] = useState(false);
+  const [linkLimitError, setLinkLimitError] = useState(false);
 
   // NBA stats state
   const [bdlPlayerId, setBdlPlayerId] = useState<number | null>(null);
@@ -200,6 +201,7 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
       setBdlPlayerId(null);
       setContractsRequiresPro(false);
       setInjuriesRequiresPro(false);
+      setLinkLimitError(false);
     }
   }, [isOpen, player?.id]);
 
@@ -242,12 +244,16 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
   const handleAddReceipt = async (url: string, title: string) => {
     if (!userId || !player) return;
     try {
-      await addPlayerLink({
+      const result = await addPlayerLink({
         userId,
         playerId: player.id,
         url,
         title,
       });
+      if (result && !result.success && result.reason === "limit_reached") {
+        setLinkLimitError(true);
+        setTimeout(() => setLinkLimitError(false), 3000);
+      }
     } catch (error) {
       console.error("Failed to add receipt:", error);
     }
@@ -640,6 +646,13 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
                 </button>
               )}
             </div>
+
+            {/* Link limit error */}
+            {linkLimitError && (
+              <div className="mb-2 p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs text-center">
+                Free accounts can add up to 3 receipts per player. Upgrade to Pro for unlimited!
+              </div>
+            )}
 
             {isAuthenticated ? (
               playerLinks && playerLinks.length > 0 ? (
