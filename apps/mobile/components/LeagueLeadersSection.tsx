@@ -9,6 +9,11 @@ import { useTheme } from '@/context/ThemeContext';
 import { getAllPlayers } from '@/services/playerData';
 import type { Player } from '@/types';
 
+// Strip accents: Dončić → Doncic, Jokić → Jokic
+function normalize(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 interface Leader {
   player: {
     id: number;
@@ -57,18 +62,22 @@ export function LeagueLeadersSection({ onPlayerSelect }: Props) {
       };
       setLeaders(allLeaders);
 
-      // Build name → Player lookup from local data
+      // Build name → Player lookup from local data (normalized to handle accents)
       const allPlayers = getAllPlayers();
       const nameMap: Record<string, Player> = {};
-      const uniqueNames = new Set<string>();
-      Object.values(allLeaders).flat().forEach(l => {
-        uniqueNames.add(`${l.player.first_name} ${l.player.last_name}`);
-      });
+      const normalizedLocalMap = new Map<string, Player>();
       for (const p of allPlayers) {
-        if (p.sport === 'NBA' && uniqueNames.has(p.name)) {
-          nameMap[p.name] = p;
+        if (p.sport === 'NBA') {
+          normalizedLocalMap.set(normalize(p.name), p);
         }
       }
+      Object.values(allLeaders).flat().forEach(l => {
+        const fullName = `${l.player.first_name} ${l.player.last_name}`;
+        const player = normalizedLocalMap.get(normalize(fullName));
+        if (player) {
+          nameMap[fullName] = player;
+        }
+      });
       setPlayerLookup(nameMap);
     } catch (err) {
       console.error('Failed to fetch leaders:', err);

@@ -4,10 +4,15 @@ import type { Player } from "@/lib/types";
 
 const players = nbaPlayersData as Player[];
 
+// Strip accents: Dončić → Doncic, Jokić → Jokic
+function normalize(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 // Build a normalized name → player lookup
 const playerLookup = new Map<string, Player>();
 for (const p of players) {
-  playerLookup.set(p.name.toLowerCase(), p);
+  playerLookup.set(normalize(p.name), p);
 }
 
 export async function GET(request: NextRequest) {
@@ -16,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   const result: Record<string, Player> = {};
   for (const name of names) {
-    const player = playerLookup.get(name.toLowerCase());
+    const player = playerLookup.get(normalize(name));
     if (player) {
       result[name] = player;
     }
