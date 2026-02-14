@@ -189,3 +189,33 @@ export const getCurrentUserId = query({
     return identity?.subject ?? null;
   },
 });
+
+/**
+ * Grant Pro status to the current authenticated user
+ */
+export const grantPro = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    await ctx.db.patch(user._id, {
+      isProUser: true,
+      proExpiresAt: null, // No expiration — permanent
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});

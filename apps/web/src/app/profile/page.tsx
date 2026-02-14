@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useMutation } from "convex/react";
+import { api } from "@convex/_generated/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useListsContext } from "@/context/ListsContext";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isUserReady, isAuthenticated, status, signOut } = useAuth();
+  const { user, isUserReady, isAuthenticated, isProUser, status, signOut } = useAuth();
   const { lists, isLoaded } = useListsContext();
+  const grantProMutation = useMutation(api.users.grantPro);
+  const [isGranting, setIsGranting] = useState(false);
 
   // Redirect to onboarding if needed
   useEffect(() => {
@@ -110,9 +114,16 @@ export default function ProfilePage() {
                 @{user.username}
               </p>
             )}
-            <h1 className="text-2xl font-bold text-text-primary">
-              {user?.name || "User"}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-text-primary">
+                {user?.name || "User"}
+              </h1>
+              {isProUser && (
+                <span className="px-2 py-0.5 bg-accent-purple rounded text-[10px] font-bold text-white uppercase">
+                  Pro
+                </span>
+              )}
+            </div>
             {user?.email && (
               <p className="text-text-secondary mt-1">{user.email}</p>
             )}
@@ -136,6 +147,44 @@ export default function ProfilePage() {
                 {totalReceipts === 1 ? "Receipt" : "Receipts"} Added
               </div>
             </div>
+          </div>
+
+          {/* Pro Status */}
+          <div className="mb-8">
+            {isProUser ? (
+              <div className="bg-gradient-to-r from-purple-900/30 to-purple-800/20 border border-purple-500/30 rounded-xl p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-purple-300 font-semibold text-lg">StatCheck Pro</p>
+                  <p className="text-text-secondary text-sm">Unlimited lists, advanced stats, and more</p>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={async () => {
+                  setIsGranting(true);
+                  try {
+                    await grantProMutation();
+                    window.location.reload();
+                  } catch (error) {
+                    console.error("Failed to grant pro:", error);
+                  } finally {
+                    setIsGranting(false);
+                  }
+                }}
+                disabled={isGranting}
+                className="w-full bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white font-semibold rounded-xl p-5 transition-all flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+                {isGranting ? "Activating..." : "Upgrade to Pro"}
+              </button>
+            )}
           </div>
 
           {/* Sign Out Button */}
