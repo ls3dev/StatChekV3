@@ -4,23 +4,21 @@ import type { Player } from "@/lib/types";
 
 const players = nbaPlayersData as Player[];
 
-// Build a normalized name → photoUrl lookup
-const photoLookup = new Map<string, string>();
+// Build a normalized name → player lookup
+const playerLookup = new Map<string, Player>();
 for (const p of players) {
-  if (p.photoUrl) {
-    photoLookup.set(p.name.toLowerCase(), p.photoUrl);
-  }
+  playerLookup.set(p.name.toLowerCase(), p);
 }
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const names = searchParams.get("names")?.split(",").map(n => n.trim()) || [];
 
-  const result: Record<string, string> = {};
+  const result: Record<string, Player> = {};
   for (const name of names) {
-    const url = photoLookup.get(name.toLowerCase());
-    if (url) {
-      result[name] = url;
+    const player = playerLookup.get(name.toLowerCase());
+    if (player) {
+      result[name] = player;
     }
   }
 

@@ -71,37 +71,29 @@ export default function HomePage() {
 
   // League leaders state
   const [leaders, setLeaders] = useState<Record<string, Leader[]>>({});
-  const [playerPhotos, setPlayerPhotos] = useState<Record<string, string>>({});
+  const [leaderPlayers, setLeaderPlayers] = useState<Record<string, Player>>({});
   const [selectedCategory, setSelectedCategory] = useState<LeaderCategory>("pts");
   const [isLoadingLeaders, setIsLoadingLeaders] = useState(true);
 
   const getLeaders = useAction(api.nba.getLeaders);
 
-  const handleLeaderClick = useCallback(async (leader: Leader) => {
+  const handleLeaderClick = useCallback((leader: Leader) => {
     const name = `${leader.player.first_name} ${leader.player.last_name}`;
-    try {
-      const res = await fetch(`/api/players/search?q=${encodeURIComponent(name)}&sport=NBA`);
-      if (res.ok) {
-        const results: Player[] = await res.json();
-        if (results.length > 0) {
-          setSelectedPlayer(results[0]);
-          return;
-        }
-      }
-    } catch {
-      // Fall through to constructed player
+    const player = leaderPlayers[name];
+    if (player) {
+      setSelectedPlayer(player);
+    } else {
+      // Fallback: construct a Player from leader data
+      setSelectedPlayer({
+        id: String(leader.player.id),
+        name,
+        sport: "NBA",
+        team: leader.player.team?.abbreviation ?? "N/A",
+        position: leader.player.position || "N/A",
+        number: "0",
+      });
     }
-    // Fallback: construct a Player from leader data
-    setSelectedPlayer({
-      id: String(leader.player.id),
-      name,
-      sport: "NBA",
-      team: leader.player.team?.abbreviation ?? "N/A",
-      position: leader.player.position || "N/A",
-      number: "0",
-      photoUrl: playerPhotos[name],
-    });
-  }, [playerPhotos]);
+  }, [leaderPlayers]);
 
   const fetchLeaders = useCallback(async () => {
     setIsLoadingLeaders(true);
@@ -119,7 +111,7 @@ export default function HomePage() {
       };
       setLeaders(allLeaders);
 
-      // Fetch player photos
+      // Fetch player data for photos and click-through
       const uniqueNames = new Set<string>();
       Object.values(allLeaders).flat().forEach(l => {
         uniqueNames.add(`${l.player.first_name} ${l.player.last_name}`);
@@ -127,10 +119,10 @@ export default function HomePage() {
       try {
         const res = await fetch(`/api/players/photos?names=${encodeURIComponent([...uniqueNames].join(","))}`);
         if (res.ok) {
-          setPlayerPhotos(await res.json());
+          setLeaderPlayers(await res.json());
         }
       } catch {
-        // Photos are non-critical, silently fail
+        // Non-critical, silently fail
       }
     } catch (err) {
       console.error("Failed to fetch leaders:", err);
@@ -260,7 +252,7 @@ export default function HomePage() {
                 </span>
                 {(() => {
                   const fullName = `${leader.player.first_name} ${leader.player.last_name}`;
-                  const photoUrl = playerPhotos[fullName];
+                  const photoUrl = leaderPlayers[fullName]?.photoUrl;
                   return photoUrl ? (
                     <img
                       src={photoUrl}
