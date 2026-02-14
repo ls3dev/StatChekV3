@@ -1,0 +1,391 @@
+"use client";
+
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useAction } from "convex/react";
+import { api } from "@convex/_generated/api";
+
+interface Game {
+  id: number;
+  date: string;
+  status: string;
+  period: number;
+  time: string;
+  postseason: boolean;
+  home_team: {
+    id: number;
+    full_name: string;
+    abbreviation: string;
+    city: string;
+    name: string;
+  };
+  home_team_score: number;
+  visitor_team: {
+    id: number;
+    full_name: string;
+    abbreviation: string;
+    city: string;
+    name: string;
+  };
+  visitor_team_score: number;
+}
+
+type Sport = "NBA" | "NFL" | "MLB";
+type DateOffset = -1 | 0 | 1;
+
+function formatDate(offset: DateOffset): string {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return date.toISOString().split("T")[0];
+}
+
+function formatDisplayDate(offset: DateOffset): string {
+  if (offset === 0) return "Today";
+  if (offset === -1) return "Yesterday";
+  if (offset === 1) return "Tomorrow";
+  return "";
+}
+
+function ScoreCard({ game }: { game: Game }) {
+  const isLive = game.status === "In Progress";
+  const isFinal = game.status === "Final";
+  const isScheduled = !isLive && !isFinal;
+
+  const homeWinning = game.home_team_score > game.visitor_team_score;
+  const visitorWinning = game.visitor_team_score > game.home_team_score;
+
+  const getStatusText = () => {
+    if (isLive) return `Q${game.period} ${game.time}`;
+    if (isFinal) return "Final";
+    return game.status;
+  };
+
+  const getStatusColor = () => {
+    if (isLive) return "text-red-500";
+    if (isFinal) return "text-text-muted";
+    return "text-text-secondary";
+  };
+
+  return (
+    <div className="bg-card rounded-xl p-4 mb-2 relative hover:bg-card-hover transition-colors">
+      {isLive && (
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-red-500/10 px-2 py-0.5 rounded">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-xs font-bold text-red-500">LIVE</span>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`text-xs font-medium ${getStatusColor()}`}>
+          {getStatusText()}
+        </span>
+        {game.postseason && (
+          <span className="bg-accent-purple px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
+            PLAYOFFS
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-1">
+        {/* Visitor Team */}
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <p
+              className={`font-semibold ${
+                isFinal && visitorWinning
+                  ? "text-text-primary font-bold"
+                  : "text-text-primary"
+              }`}
+            >
+              {game.visitor_team.abbreviation}
+            </p>
+            <p className="text-xs text-text-secondary">
+              {game.visitor_team.city}
+            </p>
+          </div>
+          {!isScheduled && (
+            <span
+              className={`text-xl font-bold tabular-nums ${
+                isFinal && visitorWinning
+                  ? "text-text-primary"
+                  : isFinal
+                    ? "text-text-muted"
+                    : "text-text-primary"
+              }`}
+            >
+              {game.visitor_team_score}
+            </span>
+          )}
+        </div>
+
+        <div className="border-t border-white/5" />
+
+        {/* Home Team */}
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <p
+              className={`font-semibold ${
+                isFinal && homeWinning
+                  ? "text-text-primary font-bold"
+                  : "text-text-primary"
+              }`}
+            >
+              {game.home_team.abbreviation}
+            </p>
+            <p className="text-xs text-text-secondary">
+              {game.home_team.city}
+            </p>
+          </div>
+          {!isScheduled && (
+            <span
+              className={`text-xl font-bold tabular-nums ${
+                isFinal && homeWinning
+                  ? "text-text-primary"
+                  : isFinal
+                    ? "text-text-muted"
+                    : "text-text-primary"
+              }`}
+            >
+              {game.home_team_score}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComingSoonSport({ sport }: { sport: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-accent-purple/10 flex items-center justify-center mb-4">
+        {sport === "NFL" ? (
+          <svg className="w-9 h-9 text-accent-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <ellipse cx="12" cy="12" rx="10" ry="6" transform="rotate(-45 12 12)" />
+            <line x1="12" y1="8.5" x2="12" y2="15.5" />
+            <line x1="10.5" y1="10" x2="13.5" y2="10" />
+            <line x1="10.5" y1="12" x2="13.5" y2="12" />
+            <line x1="10.5" y1="14" x2="13.5" y2="14" />
+          </svg>
+        ) : (
+          <svg className="w-9 h-9 text-accent-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M5.5 7.5c1.5 1.5 1.5 3.5 0 5s-1.5 3.5 0 5" />
+            <path d="M18.5 6.5c-1.5 1.5-1.5 3.5 0 5s1.5 3.5 0 5" />
+          </svg>
+        )}
+      </div>
+      <h3 className="text-xl font-bold text-text-primary mb-2">{sport} Scores</h3>
+      <p className="text-text-secondary mb-1">Coming Soon</p>
+      <p className="text-sm text-text-muted max-w-xs">
+        {sport} scores and live game updates are on the way. Stay tuned!
+      </p>
+    </div>
+  );
+}
+
+export default function ScoresPage() {
+  const [selectedSport, setSelectedSport] = useState<Sport>("NBA");
+  const [selectedDate, setSelectedDate] = useState<DateOffset>(0);
+  const [games, setGames] = useState<Game[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cachedAt, setCachedAt] = useState<number | null>(null);
+
+  const getGames = useAction(api.nba.getGames);
+
+  const fetchGames = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const date = formatDate(selectedDate);
+      const result = await getGames({ date });
+      setGames(result.games as Game[]);
+      setCachedAt(result.cachedAt);
+    } catch (err: any) {
+      console.error("Failed to fetch games:", err);
+      setError(err.message || "Failed to load games");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getGames, selectedDate]);
+
+  useEffect(() => {
+    if (selectedSport === "NBA") {
+      fetchGames();
+    }
+  }, [selectedDate, selectedSport]);
+
+  const { liveGames, completedGames, scheduledGames } = useMemo(() => {
+    const live: Game[] = [];
+    const completed: Game[] = [];
+    const scheduled: Game[] = [];
+
+    games.forEach((game) => {
+      if (game.status === "In Progress") {
+        live.push(game);
+      } else if (game.status === "Final") {
+        completed.push(game);
+      } else {
+        scheduled.push(game);
+      }
+    });
+
+    return {
+      liveGames: live,
+      completedGames: completed,
+      scheduledGames: scheduled,
+    };
+  }, [games]);
+
+  return (
+    <main className="min-h-screen bg-background-primary">
+      <div className="max-w-3xl mx-auto px-4 md:px-6 py-8">
+        <h1 className="text-3xl font-bold text-text-primary mb-6">Scores</h1>
+
+        {/* Sport Tabs */}
+        <div className="flex gap-1 p-1 bg-background-secondary rounded-xl mb-6">
+          {(["NBA", "NFL", "MLB"] as Sport[]).map((sport) => (
+            <button
+              key={sport}
+              onClick={() => setSelectedSport(sport)}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                selectedSport === sport
+                  ? "bg-accent-purple text-white shadow-lg shadow-purple-500/20"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              {sport}
+              {sport !== "NBA" && (
+                <span className={`ml-1.5 text-[10px] font-medium uppercase ${
+                  selectedSport === sport ? "text-white/70" : "text-text-muted"
+                }`}>
+                  Soon
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* NFL / MLB Coming Soon */}
+        {selectedSport !== "NBA" ? (
+          <ComingSoonSport sport={selectedSport} />
+        ) : (
+          <>
+            {/* Date Selector */}
+            <div className="flex gap-2 mb-6">
+              {([-1, 0, 1] as DateOffset[]).map((offset) => (
+                <button
+                  key={offset}
+                  onClick={() => setSelectedDate(offset)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedDate === offset
+                      ? "bg-accent-purple text-white"
+                      : "bg-background-secondary text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  {formatDisplayDate(offset)}
+                </button>
+              ))}
+            </div>
+
+            {/* Content */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <svg
+                  className="w-12 h-12 text-red-500 mb-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-text-secondary mb-4">{error}</p>
+                <button
+                  onClick={fetchGames}
+                  className="px-4 py-2 bg-accent-purple text-white rounded-lg text-sm font-medium hover:bg-purple-500 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : games.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <svg
+                  className="w-12 h-12 text-text-muted mb-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M20 12H4"
+                  />
+                </svg>
+                <p className="text-text-secondary">
+                  No games {formatDisplayDate(selectedDate).toLowerCase()}
+                </p>
+              </div>
+            ) : (
+              <div>
+                {/* Live Games */}
+                {liveGames.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-1.5 bg-red-500/10 px-2 py-1 rounded w-fit mb-3">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-xs font-bold text-red-500">LIVE</span>
+                    </div>
+                    {liveGames.map((game) => (
+                      <ScoreCard key={game.id} game={game} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Scheduled Games */}
+                {scheduledGames.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-3">
+                      Upcoming
+                    </p>
+                    {scheduledGames.map((game) => (
+                      <ScoreCard key={game.id} game={game} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Completed Games */}
+                {completedGames.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-3">
+                      Final
+                    </p>
+                    {completedGames.map((game) => (
+                      <ScoreCard key={game.id} game={game} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Cache info */}
+                {cachedAt && (
+                  <p className="text-xs text-text-muted text-center mt-4">
+                    Updated {new Date(cachedAt).toLocaleTimeString()}
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </main>
+  );
+}

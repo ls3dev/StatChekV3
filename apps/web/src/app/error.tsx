@@ -34,8 +34,11 @@ export default function Error({
         <h1 className="text-2xl font-bold text-text-primary mb-2">
           Something went wrong
         </h1>
-        <p className="text-text-secondary mb-6">
+        <p className="text-text-secondary mb-2">
           An unexpected error occurred. Please try again.
+        </p>
+        <p className="text-red-400/70 text-xs font-mono mb-6 break-all">
+          {error?.message || "Unknown error"}
         </p>
         <div className="flex gap-3 justify-center">
           <button

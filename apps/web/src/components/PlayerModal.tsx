@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Player } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +15,53 @@ type PlayerModalProps = {
   onClose: () => void;
 };
 
+interface SeasonStats {
+  games_played: number;
+  min: string;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  turnover: number;
+  fg_pct: number;
+  fg3_pct: number;
+  ft_pct: number;
+  fgm: number;
+  fga: number;
+  fg3m: number;
+  fg3a: number;
+  ftm: number;
+  fta: number;
+}
+
+interface ContractInfo {
+  season: number;
+  amount: number;
+}
+
+interface InjuryInfo {
+  status: string;
+  description: string;
+  return_date: string | null;
+}
+
+function formatCurrency(amount: number) {
+  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
+  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(0)}K`;
+  return `$${amount}`;
+}
+
+function getInjuryStatusColor(status: string) {
+  const s = status.toLowerCase();
+  if (s.includes("out")) return "bg-red-500/20 text-red-400";
+  if (s.includes("doubtful")) return "bg-red-500/10 text-red-300";
+  if (s.includes("questionable")) return "bg-yellow-500/20 text-yellow-400";
+  if (s.includes("probable") || s.includes("day-to-day"))
+    return "bg-green-500/20 text-green-400";
+  return "bg-gray-500/20 text-gray-400";
+}
+
 export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
   const router = useRouter();
   const { isAuthenticated, userId } = useAuth();
@@ -22,6 +69,17 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
   const [showAddLink, setShowAddLink] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [showCopiedMessage, setShowCopiedMessage] = useState(false);
+
+  // NBA stats state
+  const [bdlPlayerId, setBdlPlayerId] = useState<number | null>(null);
+  const [seasonStats, setSeasonStats] = useState<SeasonStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [contracts, setContracts] = useState<ContractInfo[]>([]);
+  const [contractsRequiresPro, setContractsRequiresPro] = useState(false);
+  const [isLoadingContracts, setIsLoadingContracts] = useState(false);
+  const [injury, setInjury] = useState<InjuryInfo | null>(null);
+  const [injuriesRequiresPro, setInjuriesRequiresPro] = useState(false);
+  const [isLoadingInjury, setIsLoadingInjury] = useState(false);
 
   // Query player links (receipts)
   const playerLinks = useQuery(
@@ -35,6 +93,115 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
   const addPlayerLink = useMutation(api.playerLinks.addPlayerLink);
   const deletePlayerLink = useMutation(api.playerLinks.deletePlayerLink);
   const createSharedPlayer = useMutation(api.sharedPlayers.createSharedPlayer);
+
+  // NBA API actions
+  const searchPlayerByName = useAction(api.nba.searchPlayerByName);
+  const getPlayerStats = useAction(api.nba.getPlayerStats);
+  const getPlayerContract = useAction(api.nba.getPlayerContract);
+  const getInjuries = useAction(api.nba.getInjuries);
+
+  const isNBA = player?.sport === "NBA";
+
+  // Fetch NBA data when modal opens for an NBA player
+  const fetchNBAData = useCallback(async () => {
+    if (!player || !isNBA) return;
+
+    setIsLoadingStats(true);
+    setIsLoadingContracts(true);
+    setIsLoadingInjury(true);
+    setSeasonStats(null);
+    setContracts([]);
+    setInjury(null);
+    setBdlPlayerId(null);
+
+    try {
+      // Step 1: Find BDL player ID
+      const searchResult = await searchPlayerByName({ name: player.name });
+      if (!searchResult.playerId) {
+        setIsLoadingStats(false);
+        setIsLoadingContracts(false);
+        setIsLoadingInjury(false);
+        return;
+      }
+
+      const pId = searchResult.playerId;
+      setBdlPlayerId(pId);
+
+      // Step 2: Fetch stats (FREE)
+      try {
+        const statsResult = await getPlayerStats({ playerId: pId });
+        if (statsResult.stats) {
+          setSeasonStats(statsResult.stats as unknown as SeasonStats);
+        }
+      } catch {
+        // Stats not available
+      }
+      setIsLoadingStats(false);
+
+      // Step 3: Fetch contracts (PRO)
+      try {
+        const contractResult = await getPlayerContract({ playerId: pId });
+        if (contractResult.requiresPro) {
+          setContractsRequiresPro(true);
+        } else {
+          const mapped = (contractResult.contracts as any[]).map((c) => ({
+            season: c.season,
+            amount: c.amount,
+          }));
+          setContracts(mapped);
+          setContractsRequiresPro(false);
+        }
+      } catch {
+        // Contracts not available
+      }
+      setIsLoadingContracts(false);
+
+      // Step 4: Fetch injuries (PRO) - check if this player is injured
+      try {
+        const injuryResult = await getInjuries({
+          teamId: searchResult.player?.team?.id,
+        });
+        if (injuryResult.requiresPro) {
+          setInjuriesRequiresPro(true);
+        } else {
+          const playerInjury = (injuryResult.injuries as any[]).find(
+            (i) =>
+              i.player.first_name === searchResult.player?.first_name &&
+              i.player.last_name === searchResult.player?.last_name
+          );
+          if (playerInjury) {
+            setInjury({
+              status: playerInjury.status,
+              description: playerInjury.description,
+              return_date: playerInjury.return_date,
+            });
+          }
+          setInjuriesRequiresPro(false);
+        }
+      } catch {
+        // Injuries not available
+      }
+      setIsLoadingInjury(false);
+    } catch {
+      setIsLoadingStats(false);
+      setIsLoadingContracts(false);
+      setIsLoadingInjury(false);
+    }
+  }, [player, isNBA, searchPlayerByName, getPlayerStats, getPlayerContract, getInjuries]);
+
+  useEffect(() => {
+    if (isOpen && player && isNBA) {
+      fetchNBAData();
+    }
+    if (!isOpen) {
+      setSeasonStats(null);
+      setContracts([]);
+      setInjury(null);
+      setBdlPlayerId(null);
+      setContractsRequiresPro(false);
+      setInjuriesRequiresPro(false);
+    }
+  }, [isOpen, player?.id]);
 
   // Close on escape key
   useEffect(() => {
@@ -135,6 +302,10 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
     }
   };
 
+  const currentContract = contracts.find(
+    (c) => c.season === new Date().getFullYear()
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -146,7 +317,7 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
       {/* Modal */}
       <div
         className={`
-          relative w-full max-w-md bg-background-secondary rounded-2xl shadow-2xl
+          relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-background-secondary rounded-2xl shadow-2xl
           transform transition-all duration-200
           ${isHallOfFame ? "ring-2 ring-gold" : ""}
         `}
@@ -178,6 +349,15 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
             ${isHallOfFame ? "bg-gradient-to-b from-yellow-900/30 to-transparent" : "bg-gradient-to-b from-accent-purple/20 to-transparent"}
           `}
         >
+          {/* Injury Badge */}
+          {injury && (
+            <div className="absolute top-4 left-4">
+              <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getInjuryStatusColor(injury.status)}`}>
+                {injury.status}
+              </span>
+            </div>
+          )}
+
           {/* Player Photo */}
           <div className="flex justify-center mb-4">
             {player.photoUrl ? (
@@ -230,10 +410,164 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
               </span>
             </div>
           )}
+
+          {/* Contract Badge */}
+          {currentContract && (
+            <div className="flex justify-center mt-2">
+              <span className="px-3 py-1 bg-green-900/20 text-green-400 text-sm font-semibold rounded-full">
+                {formatCurrency(currentContract.amount)}/yr
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div className="px-6 pb-6">
+          {/* Season Stats (NBA only, FREE) */}
+          {isNBA && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">
+                Season Stats
+              </h3>
+              {isLoadingStats ? (
+                <div className="flex justify-center py-4">
+                  <div className="w-5 h-5 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : seasonStats ? (
+                <div className="bg-card rounded-xl p-4">
+                  {/* Main stats row */}
+                  <div className="grid grid-cols-4 gap-3 text-center mb-3">
+                    <div>
+                      <p className="text-lg font-bold text-text-primary">{seasonStats.pts.toFixed(1)}</p>
+                      <p className="text-[10px] uppercase text-text-muted font-medium">PTS</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-text-primary">{seasonStats.reb.toFixed(1)}</p>
+                      <p className="text-[10px] uppercase text-text-muted font-medium">REB</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-text-primary">{seasonStats.ast.toFixed(1)}</p>
+                      <p className="text-[10px] uppercase text-text-muted font-medium">AST</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-text-primary">{seasonStats.games_played}</p>
+                      <p className="text-[10px] uppercase text-text-muted font-medium">GP</p>
+                    </div>
+                  </div>
+                  {/* Secondary stats */}
+                  <div className="border-t border-white/5 pt-3 grid grid-cols-5 gap-2 text-center">
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">{seasonStats.stl.toFixed(1)}</p>
+                      <p className="text-[10px] uppercase text-text-muted">STL</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">{seasonStats.blk.toFixed(1)}</p>
+                      <p className="text-[10px] uppercase text-text-muted">BLK</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">{(seasonStats.fg_pct * 100).toFixed(1)}%</p>
+                      <p className="text-[10px] uppercase text-text-muted">FG%</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">{(seasonStats.fg3_pct * 100).toFixed(1)}%</p>
+                      <p className="text-[10px] uppercase text-text-muted">3P%</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">{(seasonStats.ft_pct * 100).toFixed(1)}%</p>
+                      <p className="text-[10px] uppercase text-text-muted">FT%</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-4 py-3 bg-card rounded-lg text-text-muted text-center text-sm">
+                  No stats available this season
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Injury Detail (NBA only, PRO) */}
+          {isNBA && (injury || isLoadingInjury || injuriesRequiresPro) && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wide">
+                  Injury Status
+                </h3>
+                <span className="bg-accent-purple px-1.5 py-0.5 rounded text-[9px] font-bold text-white">PRO</span>
+              </div>
+              {isLoadingInjury ? (
+                <div className="flex justify-center py-3">
+                  <div className="w-5 h-5 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : injuriesRequiresPro ? (
+                <div className="bg-card rounded-xl p-4 text-center">
+                  <svg className="w-8 h-8 text-text-muted mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <p className="text-text-muted text-xs">Unlock Pro for injury reports</p>
+                </div>
+              ) : injury ? (
+                <div className="bg-card rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${getInjuryStatusColor(injury.status)}`}>
+                      {injury.status}
+                    </span>
+                  </div>
+                  {injury.description && (
+                    <p className="text-sm text-text-secondary">{injury.description}</p>
+                  )}
+                  {injury.return_date && (
+                    <p className="text-xs text-text-muted mt-1">Expected return: {injury.return_date}</p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {/* Contract Info (NBA only, PRO) */}
+          {isNBA && (contracts.length > 0 || isLoadingContracts || contractsRequiresPro) && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wide">
+                  Contract
+                </h3>
+                <span className="bg-accent-purple px-1.5 py-0.5 rounded text-[9px] font-bold text-white">PRO</span>
+              </div>
+              {isLoadingContracts ? (
+                <div className="flex justify-center py-3">
+                  <div className="w-5 h-5 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : contractsRequiresPro ? (
+                <div className="bg-card rounded-xl p-4 text-center">
+                  <svg className="w-8 h-8 text-text-muted mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <p className="text-text-muted text-xs">Unlock Pro for contract details</p>
+                </div>
+              ) : contracts.length > 0 ? (
+                <div className="bg-card rounded-xl overflow-hidden">
+                  {contracts
+                    .sort((a, b) => a.season - b.season)
+                    .map((c) => (
+                      <div
+                        key={c.season}
+                        className={`flex items-center justify-between px-4 py-2.5 border-b border-white/5 last:border-b-0 ${
+                          c.season === new Date().getFullYear() ? "bg-accent-purple/5" : ""
+                        }`}
+                      >
+                        <span className="text-sm text-text-secondary">
+                          {c.season}-{(c.season + 1).toString().slice(-2)}
+                        </span>
+                        <span className="text-sm font-semibold text-text-primary tabular-nums">
+                          {formatCurrency(c.amount)}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              ) : null}
+            </div>
+          )}
+
           {/* Quick Links */}
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">
