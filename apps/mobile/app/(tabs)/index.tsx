@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { GradientHeader } from '@/components/GradientHeader';
 import { HeroSearchCard } from '@/components/HeroSearchCard';
+import { LeagueLeadersSection } from '@/components/LeagueLeadersSection';
 import { RecentPlayersSection } from '@/components/RecentPlayersSection';
 import { PlayerCardBottomSheet } from '@/components/player-card';
 import { DesignTokens } from '@/constants/theme';
@@ -52,6 +53,9 @@ export default function HomeScreen() {
           onPlayerSelect={handlePlayerSelect}
           onClear={handleClearRecentPlayers}
         />
+
+        {/* League Leaders */}
+        <LeagueLeadersSection onPlayerSelect={handlePlayerSelect} />
       </ScrollView>
 
       {/* Bottom sheet for player details */}
