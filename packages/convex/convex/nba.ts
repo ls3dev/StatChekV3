@@ -14,7 +14,6 @@ import {
   type BDLContract,
   type BDLInjury,
   type BDLLeader,
-  type BDLPlayer,
 } from "./lib/balldontlie";
 
 // ========================================
@@ -85,16 +84,6 @@ export const _getLeadersCache = internalQuery({
       .withIndex("by_season_stat", (q) =>
         q.eq("season", args.season).eq("statType", args.statType)
       )
-      .first();
-  },
-});
-
-export const _getDraftPicksCache = internalQuery({
-  args: { teamId: v.number() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("nbaDraftPicksCache")
-      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
       .first();
   },
 });
@@ -239,29 +228,6 @@ export const _upsertLeadersCache = internalMutation({
       await ctx.db.insert("nbaLeadersCache", {
         season: args.season,
         statType: args.statType,
-        data: args.data,
-        cachedAt: Date.now(),
-      });
-    }
-  },
-});
-
-export const _upsertDraftPicksCache = internalMutation({
-  args: { teamId: v.number(), data: v.any() },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("nbaDraftPicksCache")
-      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
-      .first();
-
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        data: args.data,
-        cachedAt: Date.now(),
-      });
-    } else {
-      await ctx.db.insert("nbaDraftPicksCache", {
-        teamId: args.teamId,
         data: args.data,
         cachedAt: Date.now(),
       });
@@ -459,98 +425,6 @@ export const getLeaders = action({
     });
 
     return { leaders, cachedAt: Date.now() };
-  },
-});
-
-/**
- * Get draft picks for a team's current roster (FREE)
- * Returns active players with their draft information
- */
-export const getTeamDraftPicks = action({
-  args: { teamId: v.number() },
-  handler: async (
-    ctx,
-    args
-  ): Promise<{
-    draftPicks: Array<{
-      playerId: number;
-      firstName: string;
-      lastName: string;
-      position: string;
-      draftYear: number | null;
-      draftRound: number | null;
-      draftNumber: number | null;
-      college: string | null;
-      country: string | null;
-    }>;
-    cachedAt: number;
-  }> => {
-    // Check cache
-    const cached = await ctx.runQuery(internal.nba._getDraftPicksCache, {
-      teamId: args.teamId,
-    });
-
-    if (cached && isCacheValid(cached.cachedAt, CACHE_TTL.DRAFT_PICKS)) {
-      return {
-        draftPicks: cached.data as any[],
-        cachedAt: cached.cachedAt,
-      };
-    }
-
-    // Fetch from API
-    const apiKey = process.env.BALLDONTLIE_API_KEY;
-    if (!apiKey) {
-      throw new Error("BALLDONTLIE_API_KEY not configured");
-    }
-
-    const client = createBallDontLieClient(apiKey);
-
-    // Fetch active players for this team
-    const allPlayers: BDLPlayer[] = [];
-    let cursor: number | null = null;
-    let attempts = 0;
-    const maxAttempts = 3; // Limit pagination to avoid excessive API calls
-
-    do {
-      const response = await client.getActivePlayers({
-        team_ids: [args.teamId],
-        per_page: 100,
-        cursor: cursor ?? undefined,
-      });
-      allPlayers.push(...response.data);
-      cursor = response.meta.next_cursor;
-      attempts++;
-    } while (cursor && attempts < maxAttempts);
-
-    // Extract draft info and sort by draft year (most recent first)
-    const draftPicks = allPlayers
-      .map((player) => ({
-        playerId: player.id,
-        firstName: player.first_name,
-        lastName: player.last_name,
-        position: player.position,
-        draftYear: player.draft_year,
-        draftRound: player.draft_round,
-        draftNumber: player.draft_number,
-        college: player.college,
-        country: player.country,
-      }))
-      .sort((a, b) => {
-        // Drafted players first, then by year descending, then by pick number ascending
-        if (a.draftYear && !b.draftYear) return -1;
-        if (!a.draftYear && b.draftYear) return 1;
-        if (!a.draftYear && !b.draftYear) return 0;
-        if (a.draftYear !== b.draftYear) return (b.draftYear ?? 0) - (a.draftYear ?? 0);
-        return (a.draftNumber ?? 999) - (b.draftNumber ?? 999);
-      });
-
-    // Update cache
-    await ctx.runMutation(internal.nba._upsertDraftPicksCache, {
-      teamId: args.teamId,
-      data: draftPicks,
-    });
-
-    return { draftPicks, cachedAt: Date.now() };
   },
 });
 

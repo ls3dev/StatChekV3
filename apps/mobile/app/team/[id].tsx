@@ -18,6 +18,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { useListsContext } from '@/context/ListsContext';
 import { api } from '@statcheck/convex';
+import { getTeamPicksByYear, type DraftPickAsset } from '@/data/nba_draft_picks';
 
 // NBA Team names mapping (since the API returns team IDs)
 const TEAM_NAMES: Record<number, { name: string; city: string; abbreviation: string }> = {
@@ -76,18 +77,6 @@ interface Injury {
   return_date: string | null;
 }
 
-interface DraftPick {
-  playerId: number;
-  firstName: string;
-  lastName: string;
-  position: string;
-  draftYear: number | null;
-  draftRound: number | null;
-  draftNumber: number | null;
-  college: string | null;
-  country: string | null;
-}
-
 export default function TeamDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -100,10 +89,8 @@ export default function TeamDetailScreen() {
 
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [injuries, setInjuries] = useState<Injury[]>([]);
-  const [draftPicks, setDraftPicks] = useState<DraftPick[]>([]);
   const [isLoadingContracts, setIsLoadingContracts] = useState(true);
   const [isLoadingInjuries, setIsLoadingInjuries] = useState(true);
-  const [isLoadingDraftPicks, setIsLoadingDraftPicks] = useState(true);
   const [contractsRequiresPro, setContractsRequiresPro] = useState(false);
   const [injuriesRequiresPro, setInjuriesRequiresPro] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +98,13 @@ export default function TeamDetailScreen() {
 
   const getTeamContracts = useAction(api.nba.getTeamContracts);
   const getInjuries = useAction(api.nba.getInjuries);
-  const getTeamDraftPicks = useAction(api.nba.getTeamDraftPicks);
+
+  // Static draft pick data (no API call needed)
+  const draftPicksByYear = React.useMemo(() => getTeamPicksByYear(teamId), [teamId]);
+  const draftYears = React.useMemo(
+    () => Object.keys(draftPicksByYear).map(Number).sort((a, b) => a - b),
+    [draftPicksByYear]
+  );
 
   const fetchData = useCallback(
     async (showRefreshing = false) => {
@@ -150,19 +143,9 @@ export default function TeamDetailScreen() {
         setIsLoadingInjuries(false);
       }
 
-      // Fetch draft picks
-      setIsLoadingDraftPicks(true);
-      try {
-        const result = await getTeamDraftPicks({ teamId });
-        setDraftPicks(result.draftPicks as DraftPick[]);
-      } catch (err: any) {
-        console.error('Failed to fetch draft picks:', err);
-      } finally {
-        setIsLoadingDraftPicks(false);
-        setIsRefreshing(false);
-      }
+      setIsRefreshing(false);
     },
-    [getTeamContracts, getInjuries, getTeamDraftPicks, teamId]
+    [getTeamContracts, getInjuries, teamId]
   );
 
   React.useEffect(() => {
@@ -312,9 +295,7 @@ export default function TeamDetailScreen() {
             <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Draft Picks</Text>
           </View>
 
-          {isLoadingDraftPicks ? (
-            <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
-          ) : draftPicks.filter((p) => p.draftYear).length === 0 ? (
+          {draftYears.length === 0 ? (
             <View style={[styles.emptyCard, isDark && styles.emptyCardDark]}>
               <Ionicons name="information-circle" size={24} color={DesignTokens.textMuted} />
               <Text style={[styles.emptyText, isDark && styles.textSecondary]}>
@@ -323,106 +304,111 @@ export default function TeamDetailScreen() {
             </View>
           ) : (
             <>
-              {/* Draft Summary */}
+              {/* Summary Card */}
               {(() => {
-                const drafted = draftPicks.filter((p) => p.draftYear);
-                const undrafted = draftPicks.filter((p) => !p.draftYear);
-                const lotteryPicks = drafted.filter(
-                  (p) => p.draftRound === 1 && (p.draftNumber ?? 999) <= 14
+                const allPicks = Object.values(draftPicksByYear);
+                const totalOwned = allPicks.reduce((sum, y) => sum + y.owned.filter((p) => p.round === 1).length, 0);
+                const totalTraded = allPicks.reduce((sum, y) => sum + y.traded.filter((p) => p.round === 1).length, 0);
+                const extraPicks = allPicks.reduce(
+                  (sum, y) => sum + y.owned.filter((p) => p.round === 1 && p.type === 'acquired').length,
+                  0
                 );
                 return (
                   <View style={[styles.summaryCard, isDark && styles.summaryCardDark]}>
                     <View style={styles.summaryItem}>
                       <Text style={[styles.summaryLabel, isDark && styles.textSecondary]}>
-                        Drafted
+                        1st Rounders
                       </Text>
                       <Text style={[styles.summaryValue, isDark && styles.textDark]}>
-                        {drafted.length}
+                        {totalOwned}
                       </Text>
                     </View>
                     <View style={[styles.summaryDivider, isDark && styles.summaryDividerDark]} />
                     <View style={styles.summaryItem}>
                       <Text style={[styles.summaryLabel, isDark && styles.textSecondary]}>
-                        Lottery
+                        Extra
                       </Text>
-                      <Text style={[styles.summaryValue, isDark && styles.textDark]}>
-                        {lotteryPicks.length}
+                      <Text style={[styles.summaryValue, { color: DesignTokens.accentSuccess }]}>
+                        +{extraPicks}
                       </Text>
                     </View>
                     <View style={[styles.summaryDivider, isDark && styles.summaryDividerDark]} />
                     <View style={styles.summaryItem}>
                       <Text style={[styles.summaryLabel, isDark && styles.textSecondary]}>
-                        Undrafted
+                        Traded
                       </Text>
-                      <Text style={[styles.summaryValue, isDark && styles.textDark]}>
-                        {undrafted.length}
+                      <Text style={[styles.summaryValue, { color: DesignTokens.accentError }]}>
+                        {totalTraded}
                       </Text>
                     </View>
                   </View>
                 );
               })()}
 
-              {/* Draft Picks List */}
-              {draftPicks
-                .filter((p) => p.draftYear)
-                .map((pick) => (
-                  <View
-                    key={pick.playerId}
-                    style={[styles.draftPickRow, isDark && styles.draftPickRowDark]}
-                  >
-                    <View style={styles.draftPickNumber}>
-                      <Text style={styles.draftPickNumberText}>
-                        #{pick.draftNumber}
-                      </Text>
-                    </View>
-                    <View style={styles.draftPickInfo}>
-                      <Text style={[styles.playerName, isDark && styles.textDark]}>
-                        {pick.firstName} {pick.lastName}
-                      </Text>
-                      <Text style={[styles.draftPickMeta, isDark && styles.textSecondary]}>
-                        {pick.draftYear} · Rd {pick.draftRound}
-                        {pick.college ? ` · ${pick.college}` : pick.country ? ` · ${pick.country}` : ''}
-                      </Text>
-                    </View>
-                    <Text style={[styles.draftPickPosition, isDark && styles.textSecondary]}>
-                      {pick.position || 'N/A'}
-                    </Text>
-                  </View>
-                ))}
-
-              {/* Undrafted Players */}
-              {draftPicks.filter((p) => !p.draftYear).length > 0 && (
-                <>
-                  <Text style={[styles.draftSubheading, isDark && styles.textSecondary]}>
-                    Undrafted
-                  </Text>
-                  {draftPicks
-                    .filter((p) => !p.draftYear)
-                    .map((pick) => (
-                      <View
-                        key={pick.playerId}
-                        style={[styles.draftPickRow, isDark && styles.draftPickRowDark]}
-                      >
-                        <View style={[styles.draftPickNumber, styles.draftPickUndrafted]}>
-                          <Text style={[styles.draftPickNumberText, styles.draftPickUndraftedText]}>
-                            UD
+              {/* Year-by-Year Breakdown */}
+              {draftYears.map((year) => {
+                const { owned, traded } = draftPicksByYear[year];
+                return (
+                  <View key={year} style={[styles.draftYearBlock, isDark && styles.draftYearBlockDark]}>
+                    <Text style={[styles.draftYearLabel, isDark && styles.textDark]}>{year}</Text>
+                    {/* Owned Picks */}
+                    {owned
+                      .sort((a, b) => a.round - b.round)
+                      .map((pick, idx) => (
+                        <View key={`owned-${idx}`} style={styles.draftPickItem}>
+                          <View
+                            style={[
+                              styles.draftPickBadge,
+                              pick.type === 'acquired'
+                                ? styles.draftPickBadgeAcquired
+                                : pick.type === 'swap'
+                                  ? styles.draftPickBadgeSwap
+                                  : styles.draftPickBadgeOwn,
+                            ]}
+                          >
+                            <Text style={styles.draftPickBadgeText}>
+                              {pick.round === 1 ? '1st' : '2nd'}
+                            </Text>
+                          </View>
+                          <View style={styles.draftPickDetails}>
+                            <Text style={[styles.draftPickLabel, isDark && styles.textDark]}>
+                              {pick.type === 'own'
+                                ? `Own ${pick.round === 1 ? '1st' : '2nd'} Round`
+                                : pick.type === 'acquired'
+                                  ? `${pick.round === 1 ? '1st' : '2nd'} Round (from ${pick.otherTeam})`
+                                  : `Swap Rights (${pick.otherTeam})`}
+                            </Text>
+                            {(pick.protection || pick.notes) && (
+                              <Text style={[styles.draftPickNote, isDark && styles.textSecondary]}>
+                                {pick.protection ?? ''}{pick.protection && pick.notes ? ' · ' : ''}{pick.notes ?? ''}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                      ))}
+                    {/* Traded Picks */}
+                    {traded.map((pick, idx) => (
+                      <View key={`traded-${idx}`} style={styles.draftPickItem}>
+                        <View style={[styles.draftPickBadge, styles.draftPickBadgeTraded]}>
+                          <Text style={styles.draftPickBadgeText}>
+                            {pick.round === 1 ? '1st' : '2nd'}
                           </Text>
                         </View>
-                        <View style={styles.draftPickInfo}>
-                          <Text style={[styles.playerName, isDark && styles.textDark]}>
-                            {pick.firstName} {pick.lastName}
+                        <View style={styles.draftPickDetails}>
+                          <Text style={[styles.draftPickLabel, { color: DesignTokens.accentError }]}>
+                            {pick.round === 1 ? '1st' : '2nd'} Round → {pick.otherTeam}
                           </Text>
-                          <Text style={[styles.draftPickMeta, isDark && styles.textSecondary]}>
-                            {pick.college ? pick.college : pick.country || ''}
-                          </Text>
+                          {(pick.protection || pick.notes) && (
+                            <Text style={[styles.draftPickNote, isDark && styles.textSecondary]}>
+                              {pick.protection ?? ''}{pick.protection && pick.notes ? ' · ' : ''}{pick.notes ?? ''}
+                            </Text>
+                          )}
                         </View>
-                        <Text style={[styles.draftPickPosition, isDark && styles.textSecondary]}>
-                          {pick.position || 'N/A'}
-                        </Text>
                       </View>
                     ))}
-                </>
-              )}
+                  </View>
+                );
+              })}
             </>
           )}
         </View>
@@ -643,63 +629,62 @@ const styles = StyleSheet.create({
     color: DesignTokens.textPrimary,
     fontVariant: ['tabular-nums'],
   },
-  draftPickRow: {
+  draftYearBlock: {
+    backgroundColor: DesignTokens.cardBackground,
+    borderRadius: DesignTokens.radius.md,
+    marginBottom: DesignTokens.spacing.sm,
+    padding: DesignTokens.spacing.md,
+  },
+  draftYearBlockDark: {
+    backgroundColor: DesignTokens.cardBackgroundDark,
+  },
+  draftYearLabel: {
+    ...Typography.headline,
+    color: DesignTokens.textPrimary,
+    marginBottom: DesignTokens.spacing.sm,
+  },
+  draftPickItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: DesignTokens.spacing.sm,
-    paddingHorizontal: DesignTokens.spacing.md,
-    backgroundColor: DesignTokens.cardBackground,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: DesignTokens.border,
+    paddingVertical: DesignTokens.spacing.xs,
   },
-  draftPickRowDark: {
-    backgroundColor: DesignTokens.cardBackgroundDark,
-    borderBottomColor: DesignTokens.borderDark,
-  },
-  draftPickNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: DesignTokens.accentPurple,
+  draftPickBadge: {
+    width: 32,
+    height: 22,
+    borderRadius: DesignTokens.radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: DesignTokens.spacing.sm,
   },
-  draftPickNumberText: {
-    ...Typography.captionSmall,
+  draftPickBadgeOwn: {
+    backgroundColor: DesignTokens.accentPurple,
+  },
+  draftPickBadgeAcquired: {
+    backgroundColor: DesignTokens.accentSuccess,
+  },
+  draftPickBadgeSwap: {
+    backgroundColor: '#F59E0B',
+  },
+  draftPickBadgeTraded: {
+    backgroundColor: DesignTokens.accentError,
+  },
+  draftPickBadgeText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 12,
-  },
-  draftPickUndrafted: {
-    backgroundColor: DesignTokens.textMuted,
-  },
-  draftPickUndraftedText: {
     fontSize: 10,
   },
-  draftPickInfo: {
+  draftPickDetails: {
     flex: 1,
   },
-  draftPickMeta: {
+  draftPickLabel: {
+    ...Typography.body,
+    color: DesignTokens.textPrimary,
+    fontSize: 13,
+  },
+  draftPickNote: {
     ...Typography.captionSmall,
     color: DesignTokens.textSecondary,
     marginTop: 1,
-  },
-  draftPickPosition: {
-    ...Typography.captionSmall,
-    color: DesignTokens.textSecondary,
-    fontWeight: '600',
-    marginLeft: DesignTokens.spacing.sm,
-  },
-  draftSubheading: {
-    ...Typography.captionSmall,
-    color: DesignTokens.textSecondary,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: DesignTokens.spacing.md,
-    marginBottom: DesignTokens.spacing.xs,
-    paddingHorizontal: DesignTokens.spacing.md,
   },
   errorText: {
     ...Typography.body,
