@@ -86,6 +86,14 @@ export function ListCard({ list, onPress }: ListCardProps) {
               {playerCount} {playerCount === 1 ? 'player' : 'players'}
             </Text>
           </View>
+          {list.updatedAt ? (
+            <>
+              <Text style={[styles.metaDot, { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted }]}>·</Text>
+              <Text style={[styles.metaDate, { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted }]}>
+                Updated {new Date(list.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </Text>
+            </>
+          ) : null}
         </View>
       </View>
 
@@ -164,6 +172,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     marginTop: 'auto',
   },
   playerCount: {
@@ -175,6 +184,14 @@ const styles = StyleSheet.create({
     ...Typography.label,
     fontSize: 13,
     fontWeight: '500',
+  },
+  metaDot: {
+    ...Typography.caption,
+    fontSize: 12,
+  },
+  metaDate: {
+    ...Typography.caption,
+    fontSize: 12,
   },
   chevron: {
     alignSelf: 'center',
