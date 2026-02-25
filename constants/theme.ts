@@ -5,9 +5,9 @@
 
 import { Platform } from 'react-native';
 
-// Brand gradient colors - Apple Sports dark gray style
+// Brand gradient colors - Purple brand gradient (matching web)
 export const BrandGradient = {
-  start: '#374151', // Gray-700
+  start: '#581C87', // Purple-900
   end: '#1F2937', // Gray-800
 } as const;
 

@@ -1,18 +1,22 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { GradientHeader } from '@/components/GradientHeader';
 import { HeroSearchCard } from '@/components/HeroSearchCard';
 import { LeagueLeadersSection } from '@/components/LeagueLeadersSection';
 import { RecentPlayersSection } from '@/components/RecentPlayersSection';
 import { PlayerCardBottomSheet } from '@/components/player-card';
-import { DesignTokens } from '@/constants/theme';
+import { DesignTokens, Typography } from '@/constants/theme';
 import { useRecentPlayers } from '@/context/RecentPlayersContext';
 import { useTheme } from '@/context/ThemeContext';
 import type { Player } from '@/types';
 
 export default function HomeScreen() {
   const { isDark } = useTheme();
+  const router = useRouter();
   const { recentPlayers, addRecentPlayer, clearRecentPlayers } = useRecentPlayers();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
@@ -43,11 +47,28 @@ export default function HomeScreen() {
       {/* Floating search card with dropdown */}
       <HeroSearchCard onPlayerSelect={handlePlayerSelect} />
 
-      {/* Recent players section */}
+      {/* Content below search */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}>
+        {/* Create Your List CTA */}
+        <View style={styles.ctaContainer}>
+          <Pressable
+            onPress={() => router.push('/(tabs)/lists')}
+            style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
+            <LinearGradient
+              colors={['#8B5CF6', '#7C3AED']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaButton}>
+              <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" />
+              <Text style={styles.ctaText}>Create Your List</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+
+        {/* Recent players section */}
         <RecentPlayersSection
           players={recentPlayers}
           onPlayerSelect={handlePlayerSelect}
@@ -74,5 +95,27 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingTop: DesignTokens.spacing.lg,
     paddingBottom: DesignTokens.spacing.xxl,
+  },
+  ctaContainer: {
+    paddingHorizontal: DesignTokens.spacing.lg,
+    marginBottom: DesignTokens.spacing.lg,
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: DesignTokens.spacing.sm,
+    paddingVertical: 14,
+    borderRadius: DesignTokens.radius.lg,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  ctaText: {
+    ...Typography.headline,
+    color: '#FFFFFF',
+    fontSize: 16,
   },
 });

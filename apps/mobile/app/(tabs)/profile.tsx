@@ -10,6 +10,7 @@ import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
+import { useLists } from '@/hooks/useLists';
 
 type SettingItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -70,8 +71,16 @@ export default function ProfileScreen() {
   const { isAuthenticated, user, signOut, status } = useAuth();
   const { isProUser } = useRevenueCat();
   const { isSignedIn: clerkIsSignedIn, user: clerkUser } = useUser();
+  const { lists } = useLists();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  // Calculate stats like web profile
+  const totalLists = lists.length;
+  const totalReceipts = lists.reduce(
+    (sum, list) => sum + (list.links?.length || 0),
+    0
+  );
 
   // User is considered "logged in" if either AuthContext or Clerk says so
   const isLoggedIn = isAuthenticated || clerkIsSignedIn;
@@ -210,6 +219,47 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
+
+        {/* Stats Section - only for logged in users */}
+        {isLoggedIn && (
+          <View style={styles.section}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+              ]}>
+              YOUR STATS
+            </Text>
+            <View style={styles.statsGrid}>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
+                  isDark ? styles.cardShadowDark : styles.cardShadow,
+                ]}>
+                <Text style={[styles.statNumber, { color: DesignTokens.accentPurple }]}>
+                  {totalLists}
+                </Text>
+                <Text style={[styles.statLabel, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
+                  {totalLists === 1 ? 'List' : 'Lists'} Created
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
+                  isDark ? styles.cardShadowDark : styles.cardShadow,
+                ]}>
+                <Text style={[styles.statNumber, { color: DesignTokens.accentPurple }]}>
+                  {totalReceipts}
+                </Text>
+                <Text style={[styles.statLabel, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
+                  {totalReceipts === 1 ? 'Receipt' : 'Receipts'} Added
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Pro Upgrade Section */}
         {!isProUser && (
@@ -538,5 +588,24 @@ const styles = StyleSheet.create({
     ...Typography.captionSmall,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: DesignTokens.spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: DesignTokens.radius.lg,
+    padding: DesignTokens.spacing.lg,
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  statLabel: {
+    ...Typography.caption,
+    textAlign: 'center',
   },
 });
