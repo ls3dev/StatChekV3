@@ -314,6 +314,30 @@ class BallDontLieClient {
     return response.data;
   }
 
+  /**
+   * Get active players, optionally filtered by team
+   * Returns players with draft info (draft_year, draft_round, draft_number)
+   */
+  async getActivePlayers(params?: {
+    team_ids?: number[];
+    per_page?: number;
+    cursor?: number;
+  }): Promise<BDLPaginatedResponse<BDLPlayer>> {
+    const queryParams: Record<string, string | number | undefined> = {
+      per_page: params?.per_page ?? 100,
+      cursor: params?.cursor,
+    };
+
+    if (params?.team_ids?.length) {
+      queryParams["team_ids[]"] = params.team_ids[0];
+    }
+
+    return this.fetch<BDLPaginatedResponse<BDLPlayer>>(
+      "/players/active",
+      queryParams
+    );
+  }
+
   // ========================================
   // PRO Endpoints (Paywalled)
   // ========================================
@@ -418,6 +442,7 @@ export const CACHE_TTL = {
   CONTRACTS: 24 * 60 * 60 * 1000, // 24 hours
   INJURIES: 15 * 60 * 1000, // 15 minutes
   LEADERS: 60 * 60 * 1000, // 1 hour
+  DRAFT_PICKS: 24 * 60 * 60 * 1000, // 24 hours
 } as const;
 
 /**

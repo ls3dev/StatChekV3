@@ -233,4 +233,11 @@ export default defineSchema({
     data: v.any(), // Leaders array
     cachedAt: v.number(),
   }).index("by_season_stat", ["season", "statType"]),
+
+  // Draft picks cache - Team roster draft info
+  nbaDraftPicksCache: defineTable({
+    teamId: v.number(), // BDL team ID
+    data: v.any(), // Draft picks array
+    cachedAt: v.number(),
+  }).index("by_team", ["teamId"]),
 });

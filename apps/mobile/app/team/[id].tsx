@@ -76,6 +76,18 @@ interface Injury {
   return_date: string | null;
 }
 
+interface DraftPick {
+  playerId: number;
+  firstName: string;
+  lastName: string;
+  position: string;
+  draftYear: number | null;
+  draftRound: number | null;
+  draftNumber: number | null;
+  college: string | null;
+  country: string | null;
+}
+
 export default function TeamDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -88,8 +100,10 @@ export default function TeamDetailScreen() {
 
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [injuries, setInjuries] = useState<Injury[]>([]);
+  const [draftPicks, setDraftPicks] = useState<DraftPick[]>([]);
   const [isLoadingContracts, setIsLoadingContracts] = useState(true);
   const [isLoadingInjuries, setIsLoadingInjuries] = useState(true);
+  const [isLoadingDraftPicks, setIsLoadingDraftPicks] = useState(true);
   const [contractsRequiresPro, setContractsRequiresPro] = useState(false);
   const [injuriesRequiresPro, setInjuriesRequiresPro] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +111,7 @@ export default function TeamDetailScreen() {
 
   const getTeamContracts = useAction(api.nba.getTeamContracts);
   const getInjuries = useAction(api.nba.getInjuries);
+  const getTeamDraftPicks = useAction(api.nba.getTeamDraftPicks);
 
   const fetchData = useCallback(
     async (showRefreshing = false) => {
@@ -133,10 +148,21 @@ export default function TeamDetailScreen() {
         console.error('Failed to fetch injuries:', err);
       } finally {
         setIsLoadingInjuries(false);
+      }
+
+      // Fetch draft picks
+      setIsLoadingDraftPicks(true);
+      try {
+        const result = await getTeamDraftPicks({ teamId });
+        setDraftPicks(result.draftPicks as DraftPick[]);
+      } catch (err: any) {
+        console.error('Failed to fetch draft picks:', err);
+      } finally {
+        setIsLoadingDraftPicks(false);
         setIsRefreshing(false);
       }
     },
-    [getTeamContracts, getInjuries, teamId]
+    [getTeamContracts, getInjuries, getTeamDraftPicks, teamId]
   );
 
   React.useEffect(() => {
@@ -276,6 +302,128 @@ export default function TeamDetailScreen() {
                 </View>
               ))}
             </View>
+          )}
+        </View>
+
+        {/* Draft Picks Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="school" size={20} color={DesignTokens.accentPurple} />
+            <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Draft Picks</Text>
+          </View>
+
+          {isLoadingDraftPicks ? (
+            <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+          ) : draftPicks.filter((p) => p.draftYear).length === 0 ? (
+            <View style={[styles.emptyCard, isDark && styles.emptyCardDark]}>
+              <Ionicons name="information-circle" size={24} color={DesignTokens.textMuted} />
+              <Text style={[styles.emptyText, isDark && styles.textSecondary]}>
+                No draft pick data available
+              </Text>
+            </View>
+          ) : (
+            <>
+              {/* Draft Summary */}
+              {(() => {
+                const drafted = draftPicks.filter((p) => p.draftYear);
+                const undrafted = draftPicks.filter((p) => !p.draftYear);
+                const lotteryPicks = drafted.filter(
+                  (p) => p.draftRound === 1 && (p.draftNumber ?? 999) <= 14
+                );
+                return (
+                  <View style={[styles.summaryCard, isDark && styles.summaryCardDark]}>
+                    <View style={styles.summaryItem}>
+                      <Text style={[styles.summaryLabel, isDark && styles.textSecondary]}>
+                        Drafted
+                      </Text>
+                      <Text style={[styles.summaryValue, isDark && styles.textDark]}>
+                        {drafted.length}
+                      </Text>
+                    </View>
+                    <View style={[styles.summaryDivider, isDark && styles.summaryDividerDark]} />
+                    <View style={styles.summaryItem}>
+                      <Text style={[styles.summaryLabel, isDark && styles.textSecondary]}>
+                        Lottery
+                      </Text>
+                      <Text style={[styles.summaryValue, isDark && styles.textDark]}>
+                        {lotteryPicks.length}
+                      </Text>
+                    </View>
+                    <View style={[styles.summaryDivider, isDark && styles.summaryDividerDark]} />
+                    <View style={styles.summaryItem}>
+                      <Text style={[styles.summaryLabel, isDark && styles.textSecondary]}>
+                        Undrafted
+                      </Text>
+                      <Text style={[styles.summaryValue, isDark && styles.textDark]}>
+                        {undrafted.length}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })()}
+
+              {/* Draft Picks List */}
+              {draftPicks
+                .filter((p) => p.draftYear)
+                .map((pick) => (
+                  <View
+                    key={pick.playerId}
+                    style={[styles.draftPickRow, isDark && styles.draftPickRowDark]}
+                  >
+                    <View style={styles.draftPickNumber}>
+                      <Text style={styles.draftPickNumberText}>
+                        #{pick.draftNumber}
+                      </Text>
+                    </View>
+                    <View style={styles.draftPickInfo}>
+                      <Text style={[styles.playerName, isDark && styles.textDark]}>
+                        {pick.firstName} {pick.lastName}
+                      </Text>
+                      <Text style={[styles.draftPickMeta, isDark && styles.textSecondary]}>
+                        {pick.draftYear} · Rd {pick.draftRound}
+                        {pick.college ? ` · ${pick.college}` : pick.country ? ` · ${pick.country}` : ''}
+                      </Text>
+                    </View>
+                    <Text style={[styles.draftPickPosition, isDark && styles.textSecondary]}>
+                      {pick.position || 'N/A'}
+                    </Text>
+                  </View>
+                ))}
+
+              {/* Undrafted Players */}
+              {draftPicks.filter((p) => !p.draftYear).length > 0 && (
+                <>
+                  <Text style={[styles.draftSubheading, isDark && styles.textSecondary]}>
+                    Undrafted
+                  </Text>
+                  {draftPicks
+                    .filter((p) => !p.draftYear)
+                    .map((pick) => (
+                      <View
+                        key={pick.playerId}
+                        style={[styles.draftPickRow, isDark && styles.draftPickRowDark]}
+                      >
+                        <View style={[styles.draftPickNumber, styles.draftPickUndrafted]}>
+                          <Text style={[styles.draftPickNumberText, styles.draftPickUndraftedText]}>
+                            UD
+                          </Text>
+                        </View>
+                        <View style={styles.draftPickInfo}>
+                          <Text style={[styles.playerName, isDark && styles.textDark]}>
+                            {pick.firstName} {pick.lastName}
+                          </Text>
+                          <Text style={[styles.draftPickMeta, isDark && styles.textSecondary]}>
+                            {pick.college ? pick.college : pick.country || ''}
+                          </Text>
+                        </View>
+                        <Text style={[styles.draftPickPosition, isDark && styles.textSecondary]}>
+                          {pick.position || 'N/A'}
+                        </Text>
+                      </View>
+                    ))}
+                </>
+              )}
+            </>
           )}
         </View>
 
@@ -494,6 +642,64 @@ const styles = StyleSheet.create({
     ...Typography.headline,
     color: DesignTokens.textPrimary,
     fontVariant: ['tabular-nums'],
+  },
+  draftPickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: DesignTokens.spacing.sm,
+    paddingHorizontal: DesignTokens.spacing.md,
+    backgroundColor: DesignTokens.cardBackground,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: DesignTokens.border,
+  },
+  draftPickRowDark: {
+    backgroundColor: DesignTokens.cardBackgroundDark,
+    borderBottomColor: DesignTokens.borderDark,
+  },
+  draftPickNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: DesignTokens.accentPurple,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: DesignTokens.spacing.sm,
+  },
+  draftPickNumberText: {
+    ...Typography.captionSmall,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  draftPickUndrafted: {
+    backgroundColor: DesignTokens.textMuted,
+  },
+  draftPickUndraftedText: {
+    fontSize: 10,
+  },
+  draftPickInfo: {
+    flex: 1,
+  },
+  draftPickMeta: {
+    ...Typography.captionSmall,
+    color: DesignTokens.textSecondary,
+    marginTop: 1,
+  },
+  draftPickPosition: {
+    ...Typography.captionSmall,
+    color: DesignTokens.textSecondary,
+    fontWeight: '600',
+    marginLeft: DesignTokens.spacing.sm,
+  },
+  draftSubheading: {
+    ...Typography.captionSmall,
+    color: DesignTokens.textSecondary,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: DesignTokens.spacing.md,
+    marginBottom: DesignTokens.spacing.xs,
+    paddingHorizontal: DesignTokens.spacing.md,
   },
   errorText: {
     ...Typography.body,
