@@ -12,6 +12,10 @@ import { Platform } from 'react-native';
 // Warm up browser for OAuth
 WebBrowser.maybeCompleteAuthSession();
 
+// Module-level flag to ensure onboarding check only runs once (survives remounts)
+let onboardingCheckCompleted = false;
+let cachedOnboardingStatus: 'pending' | 'complete' | 'incomplete' = 'pending';
+
 type AuthStatus = 'loading' | 'onboarding' | 'unauthenticated' | 'authenticated' | 'guest';
 
 interface User {
@@ -77,11 +81,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Sync user to Convex on authentication
   const getOrCreateUser = useMutation(api.users.getOrCreateUser);
 
-  const [status, setStatus] = useState<AuthStatus>('loading');
+  // Use cached onboarding status if already checked (survives remounts)
+  const [status, setStatus] = useState<AuthStatus>(() => {
+    if (cachedOnboardingStatus === 'incomplete') return 'onboarding';
+    return 'loading';
+  });
   const [user, setUser] = useState<User | null>(null);
   const [anonymousId, setAnonymousId] = useState<string | null>(null);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(onboardingCheckCompleted);
 
   // Sync Clerk user to Convex and update local state
   useEffect(() => {
@@ -115,11 +123,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     syncUser();
   }, [convexIsAuthenticated, clerkUser, getOrCreateUser]);
 
-  // Check onboarding status on mount
+  // Check onboarding status on mount (runs only once globally)
   useEffect(() => {
+    // Skip if already checked globally
+    if (onboardingCheckCompleted) {
+      console.log('[AUTH] Skipping onboarding check - already completed globally');
+      return;
+    }
+    onboardingCheckCompleted = true;
+
     const checkOnboarding = async () => {
       const onboardingComplete = await hasCompletedOnboarding();
       console.log('[AUTH] Onboarding complete?', onboardingComplete);
+
+      // Cache the result globally
+      cachedOnboardingStatus = onboardingComplete ? 'complete' : 'incomplete';
+
+      // Show onboarding if not completed
       if (!onboardingComplete) {
         setStatus('onboarding');
       }

@@ -4,7 +4,7 @@ if (typeof global !== 'undefined') {
   (global as any)._AutofillCallbackHandler = (global as any)._AutofillCallbackHandler || {};
 }
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -43,6 +43,8 @@ function AuthNavigator() {
   const { status } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const hasNavigated = useRef(false);
+  const splashHidden = useRef(false);
 
   useEffect(() => {
     console.log('[NAV] AuthNavigator effect - status:', status, 'segments:', segments);
@@ -51,22 +53,45 @@ function AuthNavigator() {
     if (status === 'loading') return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inTabsGroup = segments[0] === '(tabs)';
+    const onOnboardingScreen = segments[0] === '(auth)' && segments[1] === 'onboarding';
+
+    // Determine if we're on the correct screen for current status
+    let onCorrectScreen = false;
 
     if (status === 'onboarding') {
-      console.log('[NAV] Redirecting to onboarding');
-      router.replace('/(auth)/onboarding');
+      if (onOnboardingScreen) {
+        onCorrectScreen = true;
+      } else if (!hasNavigated.current) {
+        console.log('[NAV] Redirecting to onboarding');
+        router.replace('/(auth)/onboarding');
+        hasNavigated.current = true;
+        return; // Don't hide splash yet, wait for navigation
+      }
     } else if (status === 'authenticated') {
-      // Only redirect authenticated users away from auth screens
-      // Guests navigate via onboarding screen directly (avoids race condition)
-      if (inAuthGroup) {
+      if (inTabsGroup) {
+        onCorrectScreen = true;
+      } else if (inAuthGroup && !hasNavigated.current) {
         console.log('[NAV] Authenticated user in auth group, redirecting to tabs');
         router.replace('/(tabs)');
+        hasNavigated.current = true;
+        return; // Don't hide splash yet, wait for navigation
+      } else if (!inAuthGroup) {
+        onCorrectScreen = true; // Already somewhere valid
+      }
+    } else if (status === 'guest' || status === 'unauthenticated') {
+      // Unauthenticated users should be in auth group or tabs (as guest)
+      if (inAuthGroup || inTabsGroup) {
+        onCorrectScreen = true;
       }
     }
-    // Unauthenticated and guest users handle their own navigation
 
-    // Hide splash screen AFTER navigation decision is made
-    SplashScreen.hideAsync();
+    // Only hide splash when we've reached the correct destination
+    if (onCorrectScreen && !splashHidden.current) {
+      console.log('[NAV] On correct screen, hiding splash');
+      splashHidden.current = true;
+      SplashScreen.hideAsync();
+    }
   }, [status, segments, router]);
 
   return null;
