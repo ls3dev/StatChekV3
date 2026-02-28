@@ -4,3 +4,4 @@ export { LeadersList } from './LeadersList';
 export { ContractCard } from './ContractCard';
 export { InjuryBadge, InjuryBadgeLocked } from './InjuryBadge';
 export { PlayerStatsCard } from './PlayerStatsCard';
+export { FutureDraftPicksCard } from './FutureDraftPicksCard';

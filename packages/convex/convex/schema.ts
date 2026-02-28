@@ -233,4 +233,21 @@ export default defineSchema({
     data: v.any(), // Leaders array
     cachedAt: v.number(),
   }).index("by_season_stat", ["season", "statType"]),
+
+  // NBA Draft Picks - Static data manually updated after trades/drafts
+  nbaDraftPicks: defineTable({
+    teamId: v.number(), // Ball Don't Lie team ID
+    teamAbbreviation: v.string(), // e.g., "LAL", "BOS"
+    picks: v.array(
+      v.object({
+        year: v.number(),
+        round: v.number(),
+        originalTeam: v.string(), // Team abbreviation that originally owned the pick
+        conditions: v.optional(v.string()), // Protection conditions
+        swapRights: v.optional(v.boolean()), // If this is a swap right
+        viaTradeWith: v.optional(v.string()), // Team traded from
+      })
+    ),
+    lastUpdated: v.number(),
+  }).index("by_team", ["teamId"]),
 });

@@ -88,6 +88,16 @@ export const _getLeadersCache = internalQuery({
   },
 });
 
+export const _getDraftPicks = internalQuery({
+  args: { teamId: v.number() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("nbaDraftPicks")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .first();
+  },
+});
+
 // ========================================
 // Internal Mutations (for cache updates)
 // ========================================
@@ -230,6 +240,44 @@ export const _upsertLeadersCache = internalMutation({
         statType: args.statType,
         data: args.data,
         cachedAt: Date.now(),
+      });
+    }
+  },
+});
+
+export const _upsertDraftPicks = internalMutation({
+  args: {
+    teamId: v.number(),
+    teamAbbreviation: v.string(),
+    picks: v.array(
+      v.object({
+        year: v.number(),
+        round: v.number(),
+        originalTeam: v.string(),
+        conditions: v.optional(v.string()),
+        swapRights: v.optional(v.boolean()),
+        viaTradeWith: v.optional(v.string()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("nbaDraftPicks")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        teamAbbreviation: args.teamAbbreviation,
+        picks: args.picks,
+        lastUpdated: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("nbaDraftPicks", {
+        teamId: args.teamId,
+        teamAbbreviation: args.teamAbbreviation,
+        picks: args.picks,
+        lastUpdated: Date.now(),
       });
     }
   },
@@ -752,5 +800,80 @@ export const checkProAccess = query({
       (!user.proExpiresAt || user.proExpiresAt > Date.now());
 
     return { isProUser, isAuthenticated: true };
+  },
+});
+
+// ========================================
+// Draft Picks
+// ========================================
+
+interface DraftPick {
+  year: number;
+  round: number;
+  originalTeam: string;
+  conditions?: string;
+  swapRights?: boolean;
+  viaTradeWith?: string;
+}
+
+/**
+ * Get team draft picks (FREE)
+ * Data is static and manually updated after trades/drafts
+ */
+export const getTeamFuturePicks = query({
+  args: { teamId: v.number() },
+  handler: async (ctx, args): Promise<{ picks: DraftPick[]; lastUpdated: number | null }> => {
+    const data = await ctx.db
+      .query("nbaDraftPicks")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .first();
+
+    if (!data) {
+      return { picks: [], lastUpdated: null };
+    }
+
+    return { picks: data.picks as DraftPick[], lastUpdated: data.lastUpdated };
+  },
+});
+
+/**
+ * Bulk update draft picks (for seed script)
+ * This is an internal mutation called by the seed script
+ */
+export const updateDraftPicks = internalMutation({
+  args: {
+    teamId: v.number(),
+    teamAbbreviation: v.string(),
+    picks: v.array(
+      v.object({
+        year: v.number(),
+        round: v.number(),
+        originalTeam: v.string(),
+        conditions: v.optional(v.string()),
+        swapRights: v.optional(v.boolean()),
+        viaTradeWith: v.optional(v.string()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("nbaDraftPicks")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        teamAbbreviation: args.teamAbbreviation,
+        picks: args.picks,
+        lastUpdated: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("nbaDraftPicks", {
+        teamId: args.teamId,
+        teamAbbreviation: args.teamAbbreviation,
+        picks: args.picks,
+        lastUpdated: Date.now(),
+      });
+    }
   },
 });

@@ -13,7 +13,7 @@ import { useAction, useQuery } from 'convex/react';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
-import { ContractCard, InjuryBadge, InjuryBadgeLocked, ScoreCard } from '@/components/nba';
+import { ContractCard, InjuryBadge, InjuryBadgeLocked, ScoreCard, FutureDraftPicksCard } from '@/components/nba';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
 import { useTheme } from '@/context/ThemeContext';
@@ -103,6 +103,15 @@ interface Injury {
   return_date: string | null;
 }
 
+interface FuturePick {
+  year: number;
+  round: number;
+  originalTeam: string;
+  conditions?: string;
+  swapRights?: boolean;
+  viaTradeWith?: string;
+}
+
 export default function TeamDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -127,6 +136,7 @@ export default function TeamDetailScreen() {
   const getTeamContracts = useAction(api.nba.getTeamContracts);
   const getInjuries = useAction(api.nba.getInjuries);
   const getGames = useAction(api.nba.getGames);
+  const futurePicks = useQuery(api.nba.getTeamFuturePicks, { teamId });
 
   const fetchData = useCallback(
     async (showRefreshing = false) => {
@@ -443,6 +453,16 @@ export default function TeamDetailScreen() {
               })}
             </>
           )}
+        </View>
+
+        {/* Draft Picks Section */}
+        <View style={styles.section}>
+          <FutureDraftPicksCard
+            picks={futurePicks?.picks ?? []}
+            teamAbbreviation={teamInfo.abbreviation}
+            lastUpdated={futurePicks?.lastUpdated ?? null}
+            isLoading={futurePicks === undefined}
+          />
         </View>
       </ScrollView>
     </>

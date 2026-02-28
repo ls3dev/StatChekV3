@@ -14,6 +14,7 @@ import type * as nba from "../nba.js";
 import type * as playerLinks from "../playerLinks.js";
 import type * as proWebhook from "../proWebhook.js";
 import type * as recentPlayers from "../recentPlayers.js";
+import type * as seedDraftPicks from "../seedDraftPicks.js";
 import type * as sharedLists from "../sharedLists.js";
 import type * as sharedPlayers from "../sharedPlayers.js";
 import type * as userLists from "../userLists.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   playerLinks: typeof playerLinks;
   proWebhook: typeof proWebhook;
   recentPlayers: typeof recentPlayers;
+  seedDraftPicks: typeof seedDraftPicks;
   sharedLists: typeof sharedLists;
   sharedPlayers: typeof sharedPlayers;
   userLists: typeof userLists;
