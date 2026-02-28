@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+// Clipboard import removed - only needed for web, use Share on native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation } from 'convex/react';
 import { api } from '@statcheck/convex';
@@ -176,8 +176,11 @@ export default function ListDetailScreen() {
       const shareMessage = `${list.name}\n\nCheck out my list on StatCheck!\n${shareUrl}`;
 
       if (Platform.OS === 'web') {
-        await Clipboard.setStringAsync(shareUrl);
-        Alert.alert('Copied!', 'Share link copied to clipboard');
+        // Use native browser clipboard API on web
+        if (navigator?.clipboard) {
+          await navigator.clipboard.writeText(shareUrl);
+          Alert.alert('Copied!', 'Share link copied to clipboard');
+        }
       } else {
         await Share.share({
           message: shareMessage,

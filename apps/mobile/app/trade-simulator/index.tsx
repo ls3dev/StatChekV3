@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+// Clipboard import removed - only needed for web, use Share on native
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAction, useMutation } from 'convex/react';
 import { Ionicons } from '@expo/vector-icons';
@@ -209,8 +209,11 @@ export default function TradeSimulatorScreen() {
       const shareUrl = `${SHARE_BASE_URL}/${shareId}`;
 
       if (Platform.OS === 'web') {
-        await Clipboard.setStringAsync(shareUrl);
-        Alert.alert('Copied', 'Trade share link copied to clipboard.');
+        // Use native browser clipboard API on web
+        if (navigator?.clipboard) {
+          await navigator.clipboard.writeText(shareUrl);
+          Alert.alert('Copied', 'Trade share link copied to clipboard.');
+        }
       } else {
         await Share.share({
           title: 'StatCheck Trade Simulation',
