@@ -1,63 +1,38 @@
-import * as Sentry from '@sentry/react-native';
+// Sentry disabled temporarily for debugging
 
-// Initialize Sentry - call this in app entry point
+// Stub types
+type SeverityLevel = 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug';
+
+// Initialize Sentry - disabled
 export function initSentry() {
-  Sentry.init({
-    dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-
-    // Set environment based on build profile
-    environment: __DEV__ ? 'development' : 'production',
-
-    // Enable native crash reporting
-    enableNativeCrashHandling: true,
-
-    // Capture 100% of transactions for performance monitoring
-    // Reduce this in production if you have high traffic
-    tracesSampleRate: __DEV__ ? 1.0 : 0.2,
-
-    // Don't send events in development unless testing Sentry
-    enabled: !__DEV__,
-
-    // Attach screenshots to error reports (iOS only)
-    attachScreenshot: true,
-
-    // Add breadcrumbs for debugging
-    enableAutoSessionTracking: true,
-
-    // Configure what data to send
-    beforeSend(event) {
-      // You can modify or filter events here
-      return event;
-    },
-  });
+  console.log('Sentry disabled');
 }
 
-// Capture an exception manually
+// Capture an exception manually - no-op
 export function captureException(error: Error, context?: Record<string, any>) {
-  Sentry.captureException(error, {
-    extra: context,
-  });
+  console.log('captureException (disabled):', error.message);
 }
 
-// Capture a message
-export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info') {
-  Sentry.captureMessage(message, level);
+// Capture a message - no-op
+export function captureMessage(message: string, level: SeverityLevel = 'info') {
+  console.log('captureMessage (disabled):', message);
 }
 
-// Set user context (call after authentication)
+// Set user context - no-op
 export function setUser(user: { id: string; email?: string; username?: string } | null) {
-  Sentry.setUser(user);
+  // no-op
 }
 
-// Add breadcrumb for debugging
+// Add breadcrumb - no-op
 export function addBreadcrumb(message: string, category?: string, data?: Record<string, any>) {
-  Sentry.addBreadcrumb({
-    message,
-    category,
-    data,
-    level: 'info',
-  });
+  // no-op
 }
 
-// Export Sentry for advanced usage
-export { Sentry };
+// Export stub Sentry
+export const Sentry = {
+  init: () => {},
+  captureException: () => {},
+  captureMessage: () => {},
+  setUser: () => {},
+  addBreadcrumb: () => {},
+};
