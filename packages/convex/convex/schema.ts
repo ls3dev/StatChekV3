@@ -234,6 +234,20 @@ export default defineSchema({
     cachedAt: v.number(),
   }).index("by_season_stat", ["season", "statType"]),
 
+  // Trade simulator scenarios - shareable simulation snapshots
+  tradeScenarios: defineTable({
+    shareId: v.string(),
+    ownerUserId: v.string(),
+    league: v.literal("nba"),
+    request: v.any(),
+    result: v.any(),
+    createdAt: v.number(),
+    expiresAt: v.optional(v.number()),
+    isPublic: v.boolean(),
+  })
+    .index("by_share_id", ["shareId"])
+    .index("by_owner_created", ["ownerUserId", "createdAt"]),
+
   // NBA Draft Picks - Static data manually updated after trades/drafts
   nbaDraftPicks: defineTable({
     teamId: v.number(), // Ball Don't Lie team ID

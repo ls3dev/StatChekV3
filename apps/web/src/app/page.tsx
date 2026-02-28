@@ -56,12 +56,30 @@ interface Leader {
   rank: number;
 }
 
-type LeaderCategory = "pts" | "reb" | "ast";
+type LeaderCategory = "pts" | "reb" | "ast" | "stl" | "blk" | "fg_pct" | "fg3_pct" | "ft_pct";
 
 const LEADER_LABELS: Record<LeaderCategory, string> = {
-  pts: "Points",
-  reb: "Rebounds",
-  ast: "Assists",
+  pts: "PTS",
+  reb: "REB",
+  ast: "AST",
+  stl: "STL",
+  blk: "BLK",
+  fg_pct: "FG%",
+  fg3_pct: "3P%",
+  ft_pct: "FT%",
+};
+
+const LEADER_CATEGORIES: LeaderCategory[] = ["pts", "reb", "ast", "stl", "blk", "fg_pct", "fg3_pct", "ft_pct"];
+
+const STAT_PRECISION: Record<LeaderCategory, number> = {
+  pts: 1,
+  reb: 1,
+  ast: 1,
+  stl: 1,
+  blk: 1,
+  fg_pct: 1,
+  fg3_pct: 1,
+  ft_pct: 1,
 };
 
 export default function HomePage() {
@@ -98,17 +116,13 @@ export default function HomePage() {
   const fetchLeaders = useCallback(async () => {
     setIsLoadingLeaders(true);
     try {
-      // Fetch all three categories in parallel
-      const [ptsResult, rebResult, astResult] = await Promise.all([
-        getLeaders({ statType: "pts" }),
-        getLeaders({ statType: "reb" }),
-        getLeaders({ statType: "ast" }),
-      ]);
-      const allLeaders = {
-        pts: (ptsResult.leaders as Leader[]).slice(0, 5),
-        reb: (rebResult.leaders as Leader[]).slice(0, 5),
-        ast: (astResult.leaders as Leader[]).slice(0, 5),
-      };
+      const categoryResults = await Promise.all(
+        LEADER_CATEGORIES.map(async (category) => {
+          const result = await getLeaders({ statType: category });
+          return [category, (result.leaders as Leader[]).slice(0, 5)] as const;
+        })
+      );
+      const allLeaders = Object.fromEntries(categoryResults) as Record<LeaderCategory, Leader[]>;
       setLeaders(allLeaders);
 
       // Fetch player data for photos and click-through
@@ -154,6 +168,13 @@ export default function HomePage() {
   }
 
   const currentLeaders = leaders[selectedCategory] || [];
+  const formatLeaderValue = (value: number, statType: LeaderCategory): string => {
+    const precision = STAT_PRECISION[statType] ?? 1;
+    if (statType.includes("pct")) {
+      return `${(value * 100).toFixed(precision)}%`;
+    }
+    return value.toFixed(precision);
+  };
 
   return (
     <main className="min-h-screen bg-background-primary">
@@ -217,20 +238,22 @@ export default function HomePage() {
         </div>
 
         {/* Category Tabs */}
-        <div className="flex gap-1 p-1 bg-background-secondary rounded-xl mb-4 max-w-xs">
-          {(["pts", "reb", "ast"] as LeaderCategory[]).map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                selectedCategory === cat
-                  ? "bg-accent-purple text-white"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {LEADER_LABELS[cat]}
-            </button>
-          ))}
+        <div className="overflow-x-auto mb-4">
+          <div className="inline-flex gap-1 p-1 bg-background-secondary rounded-xl whitespace-nowrap">
+            {LEADER_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  selectedCategory === cat
+                    ? "bg-accent-purple text-white"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                {LEADER_LABELS[cat]}
+              </button>
+            ))}
+          </div>
         </div>
 
         {isLoadingLeaders ? (
@@ -274,7 +297,7 @@ export default function HomePage() {
                   </p>
                 </div>
                 <span className="text-lg font-bold text-text-primary tabular-nums">
-                  {leader.value.toFixed(1)}
+                  {formatLeaderValue(leader.value, selectedCategory)}
                 </span>
               </div>
             ))}

@@ -2,45 +2,10 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { getNBATeamLogoUrl } from "@/lib/nbaTeamLogos";
-
-const TEAM_NAMES: Record<
-  number,
-  { name: string; city: string; abbreviation: string }
-> = {
-  1: { name: "Hawks", city: "Atlanta", abbreviation: "ATL" },
-  2: { name: "Celtics", city: "Boston", abbreviation: "BOS" },
-  3: { name: "Nets", city: "Brooklyn", abbreviation: "BKN" },
-  4: { name: "Hornets", city: "Charlotte", abbreviation: "CHA" },
-  5: { name: "Bulls", city: "Chicago", abbreviation: "CHI" },
-  6: { name: "Cavaliers", city: "Cleveland", abbreviation: "CLE" },
-  7: { name: "Mavericks", city: "Dallas", abbreviation: "DAL" },
-  8: { name: "Nuggets", city: "Denver", abbreviation: "DEN" },
-  9: { name: "Pistons", city: "Detroit", abbreviation: "DET" },
-  10: { name: "Warriors", city: "Golden State", abbreviation: "GSW" },
-  11: { name: "Rockets", city: "Houston", abbreviation: "HOU" },
-  12: { name: "Pacers", city: "Indiana", abbreviation: "IND" },
-  13: { name: "Clippers", city: "LA", abbreviation: "LAC" },
-  14: { name: "Lakers", city: "Los Angeles", abbreviation: "LAL" },
-  15: { name: "Grizzlies", city: "Memphis", abbreviation: "MEM" },
-  16: { name: "Heat", city: "Miami", abbreviation: "MIA" },
-  17: { name: "Bucks", city: "Milwaukee", abbreviation: "MIL" },
-  18: { name: "Timberwolves", city: "Minnesota", abbreviation: "MIN" },
-  19: { name: "Pelicans", city: "New Orleans", abbreviation: "NOP" },
-  20: { name: "Knicks", city: "New York", abbreviation: "NYK" },
-  21: { name: "Thunder", city: "Oklahoma City", abbreviation: "OKC" },
-  22: { name: "Magic", city: "Orlando", abbreviation: "ORL" },
-  23: { name: "76ers", city: "Philadelphia", abbreviation: "PHI" },
-  24: { name: "Suns", city: "Phoenix", abbreviation: "PHX" },
-  25: { name: "Trail Blazers", city: "Portland", abbreviation: "POR" },
-  26: { name: "Kings", city: "Sacramento", abbreviation: "SAC" },
-  27: { name: "Spurs", city: "San Antonio", abbreviation: "SAS" },
-  28: { name: "Raptors", city: "Toronto", abbreviation: "TOR" },
-  29: { name: "Jazz", city: "Utah", abbreviation: "UTA" },
-  30: { name: "Wizards", city: "Washington", abbreviation: "WAS" },
-};
+import { NBA_TEAMS } from "@/lib/nbaTeams";
 
 interface Contract {
   player: {
@@ -189,7 +154,7 @@ export default function TeamDetailPage() {
   const params = useParams();
   const router = useRouter();
   const teamId = parseInt(params.id as string, 10);
-  const teamInfo = TEAM_NAMES[teamId];
+  const teamInfo = NBA_TEAMS[teamId];
 
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [injuries, setInjuries] = useState<Injury[]>([]);
@@ -204,6 +169,7 @@ export default function TeamDetailPage() {
   const getTeamContracts = useAction(api.nba.getTeamContracts);
   const getInjuries = useAction(api.nba.getInjuries);
   const getGames = useAction(api.nba.getGames);
+  const proAccess = useQuery(api.nba.checkProAccess);
 
   const fetchData = useCallback(async () => {
     setError(null);
@@ -372,6 +338,19 @@ export default function TeamDetailPage() {
           <p className="text-text-secondary mt-1">
             {teamInfo.city} {teamInfo.name}
           </p>
+
+          <button
+            type="button"
+            onClick={() => router.push(`/trade-simulator?fromTeamId=${teamId}`)}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent-purple/20 border border-accent-purple/40 hover:bg-accent-purple/30 text-text-primary rounded-lg font-medium text-sm transition-colors"
+          >
+            <span>Trade Simulator</span>
+            {!proAccess?.isProUser && (
+              <span className="bg-accent-purple px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
+                PRO
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Today's Games Section */}

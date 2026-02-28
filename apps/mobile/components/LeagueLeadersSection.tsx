@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import React, { useState, useEffect, useCallback } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAction } from 'convex/react';
 import { api } from '@statcheck/convex';
 
@@ -26,16 +26,34 @@ interface Leader {
   rank: number;
 }
 
-type LeaderCategory = 'pts' | 'reb' | 'ast';
+type LeaderCategory = 'pts' | 'reb' | 'ast' | 'stl' | 'blk' | 'fg_pct' | 'fg3_pct' | 'ft_pct';
 
 const LEADER_LABELS: Record<LeaderCategory, string> = {
-  pts: 'Points',
-  reb: 'Rebounds',
-  ast: 'Assists',
+  pts: 'PTS',
+  reb: 'REB',
+  ast: 'AST',
+  stl: 'STL',
+  blk: 'BLK',
+  fg_pct: 'FG%',
+  fg3_pct: '3P%',
+  ft_pct: 'FT%',
 };
 
 type Props = {
   onPlayerSelect: (player: Player) => void;
+};
+
+const LEADER_CATEGORIES: LeaderCategory[] = ['pts', 'reb', 'ast', 'stl', 'blk', 'fg_pct', 'fg3_pct', 'ft_pct'];
+
+const STAT_PRECISION: Record<LeaderCategory, number> = {
+  pts: 1,
+  reb: 1,
+  ast: 1,
+  stl: 1,
+  blk: 1,
+  fg_pct: 1,
+  fg3_pct: 1,
+  ft_pct: 1,
 };
 
 export function LeagueLeadersSection({ onPlayerSelect }: Props) {
@@ -50,16 +68,13 @@ export function LeagueLeadersSection({ onPlayerSelect }: Props) {
   const fetchLeaders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [ptsResult, rebResult, astResult] = await Promise.all([
-        getLeaders({ statType: 'pts' }),
-        getLeaders({ statType: 'reb' }),
-        getLeaders({ statType: 'ast' }),
-      ]);
-      const allLeaders = {
-        pts: (ptsResult.leaders as Leader[]).slice(0, 5),
-        reb: (rebResult.leaders as Leader[]).slice(0, 5),
-        ast: (astResult.leaders as Leader[]).slice(0, 5),
-      };
+      const categoryResults = await Promise.all(
+        LEADER_CATEGORIES.map(async (category) => {
+          const result = await getLeaders({ statType: category });
+          return [category, (result.leaders as Leader[]).slice(0, 5)] as const;
+        })
+      );
+      const allLeaders = Object.fromEntries(categoryResults) as Record<LeaderCategory, Leader[]>;
       setLeaders(allLeaders);
 
       // Build name → Player lookup from local data (normalized to handle accents)
@@ -108,6 +123,13 @@ export function LeagueLeadersSection({ onPlayerSelect }: Props) {
   }, [playerLookup, onPlayerSelect]);
 
   const currentLeaders = leaders[selectedCategory] || [];
+  const formatLeaderValue = (value: number, statType: LeaderCategory): string => {
+    const precision = STAT_PRECISION[statType] ?? 1;
+    if (statType.includes('pct')) {
+      return `${(value * 100).toFixed(precision)}%`;
+    }
+    return value.toFixed(precision);
+  };
 
   return (
     <View style={styles.container}>
@@ -119,28 +141,30 @@ export function LeagueLeadersSection({ onPlayerSelect }: Props) {
       </View>
 
       {/* Category Tabs */}
-      <View style={[styles.tabBar, { backgroundColor: isDark ? DesignTokens.cardSurfaceDark : '#F3F4F6' }]}>
-        {(['pts', 'reb', 'ast'] as LeaderCategory[]).map(cat => (
-          <TouchableOpacity
-            key={cat}
-            onPress={() => setSelectedCategory(cat)}
-            style={[
-              styles.tab,
-              selectedCategory === cat && [styles.tabActive, { backgroundColor: DesignTokens.accentPurple }],
-            ]}
-          >
-            <Text
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScrollContent}>
+        <View style={[styles.tabBar, { backgroundColor: isDark ? DesignTokens.cardSurfaceDark : '#F3F4F6' }]}>
+          {LEADER_CATEGORIES.map(cat => (
+            <TouchableOpacity
+              key={cat}
+              onPress={() => setSelectedCategory(cat)}
               style={[
-                styles.tabText,
-                { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
-                selectedCategory === cat && styles.tabTextActive,
+                styles.tab,
+                selectedCategory === cat && [styles.tabActive, { backgroundColor: DesignTokens.accentPurple }],
               ]}
             >
-              {LEADER_LABELS[cat]}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+                  selectedCategory === cat && styles.tabTextActive,
+                ]}
+              >
+                {LEADER_LABELS[cat]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
 
       {/* Leaders List */}
       {isLoading ? (
@@ -206,7 +230,7 @@ export function LeagueLeadersSection({ onPlayerSelect }: Props) {
 
                 {/* Stat Value */}
                 <Text style={[styles.value, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}>
-                  {leader.value.toFixed(1)}
+                  {formatLeaderValue(leader.value, selectedCategory)}
                 </Text>
               </TouchableOpacity>
             );
@@ -242,6 +266,9 @@ const styles = StyleSheet.create({
     padding: 3,
     marginBottom: DesignTokens.spacing.md,
     alignSelf: 'flex-start',
+  },
+  tabScrollContent: {
+    paddingRight: DesignTokens.spacing.sm,
   },
   tab: {
     paddingVertical: 6,

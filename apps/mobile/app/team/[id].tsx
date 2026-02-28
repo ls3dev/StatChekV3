@@ -16,44 +16,11 @@ import { Image } from 'expo-image';
 import { ContractCard, InjuryBadge, InjuryBadgeLocked, ScoreCard, FutureDraftPicksCard } from '@/components/nba';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
+import { NBA_TEAMS } from '@/constants/nbaTeams';
 import { useTheme } from '@/context/ThemeContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { useListsContext } from '@/context/ListsContext';
 import { api } from '@statcheck/convex';
-
-// NBA Team names mapping (since the API returns team IDs)
-const TEAM_NAMES: Record<number, { name: string; city: string; abbreviation: string }> = {
-  1: { name: 'Hawks', city: 'Atlanta', abbreviation: 'ATL' },
-  2: { name: 'Celtics', city: 'Boston', abbreviation: 'BOS' },
-  3: { name: 'Nets', city: 'Brooklyn', abbreviation: 'BKN' },
-  4: { name: 'Hornets', city: 'Charlotte', abbreviation: 'CHA' },
-  5: { name: 'Bulls', city: 'Chicago', abbreviation: 'CHI' },
-  6: { name: 'Cavaliers', city: 'Cleveland', abbreviation: 'CLE' },
-  7: { name: 'Mavericks', city: 'Dallas', abbreviation: 'DAL' },
-  8: { name: 'Nuggets', city: 'Denver', abbreviation: 'DEN' },
-  9: { name: 'Pistons', city: 'Detroit', abbreviation: 'DET' },
-  10: { name: 'Warriors', city: 'Golden State', abbreviation: 'GSW' },
-  11: { name: 'Rockets', city: 'Houston', abbreviation: 'HOU' },
-  12: { name: 'Pacers', city: 'Indiana', abbreviation: 'IND' },
-  13: { name: 'Clippers', city: 'LA', abbreviation: 'LAC' },
-  14: { name: 'Lakers', city: 'Los Angeles', abbreviation: 'LAL' },
-  15: { name: 'Grizzlies', city: 'Memphis', abbreviation: 'MEM' },
-  16: { name: 'Heat', city: 'Miami', abbreviation: 'MIA' },
-  17: { name: 'Bucks', city: 'Milwaukee', abbreviation: 'MIL' },
-  18: { name: 'Timberwolves', city: 'Minnesota', abbreviation: 'MIN' },
-  19: { name: 'Pelicans', city: 'New Orleans', abbreviation: 'NOP' },
-  20: { name: 'Knicks', city: 'New York', abbreviation: 'NYK' },
-  21: { name: 'Thunder', city: 'Oklahoma City', abbreviation: 'OKC' },
-  22: { name: 'Magic', city: 'Orlando', abbreviation: 'ORL' },
-  23: { name: '76ers', city: 'Philadelphia', abbreviation: 'PHI' },
-  24: { name: 'Suns', city: 'Phoenix', abbreviation: 'PHX' },
-  25: { name: 'Trail Blazers', city: 'Portland', abbreviation: 'POR' },
-  26: { name: 'Kings', city: 'Sacramento', abbreviation: 'SAC' },
-  27: { name: 'Spurs', city: 'San Antonio', abbreviation: 'SAS' },
-  28: { name: 'Raptors', city: 'Toronto', abbreviation: 'TOR' },
-  29: { name: 'Jazz', city: 'Utah', abbreviation: 'UTA' },
-  30: { name: 'Wizards', city: 'Washington', abbreviation: 'WAS' },
-};
 
 interface Game {
   id: number;
@@ -120,7 +87,7 @@ export default function TeamDetailScreen() {
   const { setShowPaywall } = useListsContext();
 
   const teamId = parseInt(id || '0', 10);
-  const teamInfo = TEAM_NAMES[teamId];
+  const teamInfo = NBA_TEAMS[teamId];
 
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [injuries, setInjuries] = useState<Injury[]>([]);
@@ -206,6 +173,14 @@ export default function TeamDetailScreen() {
 
   const handleUnlockPress = () => {
     setShowPaywall(true);
+  };
+
+  const handleOpenTradeSimulator = () => {
+    if (!isProUser) {
+      setShowPaywall(true);
+      return;
+    }
+    router.push(`/trade-simulator?fromTeamId=${teamId}` as any);
   };
 
   const formatCurrency = (amount: number) => {
@@ -315,6 +290,21 @@ export default function TeamDetailScreen() {
             {teamInfo.city} {teamInfo.name}
           </Text>
         </View>
+
+        <Pressable
+          style={[styles.tradeSimulatorButton, isDark && styles.tradeSimulatorButtonDark]}
+          onPress={handleOpenTradeSimulator}
+        >
+          <Ionicons name="swap-horizontal" size={18} color={DesignTokens.accentPurple} />
+          <Text style={[styles.tradeSimulatorButtonText, isDark && styles.textDark]}>
+            Trade Simulator
+          </Text>
+          {!isProUser && (
+            <View style={styles.proBadge}>
+              <Text style={styles.proBadgeText}>PRO</Text>
+            </View>
+          )}
+        </Pressable>
 
         {/* Live Games Section */}
         <View style={styles.section}>
@@ -508,6 +498,29 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: DesignTokens.spacing.md,
+  },
+  tradeSimulatorButton: {
+    marginHorizontal: DesignTokens.spacing.md,
+    marginTop: DesignTokens.spacing.md,
+    marginBottom: DesignTokens.spacing.xs,
+    paddingVertical: DesignTokens.spacing.sm,
+    paddingHorizontal: DesignTokens.spacing.md,
+    borderRadius: DesignTokens.radius.md,
+    backgroundColor: DesignTokens.cardBackground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DesignTokens.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DesignTokens.spacing.sm,
+  },
+  tradeSimulatorButtonDark: {
+    backgroundColor: DesignTokens.cardBackgroundDark,
+    borderColor: DesignTokens.borderDark,
+  },
+  tradeSimulatorButtonText: {
+    ...Typography.body,
+    color: DesignTokens.textPrimary,
+    fontWeight: '600',
   },
   sectionHeader: {
     flexDirection: 'row',
