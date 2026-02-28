@@ -4,6 +4,9 @@ import { Platform } from 'react-native';
 
 const REVENUECAT_API_KEY = 'appl_OzNmVPueEoumCUWTiucebUhQZxE';
 
+// TODO: Set to true once RevenueCat products are configured in App Store Connect
+const REVENUECAT_ENABLED = false;
+
 interface RevenueCatContextType {
   customerInfo: CustomerInfo | null;
   isProUser: boolean;
@@ -26,6 +29,13 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
+    // Skip RevenueCat initialization if disabled
+    if (!REVENUECAT_ENABLED) {
+      console.log('RevenueCat disabled - skipping initialization');
+      setIsLoading(false);
+      return;
+    }
+
     const initRevenueCat = async () => {
       try {
         // Configure RevenueCat
