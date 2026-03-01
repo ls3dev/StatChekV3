@@ -1,5 +1,5 @@
 /**
- * NBA Future Draft Pick Assets (2026–2031)
+ * NBA Future Draft Pick Assets
  *
  * Static data file tracking which draft picks each NBA team owns,
  * has traded away, or has swap rights on.
@@ -157,7 +157,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // ==========================================
   7: [
     { year: 2026, round: 1, type: 'own' },
-    { year: 2026, round: 1, type: 'acquired', otherTeam: 'OKC', notes: 'Least favorable of OKC/LAC conveyance (~#30)' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'OKC', notes: 'Least favorable of OKC/LAC/HOU conveyance (via WAS, AD trade)' },
     { year: 2026, round: 2, type: 'own' },
     { year: 2027, round: 1, type: 'traded', otherTeam: 'CHA', protection: 'Top-2 protected', notes: 'PJ Washington trade' },
     { year: 2027, round: 2, type: 'own' },
@@ -435,22 +435,26 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // ==========================================
   21: [
     // 2026
-    { year: 2026, round: 1, type: 'traded', otherTeam: 'DAL', notes: 'Least favorable of OKC/LAC conveyance (via WAS, AD three-team deal)' },
-    { year: 2026, round: 1, type: 'acquired', otherTeam: 'UTA', protection: 'Top-8 protected' },
-    { year: 2026, round: 1, type: 'acquired', otherTeam: 'LAC', notes: 'Unprotected (Paul George trade), most favorable of OKC/LAC' },
+    { year: 2026, round: 1, type: 'traded', otherTeam: 'DAL', notes: 'Least favorable of OKC/LAC/HOU conveyance (via WAS, AD three-team deal)' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'PHI', protection: 'Top-4 protected', notes: 'Al Horford trade; rolled from top-6 in 2025' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'UTA', protection: 'Top-8 protected', notes: 'Favors trade; extinguishes if not conveyed' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'LAC', notes: 'Unprotected (Paul George trade)' },
     { year: 2026, round: 2, type: 'swap', otherTeam: 'DAL', notes: 'Swap of PHI 2nd' },
     // 2027
     { year: 2027, round: 1, type: 'own' },
     { year: 2027, round: 1, type: 'swap', otherTeam: 'LAC', notes: 'Swap rights' },
     { year: 2027, round: 1, type: 'acquired', otherTeam: 'DEN', protection: 'Top-5 protected', notes: 'JaMychal Green trade' },
+    { year: 2027, round: 1, type: 'acquired', otherTeam: 'SAS', protection: 'Top-16 protected', notes: 'Via SAC (2025 draft night trade for #24)' },
     { year: 2027, round: 2, type: 'swap', otherTeam: 'HOU', notes: 'Swap of HOU/IND/MIA' },
     // 2028
+    { year: 2028, round: 1, type: 'own' },
     { year: 2028, round: 1, type: 'swap', otherTeam: 'DAL', notes: 'Swap rights' },
     { year: 2028, round: 2, type: 'own' },
     { year: 2028, round: 2, type: 'acquired', otherTeam: 'MIL' },
     { year: 2028, round: 2, type: 'acquired', otherTeam: 'UTA' },
     // 2029
     { year: 2029, round: 1, type: 'own' },
+    { year: 2029, round: 1, type: 'acquired', otherTeam: 'DEN', protection: 'Top-5 protected', notes: 'June 2023 trade; conveys 2+ years after DEN 2027 pick' },
     { year: 2029, round: 2, type: 'own' },
     // 2030
     { year: 2030, round: 1, type: 'own' },
@@ -566,7 +570,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   27: [
     { year: 2026, round: 1, type: 'own', notes: 'Swap rights in multi-team scenario' },
     { year: 2026, round: 2, type: 'own' },
-    { year: 2027, round: 1, type: 'traded', otherTeam: 'SAC', notes: 'Unprotected (LaVine three-team deal)' },
+    { year: 2027, round: 1, type: 'traded', otherTeam: 'OKC', protection: 'Top-16 protected', notes: 'LaVine deal to SAC, re-traded to OKC (2025 draft night)' },
     { year: 2027, round: 2, type: 'own' },
     { year: 2028, round: 1, type: 'own' },
     { year: 2028, round: 2, type: 'own' },
@@ -643,31 +647,40 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   ],
 };
 
+/** Only show picks for drafts that haven't happened yet (next year onward) */
+function getMinDraftYear(): number {
+  return new Date().getFullYear() + 1;
+}
+
 /**
  * Get draft picks for a specific team, filtered to only show picks they HAVE
  * (own + acquired + swap rights) — excludes traded-away picks
  */
 export function getTeamOwnedPicks(teamId: number): DraftPickAsset[] {
+  const minYear = getMinDraftYear();
   const picks = NBA_DRAFT_PICKS[teamId] ?? [];
-  return picks.filter((p) => p.type !== 'traded');
+  return picks.filter((p) => p.year >= minYear && p.type !== 'traded');
 }
 
 /**
  * Get draft picks that a team has TRADED AWAY
  */
 export function getTeamTradedPicks(teamId: number): DraftPickAsset[] {
+  const minYear = getMinDraftYear();
   const picks = NBA_DRAFT_PICKS[teamId] ?? [];
-  return picks.filter((p) => p.type === 'traded');
+  return picks.filter((p) => p.year >= minYear && p.type === 'traded');
 }
 
 /**
  * Get all picks for a team grouped by year
  */
 export function getTeamPicksByYear(teamId: number): Record<number, { owned: DraftPickAsset[]; traded: DraftPickAsset[] }> {
+  const minYear = getMinDraftYear();
   const picks = NBA_DRAFT_PICKS[teamId] ?? [];
   const byYear: Record<number, { owned: DraftPickAsset[]; traded: DraftPickAsset[] }> = {};
 
   for (const pick of picks) {
+    if (pick.year < minYear) continue;
     if (!byYear[pick.year]) {
       byYear[pick.year] = { owned: [], traded: [] };
     }
