@@ -235,9 +235,9 @@ function PlayerSearchResult({
         <View
           style={[
             styles.avatarPlaceholder,
-            { backgroundColor: (accentColor || DesignTokens.accentPurple) + '15' },
+            { backgroundColor: (accentColor || DesignTokens.accentGreen) + '15' },
           ]}>
-          <Text style={[styles.avatarText, { color: accentColor || DesignTokens.accentPurple }]}>
+          <Text style={[styles.avatarText, { color: accentColor || DesignTokens.accentGreen }]}>
             {initials}
           </Text>
         </View>
@@ -272,7 +272,7 @@ function PlayerSearchResult({
       </View>
 
       {/* Add icon */}
-      <Ionicons name="add-circle" size={24} color={accentColor || DesignTokens.accentPurple} />
+      <Ionicons name="add-circle" size={24} color={accentColor || DesignTokens.accentGreen} />
     </TouchableOpacity>
   );
 }

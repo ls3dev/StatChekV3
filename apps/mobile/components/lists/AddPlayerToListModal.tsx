@@ -157,8 +157,8 @@ export function AddPlayerToListModal({ visible, onClose, player }: AddPlayerToLi
               <TouchableOpacity
                 style={styles.createListButton}
                 onPress={() => setShowNewListForm(true)}>
-                <Ionicons name="add-circle-outline" size={20} color={DesignTokens.accentPurple} />
-                <Text style={[styles.createListText, { color: DesignTokens.accentPurple }]}>
+                <Ionicons name="add-circle-outline" size={20} color={DesignTokens.accentGreen} />
+                <Text style={[styles.createListText, { color: DesignTokens.accentGreen }]}>
                   Create New List
                 </Text>
               </TouchableOpacity>
@@ -280,7 +280,7 @@ function ListOption({
         styles.listOption,
         isSelected && {
           backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.1)',
-          borderColor: DesignTokens.accentPurple,
+          borderColor: DesignTokens.accentGreen,
         },
         !isSelected && {
           backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
@@ -293,7 +293,7 @@ function ListOption({
         <Ionicons
           name="list"
           size={20}
-          color={isSelected ? DesignTokens.accentPurple : isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+          color={isSelected ? DesignTokens.accentGreen : isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
         />
         <View style={styles.listOptionInfo}>
           <Text
@@ -316,7 +316,7 @@ function ListOption({
       <View
         style={[
           styles.radio,
-          isSelected && { backgroundColor: DesignTokens.accentPurple, borderColor: DesignTokens.accentPurple },
+          isSelected && { backgroundColor: DesignTokens.accentGreen, borderColor: DesignTokens.accentGreen },
           !isSelected && {
             borderColor: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted,
           },

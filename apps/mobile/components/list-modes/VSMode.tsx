@@ -42,7 +42,7 @@ function PlayerCard({
     .toUpperCase();
 
   const isHallOfFame = player.hallOfFame === true;
-  const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : DesignTokens.accentPurple;
+  const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : DesignTokens.accentGreen;
 
   const displayTeam = player.team === 'N/A' ? null : player.team;
 
@@ -153,7 +153,7 @@ export function VSMode({
       {/* Add to Ranking Button - transitions to Ranking mode */}
       <TouchableOpacity onPress={onAddPlayer} activeOpacity={0.8}>
         <LinearGradient
-          colors={[DesignTokens.accentPurple, DesignTokens.accentPurple + 'CC']}
+          colors={[DesignTokens.accentGreen, DesignTokens.accentGreen + 'CC']}
           style={styles.addRankingButton}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -191,7 +191,7 @@ export function VSMode({
                   },
                 ]}
               >
-                <Ionicons name="link" size={16} color={DesignTokens.accentPurple} />
+                <Ionicons name="link" size={16} color={DesignTokens.accentGreen} />
                 <View style={styles.linkContent}>
                   <Text
                     style={[styles.linkTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}
@@ -218,8 +218,8 @@ export function VSMode({
           style={[styles.addReceiptButton, { borderColor: isDark ? DesignTokens.borderDark : DesignTokens.border }]}
           onPress={onAddLink}
         >
-          <Ionicons name="add" size={20} color={DesignTokens.accentPurple} />
-          <Text style={[styles.addReceiptText, { color: DesignTokens.accentPurple }]}>Add Receipt</Text>
+          <Ionicons name="add" size={20} color={DesignTokens.accentGreen} />
+          <Text style={[styles.addReceiptText, { color: DesignTokens.accentGreen }]}>Add Receipt</Text>
         </TouchableOpacity>
       </View>
     </View>

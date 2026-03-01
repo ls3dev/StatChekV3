@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
 
 interface Team {
   id: number;
@@ -33,22 +34,29 @@ interface ScoreCardProps {
 export function ScoreCard({ game, onPress }: ScoreCardProps) {
   const { isDark } = useTheme();
 
-  const isLive = game.status === 'In Progress';
+  // Game status can be: "Final", "1st Qtr", "2nd Qtr", "3rd Qtr", "4th Qtr", "Halftime", or a datetime string
   const isFinal = game.status === 'Final';
-  const isScheduled = !isLive && !isFinal;
+  const isScheduled = !isFinal && (game.status.includes('T') || game.period === 0);
+  const isLive = !isFinal && !isScheduled;
 
   const homeWinning = game.home_team_score > game.visitor_team_score;
   const visitorWinning = game.visitor_team_score > game.home_team_score;
 
   const getStatusText = () => {
-    if (isLive) {
-      return `Q${game.period} ${game.time}`;
-    }
     if (isFinal) {
       return 'Final';
     }
-    // Parse scheduled time
-    return game.status;
+    if (isLive) {
+      // Use time if available, otherwise use status (e.g., "4th Qtr")
+      return game.time || game.status;
+    }
+    // Scheduled - parse datetime to show local time
+    try {
+      const date = new Date(game.status);
+      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    } catch {
+      return game.status;
+    }
   };
 
   const getStatusColor = () => {
@@ -90,6 +98,10 @@ export function ScoreCard({ game, onPress }: ScoreCardProps) {
       <View style={styles.teamsContainer}>
         {/* Visitor Team */}
         <View style={styles.teamRow}>
+          <Image
+            source={{ uri: getNBATeamLogoUrl(game.visitor_team.abbreviation) }}
+            style={styles.teamLogo}
+          />
           <View style={styles.teamInfo}>
             <Text
               style={[
@@ -123,6 +135,10 @@ export function ScoreCard({ game, onPress }: ScoreCardProps) {
 
         {/* Home Team */}
         <View style={styles.teamRow}>
+          <Image
+            source={{ uri: getNBATeamLogoUrl(game.home_team.abbreviation) }}
+            style={styles.teamLogo}
+          />
           <View style={styles.teamInfo}>
             <Text
               style={[
@@ -203,7 +219,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   playoffBadge: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: '#30D158',
     paddingHorizontal: DesignTokens.spacing.xs,
     paddingVertical: 2,
     borderRadius: DesignTokens.radius.sm,
@@ -222,6 +238,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: DesignTokens.spacing.xs,
+  },
+  teamLogo: {
+    width: 32,
+    height: 32,
+    marginRight: DesignTokens.spacing.sm,
   },
   teamInfo: {
     flex: 1,

@@ -44,7 +44,7 @@ const getPositionColor = (position: string) => {
     SP: '#3B82F6',
     RP: '#A855F7',
   };
-  return positionColors[position] || DesignTokens.accentPurple;
+  return positionColors[position] || DesignTokens.accentGreen;
 };
 
 export function SearchDropdownItem({ player, onPress }: SearchDropdownItemProps) {

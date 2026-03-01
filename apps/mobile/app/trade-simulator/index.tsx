@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 // Clipboard import removed - only needed for web, use Share on native
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAction, useMutation } from 'convex/react';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,7 +30,8 @@ type Contract = {
     position: string;
   };
   season: number;
-  amount: number;
+  base_salary: number;
+  cap_hit: number;
 };
 
 type TeamResult = {
@@ -62,32 +63,39 @@ function getCurrentNBASeason(): number {
   return month >= 10 ? year : year - 1;
 }
 
-function formatCurrency(amount: number): string {
+function formatCurrency(amount: number | undefined): string {
+  if (amount === undefined || amount === null) return '$0';
   if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
   if (amount >= 1_000) return `$${(amount / 1_000).toFixed(0)}K`;
   return `$${amount.toFixed(0)}`;
 }
 
 function currentSeasonSalaries(contracts: Contract[], season: number) {
-  const map = new Map<number, { id: number; name: string; position: string; amount: number }>();
+  // Get all unique seasons from contracts and find the most recent one
+  const seasons = [...new Set(contracts.map(c => c.season))].sort((a, b) => b - a);
+  const targetSeason = seasons.length > 0 ? seasons[0] : season;
+
+  const map = new Map<number, { id: number; name: string; position: string; salary: number }>();
   for (const contract of contracts) {
-    if (contract.season !== season) continue;
+    if (contract.season !== targetSeason) continue;
     const existing = map.get(contract.player.id);
     const name = `${contract.player.first_name} ${contract.player.last_name}`;
-    if (!existing || contract.amount > existing.amount) {
+    const salary = contract.base_salary || contract.cap_hit || 0;
+    if (!existing || salary > existing.salary) {
       map.set(contract.player.id, {
         id: contract.player.id,
         name,
         position: contract.player.position || 'N/A',
-        amount: contract.amount,
+        salary,
       });
     }
   }
-  return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+  return Array.from(map.values()).sort((a, b) => b.salary - a.salary);
 }
 
 export default function TradeSimulatorScreen() {
   const { fromTeamId } = useLocalSearchParams<{ fromTeamId?: string }>();
+  const router = useRouter();
   const { isDark } = useTheme();
   const { isProUser } = useRevenueCat();
   const { setShowPaywall } = useListsContext();
@@ -152,6 +160,12 @@ export default function TradeSimulatorScreen() {
 
   const teamAPlayers = useMemo(() => currentSeasonSalaries(teamAData, season), [teamAData, season]);
   const teamBPlayers = useMemo(() => currentSeasonSalaries(teamBData, season), [teamBData, season]);
+
+  const resetTrade = () => {
+    setTeamAOutgoing([]);
+    setTeamBOutgoing([]);
+    setResult(null);
+  };
 
   const toggleOutgoing = (team: 'A' | 'B', playerId: number) => {
     if (team === 'A') {
@@ -234,7 +248,22 @@ export default function TradeSimulatorScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Trade Simulator' }} />
+      <Stack.Screen
+        options={{
+          title: 'Trade Simulator',
+          headerShown: true,
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 8 }}>
+              <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
+            </Pressable>
+          ),
+          headerRight: () => (
+            <Pressable onPress={resetTrade} style={{ paddingHorizontal: 8 }}>
+              <Ionicons name="refresh" size={22} color={isDark ? '#fff' : '#000'} />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         style={[
           styles.container,
@@ -277,7 +306,7 @@ export default function TradeSimulatorScreen() {
             {teamAInfo.city} {teamAInfo.name} outgoing
           </Text>
           {isLoading ? (
-            <ActivityIndicator color={DesignTokens.accentPurple} />
+            <ActivityIndicator color={DesignTokens.accentGreen} />
           ) : (
             teamAPlayers.map((player) => {
               const selected = teamAOutgoing.includes(player.id);
@@ -291,7 +320,7 @@ export default function TradeSimulatorScreen() {
                     <Text style={[styles.playerName, isDark && styles.textDark]}>{player.name}</Text>
                     <Text style={[styles.playerSub, isDark && styles.textSecondary]}>{player.position}</Text>
                   </View>
-                  <Text style={[styles.playerSalary, isDark && styles.textDark]}>{formatCurrency(player.amount)}</Text>
+                  <Text style={[styles.playerSalary, isDark && styles.textDark]}>{formatCurrency(player.salary)}</Text>
                 </Pressable>
               );
             })
@@ -303,7 +332,7 @@ export default function TradeSimulatorScreen() {
             {teamBInfo.city} {teamBInfo.name} outgoing
           </Text>
           {isLoading ? (
-            <ActivityIndicator color={DesignTokens.accentPurple} />
+            <ActivityIndicator color={DesignTokens.accentGreen} />
           ) : (
             teamBPlayers.map((player) => {
               const selected = teamBOutgoing.includes(player.id);
@@ -317,7 +346,7 @@ export default function TradeSimulatorScreen() {
                     <Text style={[styles.playerName, isDark && styles.textDark]}>{player.name}</Text>
                     <Text style={[styles.playerSub, isDark && styles.textSecondary]}>{player.position}</Text>
                   </View>
-                  <Text style={[styles.playerSalary, isDark && styles.textDark]}>{formatCurrency(player.amount)}</Text>
+                  <Text style={[styles.playerSalary, isDark && styles.textDark]}>{formatCurrency(player.salary)}</Text>
                 </Pressable>
               );
             })
@@ -412,8 +441,8 @@ const styles = StyleSheet.create({
   },
   teamChipDark: { borderColor: DesignTokens.borderDark },
   teamChipSelected: {
-    backgroundColor: DesignTokens.accentPurple,
-    borderColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
+    borderColor: DesignTokens.accentGreen,
   },
   teamChipText: { ...Typography.caption, color: DesignTokens.textPrimary },
   teamChipTextSelected: { color: '#fff', fontWeight: '700' },
@@ -428,7 +457,7 @@ const styles = StyleSheet.create({
   },
   playerRowDark: { borderColor: DesignTokens.borderDark },
   playerRowSelected: {
-    borderColor: DesignTokens.accentPurple,
+    borderColor: DesignTokens.accentGreen,
     backgroundColor: 'rgba(124, 58, 237, 0.12)',
   },
   playerMeta: { flex: 1, paddingRight: 8 },
@@ -436,7 +465,7 @@ const styles = StyleSheet.create({
   playerSub: { ...Typography.captionSmall, color: DesignTokens.textSecondary },
   playerSalary: { ...Typography.caption, color: DesignTokens.textPrimary, fontWeight: '700' },
   validateButton: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
     borderRadius: DesignTokens.radius.md,
     paddingVertical: DesignTokens.spacing.sm,
     alignItems: 'center',

@@ -142,10 +142,10 @@ function RankPlayerRow({
               <View
                 style={[
                   styles.avatarPlaceholder,
-                  { backgroundColor: (accentColor || DesignTokens.accentPurple) + '15' },
+                  { backgroundColor: (accentColor || DesignTokens.accentGreen) + '15' },
                 ]}
               >
-                <Text style={[styles.avatarText, { color: accentColor || DesignTokens.accentPurple }]}>
+                <Text style={[styles.avatarText, { color: accentColor || DesignTokens.accentGreen }]}>
                   {initials}
                 </Text>
               </View>
@@ -228,7 +228,7 @@ export function RankingMode({
           Rankings
         </Text>
         <TouchableOpacity onPress={onAddPlayer}>
-          <Text style={[styles.addText, { color: DesignTokens.accentPurple }]}>+ Add</Text>
+          <Text style={[styles.addText, { color: DesignTokens.accentGreen }]}>+ Add</Text>
         </TouchableOpacity>
       </View>
 
@@ -252,7 +252,7 @@ export function RankingMode({
       {/* Add More Players */}
       <TouchableOpacity onPress={onAddPlayer} activeOpacity={0.8}>
         <LinearGradient
-          colors={[DesignTokens.accentPurple, DesignTokens.accentPurple + 'CC']}
+          colors={[DesignTokens.accentGreen, DesignTokens.accentGreen + 'CC']}
           style={styles.addPlayerButton}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -290,7 +290,7 @@ export function RankingMode({
                   },
                 ]}
               >
-                <Ionicons name="link" size={16} color={DesignTokens.accentPurple} />
+                <Ionicons name="link" size={16} color={DesignTokens.accentGreen} />
                 <View style={styles.linkContent}>
                   <Text
                     style={[styles.linkTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}
@@ -317,8 +317,8 @@ export function RankingMode({
           style={[styles.addReceiptButton, { borderColor: isDark ? DesignTokens.borderDark : DesignTokens.border }]}
           onPress={onAddLink}
         >
-          <Ionicons name="add" size={20} color={DesignTokens.accentPurple} />
-          <Text style={[styles.addReceiptText, { color: DesignTokens.accentPurple }]}>Add Receipt</Text>
+          <Ionicons name="add" size={20} color={DesignTokens.accentGreen} />
+          <Text style={[styles.addReceiptText, { color: DesignTokens.accentGreen }]}>Add Receipt</Text>
         </TouchableOpacity>
       </View>
     </View>

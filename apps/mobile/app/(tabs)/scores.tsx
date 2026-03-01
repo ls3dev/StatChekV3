@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { GradientHeader } from '@/components/GradientHeader';
 import { SportSelector } from '@/components/SportSelector';
-import { ScoreCard } from '@/components/nba';
+import { ScoreCard, GameSummaryBottomSheet } from '@/components/nba';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useSport } from '@/context/SportContext';
@@ -49,14 +49,21 @@ type DateOffset = -1 | 0 | 1;
 function formatDate(offset: DateOffset): string {
   const date = new Date();
   date.setDate(date.getDate() + offset);
-  return date.toISOString().split('T')[0];
+  // Use local date, not UTC (toISOString converts to UTC which can be wrong timezone)
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function formatDisplayDate(offset: DateOffset): string {
-  if (offset === 0) return 'Today';
-  if (offset === -1) return 'Yesterday';
-  if (offset === 1) return 'Tomorrow';
-  return '';
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 export default function ScoresScreen() {
@@ -68,6 +75,7 @@ export default function ScoresScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cachedAt, setCachedAt] = useState<number | null>(null);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   const getGames = useAction(api.nba.getGames);
 
@@ -109,6 +117,14 @@ export default function ScoresScreen() {
   const handleRefresh = useCallback(() => {
     fetchGames(true);
   }, [fetchGames]);
+
+  const handleGamePress = useCallback((game: Game) => {
+    setSelectedGame(game);
+  }, []);
+
+  const handleDismissGame = useCallback(() => {
+    setSelectedGame(null);
+  }, []);
 
   // Separate games by status
   const { liveGames, completedGames, scheduledGames } = useMemo(() => {
@@ -191,7 +207,7 @@ export default function ScoresScreen() {
         </View>
       ) : isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={DesignTokens.accentPurple} />
+          <ActivityIndicator size="large" color="#30D158" />
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
@@ -221,7 +237,7 @@ export default function ScoresScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor={DesignTokens.accentPurple}
+              tintColor="#30D158"
             />
           }
         >
@@ -235,7 +251,7 @@ export default function ScoresScreen() {
                 </View>
               </View>
               {liveGames.map((game) => (
-                <ScoreCard key={game.id} game={game} />
+                <ScoreCard key={game.id} game={game} onPress={() => handleGamePress(game)} />
               ))}
             </View>
           )}
@@ -247,7 +263,7 @@ export default function ScoresScreen() {
                 Upcoming
               </Text>
               {scheduledGames.map((game) => (
-                <ScoreCard key={game.id} game={game} />
+                <ScoreCard key={game.id} game={game} onPress={() => handleGamePress(game)} />
               ))}
             </View>
           )}
@@ -259,7 +275,7 @@ export default function ScoresScreen() {
                 Final
               </Text>
               {completedGames.map((game) => (
-                <ScoreCard key={game.id} game={game} />
+                <ScoreCard key={game.id} game={game} onPress={() => handleGamePress(game)} />
               ))}
             </View>
           )}
@@ -272,6 +288,13 @@ export default function ScoresScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* Game Summary Bottom Sheet */}
+      <GameSummaryBottomSheet
+        game={selectedGame}
+        isVisible={selectedGame !== null}
+        onDismiss={handleDismissGame}
+      />
     </View>
   );
 }
@@ -297,7 +320,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateButtonSelected: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: '#30D158',
   },
   dateButtonText: {
     ...Typography.label,
@@ -333,7 +356,7 @@ const styles = StyleSheet.create({
     marginBottom: DesignTokens.spacing.lg,
   },
   retryButton: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: '#30D158',
     paddingVertical: DesignTokens.spacing.sm,
     paddingHorizontal: DesignTokens.spacing.lg,
     borderRadius: DesignTokens.radius.md,

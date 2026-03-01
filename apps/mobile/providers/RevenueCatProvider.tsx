@@ -26,7 +26,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   // Completely disabled - just provide stub values
   const value: RevenueCatContextType = {
     customerInfo: null,
-    isProUser: false,
+    isProUser: true,
     packages: [],
     isLoading: false,
     purchasePackage: async () => false,

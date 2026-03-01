@@ -49,7 +49,7 @@ export function ContractCard({
       >
         <View style={styles.lockedContent}>
           <View style={styles.lockIconContainer}>
-            <Ionicons name="lock-closed" size={24} color={DesignTokens.accentPurple} />
+            <Ionicons name="lock-closed" size={24} color={DesignTokens.accentGreen} />
           </View>
           <Text style={[styles.lockedTitle, isDark && styles.textDark]}>
             Contract Details
@@ -93,7 +93,7 @@ export function ContractCard({
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerIcon}>
-          <Ionicons name="document-text" size={18} color={DesignTokens.accentPurple} />
+          <Ionicons name="document-text" size={18} color={DesignTokens.accentGreen} />
         </View>
         <Text style={[styles.headerText, isDark && styles.textDark]}>Contract</Text>
         <View style={styles.proBadge}>
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   proBadge: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
     paddingHorizontal: DesignTokens.spacing.xs,
     paddingVertical: 2,
     borderRadius: DesignTokens.radius.sm,

@@ -131,12 +131,17 @@ function RootLayoutNav() {
         <ListsProvider>
           <PlayerLinksProvider>
             <RecentPlayersProvider>
-              <Stack>
+              <Stack
+                screenOptions={{
+                  headerBackTitle: 'Back',
+                  headerBackTitleVisible: true,
+                }}
+              >
                 <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="list/[id]" options={{ headerShown: false }} />
                 <Stack.Screen name="player/[id]" options={{ headerShown: false }} />
-                <Stack.Screen name="trade-simulator/index" options={{ headerShown: false }} />
+                <Stack.Screen name="trade-simulator/index" options={{ headerShown: true, headerBackTitle: 'Back' }} />
                 <Stack.Screen name="trade-simulator/[shareId]" options={{ headerShown: false }} />
                 <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
               </Stack>

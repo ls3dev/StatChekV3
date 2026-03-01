@@ -21,6 +21,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { useListsContext } from '@/context/ListsContext';
 import { api } from '@statcheck/convex';
+import { getAllPlayers } from '@/services/playerData';
+import { usePlayerData } from '@/context/PlayerDataContext';
 
 interface Game {
   id: number;
@@ -55,7 +57,8 @@ interface Contract {
     position: string;
   };
   season: number;
-  amount: number;
+  base_salary: number;
+  cap_hit: number;
   currency: string;
 }
 
@@ -85,6 +88,7 @@ export default function TeamDetailScreen() {
   const { isDark } = useTheme();
   const { isProUser } = useRevenueCat();
   const { setShowPaywall } = useListsContext();
+  const { isLoaded: playerDataLoaded } = usePlayerData();
 
   const teamId = parseInt(id || '0', 10);
   const teamInfo = NBA_TEAMS[teamId];
@@ -104,6 +108,36 @@ export default function TeamDetailScreen() {
   const getInjuries = useAction(api.nba.getInjuries);
   const getGames = useAction(api.nba.getGames);
   const futurePicks = useQuery(api.nba.getTeamFuturePicks, { teamId });
+
+  // Store failed photo URLs to show initials fallback
+  const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
+
+  // Helper to get player photo URL from local data
+  const getPlayerPhotoUrl = useCallback((firstName: string, lastName: string): string | null => {
+    if (!playerDataLoaded) return null;
+
+    const allPlayers = getAllPlayers();
+    if (allPlayers.length === 0) return null;
+
+    const fullName = `${firstName} ${lastName}`.toLowerCase().trim();
+
+    // Try exact match first
+    let player = allPlayers.find(p => p.name.toLowerCase().trim() === fullName);
+
+    // Try last name match if exact fails
+    if (!player) {
+      player = allPlayers.find(p => {
+        const nameParts = p.name.toLowerCase().split(' ');
+        return nameParts[nameParts.length - 1] === lastName.toLowerCase();
+      });
+    }
+
+    return player?.photoUrl || null;
+  }, [playerDataLoaded]);
+
+  const handlePhotoError = useCallback((playerId: number) => {
+    setFailedPhotos(prev => new Set(prev).add(String(playerId)));
+  }, []);
 
   const fetchData = useCallback(
     async (showRefreshing = false) => {
@@ -210,6 +244,12 @@ export default function TeamDetailScreen() {
     return { liveGames: live, scheduledGames: scheduled, completedGames: completed };
   }, [games]);
 
+  // Find the most recent season from contracts
+  const currentSeason = React.useMemo(() => {
+    const seasons = [...new Set(contracts.map(c => c.season))].sort((a, b) => b - a);
+    return seasons.length > 0 ? seasons[0] : new Date().getFullYear();
+  }, [contracts]);
+
   // Group contracts by player
   const playerContracts = React.useMemo(() => {
     const grouped: Record<number, { player: Contract['player']; contracts: Contract[] }> = {};
@@ -219,25 +259,24 @@ export default function TeamDetailScreen() {
       }
       grouped[contract.player.id].contracts.push(contract);
     });
-    // Sort by current year salary
+    // Sort by current season salary
     return Object.values(grouped).sort((a, b) => {
-      const aCurrentSalary = a.contracts.find((c) => c.season === new Date().getFullYear())?.amount || 0;
-      const bCurrentSalary = b.contracts.find((c) => c.season === new Date().getFullYear())?.amount || 0;
+      const aCurrentSalary = a.contracts.find((c) => c.season === currentSeason)?.base_salary || 0;
+      const bCurrentSalary = b.contracts.find((c) => c.season === currentSeason)?.base_salary || 0;
       return bCurrentSalary - aCurrentSalary;
     });
-  }, [contracts]);
+  }, [contracts, currentSeason]);
 
   // Calculate team totals
   const teamTotals = React.useMemo(() => {
-    const currentYear = new Date().getFullYear();
     let totalSalary = 0;
     contracts.forEach((contract) => {
-      if (contract.season === currentYear) {
-        totalSalary += contract.amount;
+      if (contract.season === currentSeason) {
+        totalSalary += contract.base_salary || 0;
       }
     });
     return { totalSalary, playerCount: playerContracts.length };
-  }, [contracts, playerContracts]);
+  }, [contracts, playerContracts, currentSeason]);
 
   if (!teamInfo) {
     return (
@@ -256,6 +295,7 @@ export default function TeamDetailScreen() {
       <Stack.Screen
         options={{
           title: `${teamInfo.city} ${teamInfo.name}`,
+          headerBackTitle: 'Back',
           headerStyle: {
             backgroundColor: isDark ? DesignTokens.backgroundPrimaryDark : DesignTokens.backgroundPrimary,
           },
@@ -273,7 +313,7 @@ export default function TeamDetailScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor={DesignTokens.accentPurple}
+            tintColor={DesignTokens.accentGreen}
           />
         }
       >
@@ -295,7 +335,7 @@ export default function TeamDetailScreen() {
           style={[styles.tradeSimulatorButton, isDark && styles.tradeSimulatorButtonDark]}
           onPress={handleOpenTradeSimulator}
         >
-          <Ionicons name="swap-horizontal" size={18} color={DesignTokens.accentPurple} />
+          <Ionicons name="swap-horizontal" size={18} color={DesignTokens.accentGreen} />
           <Text style={[styles.tradeSimulatorButtonText, isDark && styles.textDark]}>
             Trade Simulator
           </Text>
@@ -309,12 +349,12 @@ export default function TeamDetailScreen() {
         {/* Live Games Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="basketball" size={20} color={DesignTokens.accentPurple} />
+            <Ionicons name="basketball" size={20} color={DesignTokens.accentGreen} />
             <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Today's Games</Text>
           </View>
 
           {isLoadingGames ? (
-            <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+            <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
           ) : games.length === 0 ? (
             <View style={[styles.emptyCard, isDark && styles.emptyCardDark]}>
               <Ionicons name="calendar-outline" size={24} color={DesignTokens.textMuted} />
@@ -340,7 +380,7 @@ export default function TeamDetailScreen() {
         {/* Injuries Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="medical" size={20} color={DesignTokens.accentPurple} />
+            <Ionicons name="medical" size={20} color={DesignTokens.accentGreen} />
             <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Injury Report</Text>
             {!injuriesRequiresPro && (
               <View style={styles.proBadge}>
@@ -350,7 +390,7 @@ export default function TeamDetailScreen() {
           </View>
 
           {isLoadingInjuries ? (
-            <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+            <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
           ) : injuriesRequiresPro ? (
             <InjuryBadgeLocked onUnlockPress={handleUnlockPress} />
           ) : injuries.length === 0 ? (
@@ -362,18 +402,45 @@ export default function TeamDetailScreen() {
             </View>
           ) : (
             <View style={styles.injuriesList}>
-              {injuries.map((injury, index) => (
-                <View key={`${injury.player.id}-${index}`} style={styles.injuryItem}>
-                  <Text style={[styles.injuryPlayerName, isDark && styles.textDark]}>
-                    {injury.player.first_name} {injury.player.last_name}
-                  </Text>
-                  <InjuryBadge
-                    status={injury.status}
-                    description={injury.description}
-                    returnDate={injury.return_date}
-                  />
-                </View>
-              ))}
+              {injuries.map((injury, index) => {
+                const photoUrl = getPlayerPhotoUrl(injury.player.first_name, injury.player.last_name);
+                const initials = `${injury.player.first_name[0]}${injury.player.last_name[0]}`;
+                const playerId = String(injury.player.id);
+                const photoFailed = failedPhotos.has(playerId);
+
+                return (
+                  <View key={`${injury.player.id}-${index}`} style={styles.injuryItem}>
+                    <View style={styles.injuryHeader}>
+                      {photoFailed ? (
+                        <View style={[styles.injuryPlayerPhoto, styles.injuryPlayerInitials]}>
+                          <Text style={styles.initialsText}>{initials}</Text>
+                        </View>
+                      ) : photoUrl ? (
+                        <Image
+                          source={{ uri: photoUrl }}
+                          style={styles.injuryPlayerPhoto}
+                          contentFit="cover"
+                          onError={() => handlePhotoError(injury.player.id)}
+                        />
+                      ) : (
+                        <View style={[styles.injuryPlayerPhoto, styles.injuryPlayerInitials]}>
+                          <Text style={styles.initialsText}>{initials}</Text>
+                        </View>
+                      )}
+                      <View style={styles.injuryPlayerInfo}>
+                        <Text style={[styles.injuryPlayerName, isDark && styles.textDark]}>
+                          {injury.player.first_name} {injury.player.last_name}
+                        </Text>
+                        <InjuryBadge
+                          status={injury.status}
+                          description={injury.description}
+                          returnDate={injury.return_date}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
@@ -381,7 +448,7 @@ export default function TeamDetailScreen() {
         {/* Contracts Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="document-text" size={20} color={DesignTokens.accentPurple} />
+            <Ionicons name="document-text" size={20} color={DesignTokens.accentGreen} />
             <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Team Payroll</Text>
             {!contractsRequiresPro && (
               <View style={styles.proBadge}>
@@ -391,7 +458,7 @@ export default function TeamDetailScreen() {
           </View>
 
           {isLoadingContracts ? (
-            <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+            <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
           ) : contractsRequiresPro ? (
             <ContractCard contracts={[]} isLocked onUnlockPress={handleUnlockPress} />
           ) : (
@@ -419,8 +486,8 @@ export default function TeamDetailScreen() {
 
               {/* Player Contracts List */}
               {playerContracts.map((pc) => {
-                const currentSalary = pc.contracts.find(
-                  (c) => c.season === new Date().getFullYear()
+                const currentSalaryContract = pc.contracts.find(
+                  (c) => c.season === currentSeason
                 );
                 return (
                   <Pressable
@@ -436,7 +503,7 @@ export default function TeamDetailScreen() {
                       </Text>
                     </View>
                     <Text style={[styles.playerSalary, isDark && styles.textDark]}>
-                      {currentSalary ? formatCurrency(currentSalary.amount) : 'N/A'}
+                      {currentSalaryContract ? formatCurrency(currentSalaryContract.base_salary) : 'N/A'}
                     </Text>
                   </Pressable>
                 );
@@ -488,7 +555,7 @@ const styles = StyleSheet.create({
   },
   teamAbbr: {
     ...Typography.displayLarge,
-    color: DesignTokens.accentPurple,
+    color: DesignTokens.accentGreen,
     fontWeight: '800',
   },
   teamFullName: {
@@ -534,7 +601,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   proBadge: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
     paddingHorizontal: DesignTokens.spacing.xs,
     paddingVertical: 2,
     borderRadius: DesignTokens.radius.sm,
@@ -568,6 +635,30 @@ const styles = StyleSheet.create({
   },
   injuryItem: {
     marginBottom: DesignTokens.spacing.sm,
+  },
+  injuryHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: DesignTokens.spacing.sm,
+  },
+  injuryPlayerPhoto: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: DesignTokens.cardBackground,
+  },
+  injuryPlayerInitials: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: DesignTokens.accentGreen + '20',
+  },
+  initialsText: {
+    ...Typography.headline,
+    color: DesignTokens.accentGreen,
+    fontWeight: '700',
+  },
+  injuryPlayerInfo: {
+    flex: 1,
   },
   injuryPlayerName: {
     ...Typography.headline,

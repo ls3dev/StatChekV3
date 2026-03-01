@@ -37,7 +37,7 @@ export function AgendaMode({
     .toUpperCase();
 
   const isHallOfFame = player.hallOfFame === true;
-  const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : DesignTokens.accentPurple;
+  const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : DesignTokens.accentGreen;
 
   const displayTeam = player.team === 'N/A' ? null : player.team;
   const displayPosition = player.position === 'N/A' ? null : player.position;
@@ -136,7 +136,7 @@ export function AgendaMode({
                   },
                 ]}
               >
-                <Ionicons name="link" size={16} color={DesignTokens.accentPurple} />
+                <Ionicons name="link" size={16} color={DesignTokens.accentGreen} />
                 <View style={styles.linkContent}>
                   <Text
                     style={[styles.linkTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}
@@ -163,8 +163,8 @@ export function AgendaMode({
           style={[styles.addReceiptButton, { borderColor: isDark ? DesignTokens.borderDark : DesignTokens.border }]}
           onPress={onAddLink}
         >
-          <Ionicons name="add" size={20} color={DesignTokens.accentPurple} />
-          <Text style={[styles.addReceiptText, { color: DesignTokens.accentPurple }]}>Add Receipt</Text>
+          <Ionicons name="add" size={20} color={DesignTokens.accentGreen} />
+          <Text style={[styles.addReceiptText, { color: DesignTokens.accentGreen }]}>Add Receipt</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -99,7 +99,7 @@ export default function ListsScreen() {
             </Text>
             <TouchableOpacity
               onPress={handleCreateButtonPress}
-              style={[styles.emptyButton, { backgroundColor: DesignTokens.accentPurple }]}>
+              style={[styles.emptyButton, { backgroundColor: DesignTokens.accentGreen }]}>
               <Ionicons name="add" size={20} color="#fff" />
               <Text style={styles.emptyButtonText}>Create List</Text>
             </TouchableOpacity>
@@ -112,7 +112,7 @@ export default function ListsScreen() {
         onPress={handleCreateButtonPress}
         style={[
           styles.floatingButton,
-          { backgroundColor: DesignTokens.accentPurple },
+          { backgroundColor: DesignTokens.accentGreen },
         ]}
         activeOpacity={0.8}>
         <Ionicons name="add" size={28} color="#fff" />

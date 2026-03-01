@@ -15,7 +15,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: isDark ? DesignTokens.tabBarActive : DesignTokens.accentPurple,
+        tabBarActiveTintColor: isDark ? DesignTokens.tabBarActive : DesignTokens.accentGreen,
         tabBarInactiveTintColor: isDark ? DesignTokens.tabBarInactive : DesignTokens.textMuted,
         tabBarStyle: {
           backgroundColor: isDark ? DesignTokens.tabBarBackgroundDark : DesignTokens.tabBarBackground,
@@ -45,7 +45,7 @@ export default function TabLayout() {
         options={{
           title: 'Lists',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'list' : 'list-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={24} color={color} />
           ),
         }}
       />

@@ -30,7 +30,7 @@ export function RecentPlayersSection({ players, onPlayerSelect, onClear }: Recen
         </Text>
         {onClear && players.length > 0 && (
           <TouchableOpacity onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={[styles.clearButton, { color: isDark ? DesignTokens.accentPrimary : DesignTokens.accentPurple }]}>Clear</Text>
+            <Text style={[styles.clearButton, { color: isDark ? DesignTokens.accentPrimary : DesignTokens.accentGreen }]}>Clear</Text>
           </TouchableOpacity>
         )}
       </View>

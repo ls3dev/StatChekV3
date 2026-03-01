@@ -32,7 +32,7 @@ export function RecentPlayerCard({ player, onPress, isFirst, isLast }: RecentPla
       SP: '#3B82F6',
       RP: '#A855F7',
     };
-    return positionColors[position] || DesignTokens.accentPurple;
+    return positionColors[position] || DesignTokens.accentGreen;
   };
 
   const positionColor = getPositionColor(player.position);

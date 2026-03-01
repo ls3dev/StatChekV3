@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   proBadge: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
     paddingHorizontal: DesignTokens.spacing.xs,
     paddingVertical: 2,
     borderRadius: DesignTokens.radius.sm,

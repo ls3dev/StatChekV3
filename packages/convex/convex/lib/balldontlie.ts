@@ -134,6 +134,59 @@ export interface BDLLeader {
   rank: number;
 }
 
+export interface BDLPlayerBoxScore {
+  player: BDLPlayer;
+  min: string;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  fgm: number;
+  fga: number;
+  fg_pct: number;
+  fg3m: number;
+  fg3a: number;
+  fg3_pct: number;
+  ftm: number;
+  fta: number;
+  ft_pct: number | null;
+  oreb: number;
+  dreb: number;
+  turnover: number;
+  pf: number;
+  plus_minus: number | null;
+}
+
+export interface BDLBoxScoreTeam extends BDLTeam {
+  players: BDLPlayerBoxScore[];
+}
+
+export interface BDLBoxScore {
+  date: string;
+  datetime: string;
+  home_team: BDLBoxScoreTeam;
+  home_team_score: number;
+  visitor_team: BDLBoxScoreTeam;
+  visitor_team_score: number;
+  home_q1: number;
+  home_q2: number;
+  home_q3: number;
+  home_q4: number;
+  home_ot1: number | null;
+  home_ot2: number | null;
+  home_ot3: number | null;
+  visitor_q1: number;
+  visitor_q2: number;
+  visitor_q3: number;
+  visitor_q4: number;
+  visitor_ot1: number | null;
+  visitor_ot2: number | null;
+  visitor_ot3: number | null;
+  home_in_bonus: boolean;
+  visitor_in_bonus: boolean;
+}
+
 export interface BDLPaginatedResponse<T> {
   data: T[];
   meta: {
@@ -327,14 +380,20 @@ class BallDontLieClient {
     playerId: number,
     season?: number
   ): Promise<BDLAdvancedStats | null> {
-    const response = await this.fetch<BDLPaginatedResponse<BDLAdvancedStats>>(
-      "/season_averages/advanced",
-      {
-        player_id: playerId,
-        season: season ?? getCurrentNBASeason(),
-      }
-    );
-    return response.data[0] ?? null;
+    try {
+      const response = await this.fetch<BDLPaginatedResponse<BDLAdvancedStats>>(
+        "/stats/advanced",
+        {
+          "player_ids[]": playerId,
+          season: season ?? getCurrentNBASeason(),
+        }
+      );
+      return response.data[0] ?? null;
+    } catch (error) {
+      // Advanced stats endpoint may not be available for all players
+      console.warn("Advanced stats not available:", error);
+      return null;
+    }
   }
 
   /**
@@ -386,6 +445,29 @@ class BallDontLieClient {
         player_id: params?.player_id,
         per_page: params?.per_page ?? 100,
       }
+    );
+    return response.data;
+  }
+
+  /**
+   * Get box scores for a specific date
+   * Returns game-level box scores with nested player stats
+   */
+  async getBoxScores(date: string): Promise<BDLBoxScore[]> {
+    const response = await this.fetch<BDLPaginatedResponse<BDLBoxScore>>(
+      "/box_scores",
+      { date }
+    );
+    return response.data;
+  }
+
+  /**
+   * Get live box scores for games currently in progress
+   * Returns real-time player stats during live games
+   */
+  async getLiveBoxScores(): Promise<BDLBoxScore[]> {
+    const response = await this.fetch<BDLPaginatedResponse<BDLBoxScore>>(
+      "/box_scores/live"
     );
     return response.data;
   }

@@ -166,7 +166,7 @@ export default function StandingsScreen() {
           {/* Content */}
           {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={DesignTokens.accentPurple} />
+          <ActivityIndicator size="large" color={DesignTokens.accentGreen} />
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
@@ -185,7 +185,7 @@ export default function StandingsScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor={DesignTokens.accentPurple}
+              tintColor={DesignTokens.accentGreen}
             />
           }
         >
@@ -196,7 +196,7 @@ export default function StandingsScreen() {
               <Text style={[styles.legendText, isDark && styles.textSecondary]}>Playoff spot</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: DesignTokens.accentPurple }]} />
+              <View style={[styles.legendDot, { backgroundColor: DesignTokens.accentGreen }]} />
               <Text style={[styles.legendText, isDark && styles.textSecondary]}>Play-in (7-10)</Text>
             </View>
           </View>
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   conferenceButtonSelected: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
   },
   conferenceButtonText: {
     ...Typography.label,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     marginBottom: DesignTokens.spacing.lg,
   },
   retryButton: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
     paddingVertical: DesignTokens.spacing.sm,
     paddingHorizontal: DesignTokens.spacing.lg,
     borderRadius: DesignTokens.radius.md,

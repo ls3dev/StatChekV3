@@ -35,6 +35,7 @@ interface PlayerStatsCardProps {
   isLoading?: boolean;
   isProUser?: boolean;
   onUnlockPress?: () => void;
+  onAdvancedPress?: () => void;
 }
 
 interface StatItemProps {
@@ -62,6 +63,7 @@ export function PlayerStatsCard({
   isLoading = false,
   isProUser = false,
   onUnlockPress,
+  onAdvancedPress,
 }: PlayerStatsCardProps) {
   const { isDark } = useTheme();
 
@@ -94,36 +96,51 @@ export function PlayerStatsCard({
     );
   }
 
-  const formatPct = (pct: number) => (pct * 100).toFixed(1) + '%';
+  const formatPct = (pct: number | undefined) => {
+    if (pct === undefined || pct === null) return '-';
+    return (pct * 100).toFixed(1) + '%';
+  };
+
+  const formatStat = (value: number | undefined) => {
+    if (value === undefined || value === null) return '-';
+    return value.toFixed(1);
+  };
+
+  const formatMin = (min: string | undefined) => {
+    if (!min) return '-';
+    // Handle "34:30" format - extract minutes
+    const parts = min.split(':');
+    return parts[0] || '-';
+  };
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerIcon}>
-          <Ionicons name="stats-chart" size={18} color={DesignTokens.accentPurple} />
+          <Ionicons name="stats-chart" size={18} color={DesignTokens.accentGreen} />
         </View>
         <Text style={[styles.headerText, isDark && styles.textDark]}>
           {season ? `${season}-${(season + 1).toString().slice(-2)} ` : ''}Season Stats
         </Text>
         <Text style={[styles.gamesPlayed, isDark && styles.textSecondary]}>
-          {basicStats.games_played} GP
+          {basicStats.games_played ?? 0} GP
         </Text>
       </View>
 
       {/* Primary Stats */}
       <View style={styles.primaryStatsRow}>
-        <StatItem label="PPG" value={basicStats.pts.toFixed(1)} isPrimary isDark={isDark} />
-        <StatItem label="RPG" value={basicStats.reb.toFixed(1)} isPrimary isDark={isDark} />
-        <StatItem label="APG" value={basicStats.ast.toFixed(1)} isPrimary isDark={isDark} />
-        <StatItem label="MPG" value={parseFloat(basicStats.min).toFixed(1)} isPrimary isDark={isDark} />
+        <StatItem label="PPG" value={formatStat(basicStats.pts)} isPrimary isDark={isDark} />
+        <StatItem label="RPG" value={formatStat(basicStats.reb)} isPrimary isDark={isDark} />
+        <StatItem label="APG" value={formatStat(basicStats.ast)} isPrimary isDark={isDark} />
+        <StatItem label="MPG" value={formatMin(basicStats.min)} isPrimary isDark={isDark} />
       </View>
 
       {/* Secondary Stats */}
       <View style={styles.secondaryStatsRow}>
-        <StatItem label="STL" value={basicStats.stl.toFixed(1)} isDark={isDark} />
-        <StatItem label="BLK" value={basicStats.blk.toFixed(1)} isDark={isDark} />
-        <StatItem label="TOV" value={basicStats.turnover.toFixed(1)} isDark={isDark} />
+        <StatItem label="STL" value={formatStat(basicStats.stl)} isDark={isDark} />
+        <StatItem label="BLK" value={formatStat(basicStats.blk)} isDark={isDark} />
+        <StatItem label="TOV" value={formatStat(basicStats.turnover)} isDark={isDark} />
       </View>
 
       {/* Shooting Stats */}
@@ -152,55 +169,25 @@ export function PlayerStatsCard({
       </View>
 
       {/* Advanced Stats Section */}
-      {isProUser && advancedStats ? (
-        <View style={styles.advancedSection}>
-          <View style={styles.advancedHeader}>
-            <Text style={[styles.sectionTitle, isDark && styles.textSecondary]}>Advanced</Text>
+      {isProUser ? (
+        <Pressable style={styles.advancedButton} onPress={onAdvancedPress}>
+          <View style={styles.advancedButtonContent}>
+            <Ionicons name="stats-chart" size={18} color={DesignTokens.accentGreen} />
+            <Text style={[styles.advancedButtonText, isDark && styles.textDark]}>
+              Advanced Stats
+            </Text>
             <View style={styles.proBadge}>
               <Text style={styles.proBadgeText}>PRO</Text>
             </View>
+            <Ionicons name="chevron-forward" size={18} color={isDark ? '#8E8E93' : DesignTokens.textSecondary} />
           </View>
-          <View style={styles.advancedRow}>
-            <View style={styles.advancedStat}>
-              <Text style={[styles.advancedValue, isDark && styles.textDark]}>
-                {advancedStats.per.toFixed(1)}
-              </Text>
-              <Text style={[styles.advancedLabel, isDark && styles.textSecondary]}>PER</Text>
-            </View>
-            <View style={styles.advancedStat}>
-              <Text style={[styles.advancedValue, isDark && styles.textDark]}>
-                {formatPct(advancedStats.ts_pct)}
-              </Text>
-              <Text style={[styles.advancedLabel, isDark && styles.textSecondary]}>TS%</Text>
-            </View>
-            <View style={styles.advancedStat}>
-              <Text style={[styles.advancedValue, isDark && styles.textDark]}>
-                {formatPct(advancedStats.usg_pct)}
-              </Text>
-              <Text style={[styles.advancedLabel, isDark && styles.textSecondary]}>USG%</Text>
-            </View>
-            <View style={styles.advancedStat}>
-              <Text
-                style={[
-                  styles.advancedValue,
-                  isDark && styles.textDark,
-                  advancedStats.net_rating > 0 && styles.positiveRating,
-                  advancedStats.net_rating < 0 && styles.negativeRating,
-                ]}
-              >
-                {advancedStats.net_rating > 0 ? '+' : ''}
-                {advancedStats.net_rating.toFixed(1)}
-              </Text>
-              <Text style={[styles.advancedLabel, isDark && styles.textSecondary]}>NET RTG</Text>
-            </View>
-          </View>
-        </View>
+        </Pressable>
       ) : (
         <Pressable style={styles.lockedSection} onPress={onUnlockPress}>
           <View style={styles.lockedContent}>
-            <Ionicons name="lock-closed" size={16} color={DesignTokens.accentPurple} />
+            <Ionicons name="lock-closed" size={16} color={DesignTokens.accentGreen} />
             <Text style={[styles.lockedText, isDark && styles.textSecondary]}>
-              Advanced stats (PER, TS%, USG%)
+              Advanced stats (TS%, USG%, NET RTG)
             </Text>
             <View style={styles.proBadge}>
               <Text style={styles.proBadgeText}>PRO</Text>
@@ -351,6 +338,22 @@ const styles = StyleSheet.create({
   negativeRating: {
     color: DesignTokens.accentError,
   },
+  advancedButton: {
+    padding: DesignTokens.spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: DesignTokens.border,
+  },
+  advancedButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DesignTokens.spacing.sm,
+  },
+  advancedButtonText: {
+    ...Typography.bodySmall,
+    color: DesignTokens.textPrimary,
+    flex: 1,
+    fontWeight: '500',
+  },
   lockedSection: {
     padding: DesignTokens.spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -368,7 +371,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   proBadge: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
     paddingHorizontal: DesignTokens.spacing.xs,
     paddingVertical: 2,
     borderRadius: DesignTokens.radius.sm,

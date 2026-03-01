@@ -31,8 +31,8 @@ function SettingItem({ icon, iconColor, title, subtitle, onPress, rightElement, 
           backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground,
         },
       ]}>
-      <View style={[styles.iconContainer, { backgroundColor: (iconColor || DesignTokens.accentPurple) + '15' }]}>
-        <Ionicons name={icon} size={20} color={iconColor || DesignTokens.accentPurple} />
+      <View style={[styles.iconContainer, { backgroundColor: (iconColor || DesignTokens.accentGreen) + '15' }]}>
+        <Ionicons name={icon} size={20} color={iconColor || DesignTokens.accentGreen} />
       </View>
       <View style={styles.settingContent}>
         <Text style={[styles.settingTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}>
@@ -148,8 +148,8 @@ export default function ProfileScreen() {
               isDark ? styles.cardShadowDark : styles.cardShadow,
             ]}>
             <View style={styles.avatarContainer}>
-              <View style={[styles.avatar, { backgroundColor: DesignTokens.accentPurple + '20' }]}>
-                <Ionicons name="person" size={32} color={DesignTokens.accentPurple} />
+              <View style={[styles.avatar, { backgroundColor: DesignTokens.accentGreen + '20' }]}>
+                <Ionicons name="person" size={32} color={DesignTokens.accentGreen} />
               </View>
             </View>
             {isLoggedIn && displayUser ? (
@@ -237,7 +237,7 @@ export default function ProfileScreen() {
                   { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
                   isDark ? styles.cardShadowDark : styles.cardShadow,
                 ]}>
-                <Text style={[styles.statNumber, { color: DesignTokens.accentPurple }]}>
+                <Text style={[styles.statNumber, { color: DesignTokens.accentGreen }]}>
                   {totalLists}
                 </Text>
                 <Text style={[styles.statLabel, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
@@ -250,7 +250,7 @@ export default function ProfileScreen() {
                   { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
                   isDark ? styles.cardShadowDark : styles.cardShadow,
                 ]}>
-                <Text style={[styles.statNumber, { color: DesignTokens.accentPurple }]}>
+                <Text style={[styles.statNumber, { color: DesignTokens.accentGreen }]}>
                   {totalReceipts}
                 </Text>
                 <Text style={[styles.statLabel, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
@@ -335,7 +335,7 @@ export default function ProfileScreen() {
                 <Switch
                   value={isDark}
                   onValueChange={handleToggleTheme}
-                  trackColor={{ false: '#E5E7EB', true: isDark ? '#FFFFFF40' : DesignTokens.accentPurple + '60' }}
+                  trackColor={{ false: '#E5E7EB', true: isDark ? '#FFFFFF40' : DesignTokens.accentGreen + '60' }}
                   thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
                   ios_backgroundColor="#E5E7EB"
                 />

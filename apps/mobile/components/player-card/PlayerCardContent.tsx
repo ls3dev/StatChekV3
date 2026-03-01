@@ -19,6 +19,7 @@ import { LinkItem } from '../LinkItem';
 import { AddPlayerToListModal } from '../lists';
 import { PlayerStatsCard } from '../nba/PlayerStatsCard';
 import { ContractCard } from '../nba/ContractCard';
+import { AdvancedStatsBottomSheet } from '../nba/AdvancedStatsBottomSheet';
 import { PlayerCardTabs, type PlayerCardTab } from './PlayerCardTabs';
 
 type PlayerCardContentProps = {
@@ -40,7 +41,28 @@ const getPositionColor = (position: string) => {
     SP: '#3B82F6',
     RP: '#A855F7',
   };
-  return positionColors[position] || DesignTokens.accentPurple;
+  return positionColors[position] || DesignTokens.accentGreen;
+};
+
+// Generate Basketball Reference URL from player name
+// Format: https://www.basketball-reference.com/players/[first-letter]/[last5][first2]01.html
+const generateBasketballReferenceUrl = (playerName: string): string => {
+  const normalized = playerName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .toLowerCase();
+
+  const parts = normalized.split(' ');
+  if (parts.length < 2) return '';
+
+  const firstName = parts[0];
+  const lastName = parts[parts.length - 1]; // Use last part as last name
+
+  const firstLetter = lastName[0];
+  const lastNamePart = lastName.slice(0, 5);
+  const firstNamePart = firstName.slice(0, 2);
+
+  return `https://www.basketball-reference.com/players/${firstLetter}/${lastNamePart}${firstNamePart}01.html`;
 };
 
 interface BasicStats {
@@ -58,12 +80,21 @@ interface BasicStats {
 }
 
 interface AdvancedStats {
-  per: number;
-  ts_pct: number;
-  usg_pct: number;
+  true_shooting_percentage: number;
+  usage_percentage: number;
   net_rating: number;
-  off_rating: number;
-  def_rating: number;
+  offensive_rating: number;
+  defensive_rating: number;
+  pie: number;
+  pace: number;
+  effective_field_goal_percentage: number;
+  assist_percentage: number;
+  rebound_percentage: number;
+  offensive_rebound_percentage: number;
+  defensive_rebound_percentage: number;
+  turnover_ratio: number;
+  assist_ratio: number;
+  assist_to_turnover: number;
 }
 
 interface Contract {
@@ -101,6 +132,20 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [isLoadingContracts, setIsLoadingContracts] = useState(false);
 
+  // Advanced stats bottom sheet state
+  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
+
+  // Reset state when player changes
+  useEffect(() => {
+    setImageError(false);
+    setBdlPlayerId(null);
+    setBasicStats(null);
+    setAdvancedStats(null);
+    setContracts([]);
+    setPlayerNotFound(false);
+    setShowAdvancedStats(false);
+  }, [player.id]);
+
   // Convex actions
   const searchPlayerByName = useAction(api.nba.searchPlayerByName);
   const getPlayerStats = useAction(api.nba.getPlayerStats);
@@ -120,11 +165,19 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
   const playerLinks = getLinksForPlayer(player.id);
   const positionColor = getPositionColor(player.position);
 
+  // For NBA players, always generate Basketball Reference URL (stored URLs may be wrong)
+  const getSportsReferenceUrl = () => {
+    if (isNBA) {
+      return generateBasketballReferenceUrl(player.name);
+    }
+    return player.sportsReferenceUrl || '';
+  };
+
   const sportsReferenceLink: PlayerLink = {
     id: 'sports-reference',
     playerId: player.id,
-    url: player.sportsReferenceUrl || '',
-    title: 'Sports Reference',
+    url: getSportsReferenceUrl(),
+    title: isNBA ? 'Basketball Reference' : 'Sports Reference',
     order: -1,
     createdAt: 0,
   };
@@ -138,10 +191,19 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
       setPlayerNotFound(false);
 
       try {
-        const result = await searchPlayerByName({ name: player.name });
+        // Normalize name: remove accents and special characters
+        const normalizedName = player.name
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+
+        console.log('[PlayerCard] Searching for player:', normalizedName);
+        const result = await searchPlayerByName({ name: normalizedName });
+        console.log('[PlayerCard] Search result:', result);
+
         if (result.playerId) {
           setBdlPlayerId(result.playerId);
         } else {
+          console.log('[PlayerCard] Player not found in API');
           setPlayerNotFound(true);
         }
       } catch (error) {
@@ -170,11 +232,16 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
           setBasicStats(basicResult.stats as unknown as BasicStats);
         }
 
-        // Fetch advanced stats if Pro user
+        // Fetch advanced stats if Pro user (wrapped in try-catch since this can fail)
         if (isProUser) {
-          const advancedResult = await getAdvancedStats({ playerId: bdlPlayerId });
-          if (advancedResult.stats && !advancedResult.requiresPro) {
-            setAdvancedStats(advancedResult.stats as unknown as AdvancedStats);
+          try {
+            const advancedResult = await getAdvancedStats({ playerId: bdlPlayerId });
+            if (advancedResult.stats && !advancedResult.requiresPro) {
+              setAdvancedStats(advancedResult.stats as unknown as AdvancedStats);
+            }
+          } catch (advError) {
+            // Advanced stats failed but basic stats still work - don't show error
+            console.warn('Advanced stats unavailable:', advError);
           }
         }
       } catch (error) {
@@ -201,10 +268,10 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
         const result = await getPlayerContract({ playerId: bdlPlayerId });
         if (result.contracts && !result.requiresPro) {
           setContracts(
-            result.contracts.map((c) => ({
+            result.contracts.map((c: any) => ({
               season: c.season,
-              amount: c.amount,
-              currency: c.currency,
+              amount: c.base_salary || c.cap_hit || c.total_cash || 0,
+              currency: 'USD',
             }))
           );
         }
@@ -221,6 +288,10 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
   const handleUnlockPress = useCallback(() => {
     setShowPaywall(true);
   }, [setShowPaywall]);
+
+  const handleAdvancedPress = useCallback(() => {
+    setShowAdvancedStats(true);
+  }, []);
 
   const handleAddPress = () => {
     if (isAtLimit(player.id)) {
@@ -345,7 +416,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
         if (isSearchingPlayer) {
           return (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+              <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
               <Text style={[styles.loadingText, isDark && styles.textSecondary]}>
                 Finding player...
               </Text>
@@ -375,6 +446,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
             isLoading={isLoadingStats}
             isProUser={isProUser}
             onUnlockPress={handleUnlockPress}
+            onAdvancedPress={handleAdvancedPress}
           />
         );
 
@@ -382,7 +454,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
         if (isSearchingPlayer) {
           return (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+              <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
               <Text style={[styles.loadingText, isDark && styles.textSecondary]}>
                 Finding player...
               </Text>
@@ -418,7 +490,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
         if (isLoadingContracts) {
           return (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+              <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
               <Text style={[styles.loadingText, isDark && styles.textSecondary]}>
                 Loading contract...
               </Text>
@@ -681,6 +753,30 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
         visible={showAddToListModal}
         onClose={() => setShowAddToListModal(false)}
         player={player}
+      />
+
+      <AdvancedStatsBottomSheet
+        isVisible={showAdvancedStats}
+        onDismiss={() => setShowAdvancedStats(false)}
+        stats={advancedStats ? {
+          true_shooting_percentage: advancedStats.true_shooting_percentage,
+          usage_percentage: advancedStats.usage_percentage,
+          net_rating: advancedStats.net_rating,
+          offensive_rating: advancedStats.offensive_rating,
+          defensive_rating: advancedStats.defensive_rating,
+          pie: advancedStats.pie,
+          pace: advancedStats.pace,
+          effective_field_goal_percentage: advancedStats.effective_field_goal_percentage,
+          assist_percentage: advancedStats.assist_percentage,
+          rebound_percentage: advancedStats.rebound_percentage,
+          offensive_rebound_percentage: advancedStats.offensive_rebound_percentage,
+          defensive_rebound_percentage: advancedStats.defensive_rebound_percentage,
+          turnover_ratio: advancedStats.turnover_ratio,
+          assist_ratio: advancedStats.assist_ratio,
+          assist_to_turnover: advancedStats.assist_to_turnover,
+        } : null}
+        playerName={player.name}
+        isLoading={isLoadingStats && !advancedStats}
       />
     </View>
   );

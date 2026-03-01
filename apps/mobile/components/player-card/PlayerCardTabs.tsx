@@ -80,7 +80,7 @@ export function PlayerCardTabs({
                 isDisabled
                   ? DesignTokens.textMuted
                   : isActive
-                    ? DesignTokens.accentPurple
+                    ? DesignTokens.accentGreen
                     : isDark
                       ? DesignTokens.textSecondaryDark
                       : DesignTokens.textSecondary
@@ -90,7 +90,7 @@ export function PlayerCardTabs({
               style={[
                 styles.tabLabel,
                 isActive && styles.activeTabLabel,
-                isActive && { color: DesignTokens.accentPurple },
+                isActive && { color: DesignTokens.accentGreen },
                 isDisabled && styles.disabledTabLabel,
                 !isActive && !isDisabled && isDark && { color: DesignTokens.textSecondaryDark },
               ]}
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     left: '25%',
     right: '25%',
     height: 2,
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
     borderRadius: 1,
   },
 });

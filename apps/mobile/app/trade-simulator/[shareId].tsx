@@ -75,7 +75,7 @@ export default function SharedTradeScenarioScreen() {
         contentContainerStyle={styles.content}
       >
         {isLoading ? (
-          <ActivityIndicator color={DesignTokens.accentPurple} />
+          <ActivityIndicator color={DesignTokens.accentGreen} />
         ) : !scenario ? (
           <View style={[styles.card, isDark && styles.cardDark]}>
             <Text style={[styles.title, isDark && styles.textDark]}>Trade scenario not found</Text>

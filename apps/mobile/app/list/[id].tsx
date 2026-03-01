@@ -257,7 +257,7 @@ export default function ListDetailScreen() {
           </Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={DesignTokens.accentPurple} />
+          <ActivityIndicator size="large" color={DesignTokens.accentGreen} />
           <Text
             style={[
               styles.loadingText,
@@ -304,7 +304,7 @@ export default function ListDetailScreen() {
                 Add a player to start building your take
               </Text>
               <TouchableOpacity
-                style={[styles.emptyAddButton, { backgroundColor: DesignTokens.accentPurple }]}
+                style={[styles.emptyAddButton, { backgroundColor: DesignTokens.accentGreen }]}
                 onPress={() => setShowAddPlayerModal(true)}
               >
                 <Ionicons name="add" size={20} color="#FFFFFF" />
@@ -422,9 +422,9 @@ export default function ListDetailScreen() {
               onPress={handleShareList}
               disabled={isSharing}>
               {isSharing ? (
-                <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+                <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
               ) : (
-                <Ionicons name="share-outline" size={20} color={DesignTokens.accentPurple} />
+                <Ionicons name="share-outline" size={20} color={DesignTokens.accentGreen} />
               )}
               <Text
                 style={[

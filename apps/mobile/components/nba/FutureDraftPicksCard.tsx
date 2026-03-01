@@ -60,12 +60,12 @@ export function FutureDraftPicksCard({
       <View style={[styles.container, isDark && styles.containerDark]}>
         <View style={styles.header}>
           <View style={styles.headerIcon}>
-            <Ionicons name="calendar" size={18} color={DesignTokens.accentPurple} />
+            <Ionicons name="calendar" size={18} color={DesignTokens.accentGreen} />
           </View>
           <Text style={[styles.headerText, isDark && styles.textDark]}>Future Draft Picks</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={DesignTokens.accentPurple} />
+          <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
         </View>
       </View>
     );
@@ -76,7 +76,7 @@ export function FutureDraftPicksCard({
       <View style={[styles.container, isDark && styles.containerDark]}>
         <View style={styles.header}>
           <View style={styles.headerIcon}>
-            <Ionicons name="calendar" size={18} color={DesignTokens.accentPurple} />
+            <Ionicons name="calendar" size={18} color={DesignTokens.accentGreen} />
           </View>
           <Text style={[styles.headerText, isDark && styles.textDark]}>Future Draft Picks</Text>
         </View>
@@ -95,7 +95,7 @@ export function FutureDraftPicksCard({
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerIcon}>
-          <Ionicons name="calendar" size={18} color={DesignTokens.accentPurple} />
+          <Ionicons name="calendar" size={18} color={DesignTokens.accentGreen} />
         </View>
         <Text style={[styles.headerText, isDark && styles.textDark]}>Future Draft Picks</Text>
       </View>
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   roundBadge: {
     width: 36,
     height: 24,
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
     borderRadius: DesignTokens.radius.sm,
     alignItems: 'center',
     justifyContent: 'center',

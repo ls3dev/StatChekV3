@@ -7,8 +7,8 @@ import { Platform } from 'react-native';
 
 // Brand gradient colors - Apple Sports dark gray style
 export const BrandGradient = {
-  start: '#374151', // Gray-700
-  end: '#1F2937', // Gray-800
+  start: '#3A3A3C', // iOS tertiary
+  end: '#1C1C1E', // iOS primary dark
 } as const;
 
 // Design tokens for the new aesthetic
@@ -17,49 +17,49 @@ export const DesignTokens = {
   gradientStart: BrandGradient.start,
   gradientEnd: BrandGradient.end,
 
-  // Card surfaces - darker for sports aesthetic
+  // Card surfaces - iOS system colors
   cardBackground: '#FFFFFF',
-  cardBackgroundDark: '#1F2937', // Gray-800
-  cardSurfaceDark: '#111827', // Gray-900 for nested cards
+  cardBackgroundDark: '#2C2C2E', // iOS secondary dark
+  cardSurfaceDark: '#1C1C1E', // iOS primary dark for nested cards
   cardShadow: 'rgba(0, 0, 0, 0.08)',
   cardShadowDark: 'rgba(0, 0, 0, 0.4)',
 
-  // Text colors
+  // Text colors - iOS system colors
   textPrimary: '#1A1A2E',
   textSecondary: '#6B7280',
   textMuted: '#9CA3AF',
   textOnGradient: '#FFFFFF',
   textPrimaryDark: '#FFFFFF',
-  textSecondaryDark: '#9CA3AF',
-  textMutedDark: '#6B7280',
+  textSecondaryDark: '#8E8E93', // iOS secondary label
+  textMutedDark: '#636366', // iOS tertiary label
 
-  // Accent colors - sports-focused
+  // Accent colors - iOS system colors
   accentPrimary: '#FFFFFF', // White as primary accent on dark
-  accentPurple: '#A78BFA', // Lighter purple for dark backgrounds
-  accentIndigo: '#818CF8', // Lighter indigo
-  accentSuccess: '#34D399', // Brighter green
-  accentWarning: '#FBBF24', // Brighter amber
-  accentError: '#F87171', // Brighter red
+  accentGreen: '#30D158', // iOS system green
+  accentIndigo: '#5E5CE6', // iOS system indigo
+  accentSuccess: '#30D158', // iOS system green
+  accentWarning: '#FF9F0A', // iOS system orange
+  accentError: '#FF3B30', // iOS system red
 
-  // Borders & dividers
+  // Borders & dividers - iOS system colors
   border: '#E5E7EB',
-  borderDark: '#374151', // Gray-700
+  borderDark: '#38383A', // iOS separator dark
   divider: '#F3F4F6',
-  dividerDark: '#374151',
+  dividerDark: '#38383A', // iOS separator dark
 
-  // Backgrounds - pure black base like Apple Sports
+  // Backgrounds - iOS system colors
   backgroundPrimary: '#F9FAFB',
   backgroundSecondary: '#FFFFFF',
-  backgroundPrimaryDark: '#000000',
-  backgroundSecondaryDark: '#111827', // Gray-900
+  backgroundPrimaryDark: '#000000', // Pure black like Apple Sports
+  backgroundSecondaryDark: '#1C1C1E', // iOS secondary dark
 
-  // Tab bar - dark and minimal
+  // Tab bar - iOS system colors
   tabBarBackground: '#FFFFFF',
   tabBarBackgroundDark: '#000000',
   tabBarBorder: '#E5E7EB',
-  tabBarBorderDark: '#1F2937',
+  tabBarBorderDark: '#38383A', // iOS separator dark
   tabBarActive: '#FFFFFF',
-  tabBarInactive: '#6B7280',
+  tabBarInactive: '#8E8E93', // iOS secondary label
 
   // Spacing scale (base 4)
   spacing: {
@@ -124,9 +124,9 @@ export const SportColors = {
     backgroundDark: 'rgba(59, 130, 246, 0.15)',
   },
   default: {
-    primary: '#A78BFA', // Existing accentPurple
-    background: 'rgba(167, 139, 250, 0.1)',
-    backgroundDark: 'rgba(167, 139, 250, 0.15)',
+    primary: '#30D158', // iOS system green
+    background: 'rgba(48, 209, 88, 0.1)',
+    backgroundDark: 'rgba(48, 209, 88, 0.15)',
   },
 } as const;
 
@@ -175,7 +175,7 @@ export const Colors = {
   light: {
     text: DesignTokens.textPrimary,
     background: DesignTokens.backgroundPrimary,
-    tint: DesignTokens.accentPurple,
+    tint: DesignTokens.accentGreen,
     icon: DesignTokens.textSecondary,
     tabIconDefault: DesignTokens.tabBarInactive,
     tabIconSelected: DesignTokens.tabBarActive,
@@ -183,7 +183,7 @@ export const Colors = {
   dark: {
     text: DesignTokens.textPrimaryDark,
     background: DesignTokens.backgroundPrimaryDark,
-    tint: DesignTokens.accentPurple,
+    tint: DesignTokens.accentGreen,
     icon: DesignTokens.textSecondaryDark,
     tabIconDefault: DesignTokens.tabBarInactive,
     tabIconSelected: DesignTokens.tabBarActive,

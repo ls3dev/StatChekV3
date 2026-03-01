@@ -71,7 +71,7 @@ export function LeagueLeadersSection({ onPlayerSelect }: Props) {
       const categoryResults = await Promise.all(
         LEADER_CATEGORIES.map(async (category) => {
           const result = await getLeaders({ statType: category });
-          return [category, (result.leaders as Leader[]).slice(0, 5)] as const;
+          return [category, (result.leaders as Leader[]).slice(0, 10)] as const;
         })
       );
       const allLeaders = Object.fromEntries(categoryResults) as Record<LeaderCategory, Leader[]>;
@@ -149,7 +149,7 @@ export function LeagueLeadersSection({ onPlayerSelect }: Props) {
               onPress={() => setSelectedCategory(cat)}
               style={[
                 styles.tab,
-                selectedCategory === cat && [styles.tabActive, { backgroundColor: DesignTokens.accentPurple }],
+                selectedCategory === cat && [styles.tabActive, { backgroundColor: DesignTokens.accentGreen }],
               ]}
             >
               <Text
@@ -169,7 +169,7 @@ export function LeagueLeadersSection({ onPlayerSelect }: Props) {
       {/* Leaders List */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color={DesignTokens.accentPurple} />
+          <ActivityIndicator color={DesignTokens.accentGreen} />
         </View>
       ) : currentLeaders.length > 0 ? (
         <View style={[styles.card, { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground }]}>
@@ -194,7 +194,7 @@ export function LeagueLeadersSection({ onPlayerSelect }: Props) {
                 {/* Rank */}
                 <Text style={[
                   styles.rank,
-                  { color: index === 0 ? DesignTokens.accentPurple : (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted) },
+                  { color: index === 0 ? DesignTokens.accentGreen : (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted) },
                 ]}>
                   {index + 1}
                 </Text>
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     borderRadius: DesignTokens.radius.sm,
   },
   tabActive: {
-    backgroundColor: DesignTokens.accentPurple,
+    backgroundColor: DesignTokens.accentGreen,
   },
   tabText: {
     ...Typography.caption,

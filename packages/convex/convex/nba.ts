@@ -14,6 +14,8 @@ import {
   type BDLContract,
   type BDLInjury,
   type BDLLeader,
+  type BDLBoxScore,
+  type BDLPlayerBoxScore,
 } from "./lib/balldontlie";
 
 // ========================================
@@ -290,26 +292,8 @@ export const _upsertDraftPicks = internalMutation({
 export const _checkProStatus = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return { isProUser: false };
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .first();
-
-    if (!user) {
-      return { isProUser: false };
-    }
-
-    // Check if pro and not expired
-    const isProUser =
-      user.isProUser === true &&
-      (!user.proExpiresAt || user.proExpiresAt > Date.now());
-
-    return { isProUser };
+    // TODO: Temporarily bypassing pro check - all users are pro
+    return { isProUser: true };
   },
 });
 
@@ -361,13 +345,18 @@ export const getGames = action({
   handler: async (ctx, args): Promise<{ games: BDLGame[]; cachedAt: number }> => {
     const date = args.date ?? formatDateForAPI(new Date());
 
-    // Check cache - use shorter TTL for today's games
+    // Check cache
     const cached = await ctx.runQuery(internal.nba._getGamesCache, { date });
-    const isToday = date === formatDateForAPI(new Date());
-    const ttl = isToday ? CACHE_TTL.GAMES_LIVE : CACHE_TTL.GAMES_PAST;
 
-    if (cached && isCacheValid(cached.cachedAt, ttl)) {
-      return { games: cached.data as BDLGame[], cachedAt: cached.cachedAt };
+    if (cached) {
+      const games = cached.data as BDLGame[];
+      // Use short TTL if any games are not final (live or scheduled)
+      const hasActiveGames = games.some((g) => g.status !== "Final");
+      const ttl = hasActiveGames ? CACHE_TTL.GAMES_LIVE : CACHE_TTL.GAMES_PAST;
+
+      if (isCacheValid(cached.cachedAt, ttl)) {
+        return { games, cachedAt: cached.cachedAt };
+      }
     }
 
     // Fetch from API
@@ -669,9 +658,11 @@ export const getInjuries = action({
 
     if (cached && isCacheValid(cached.cachedAt, CACHE_TTL.INJURIES)) {
       let injuries = cached.data as BDLInjury[];
-      // Filter by team if specified
+      // Filter by team if specified (check both team.id and player.team_id)
       if (args.teamId) {
-        injuries = injuries.filter((i) => i.team.id === args.teamId);
+        injuries = injuries.filter((i) =>
+          i.team?.id === args.teamId || (i.player as any)?.team_id === args.teamId
+        );
       }
       return { injuries, cachedAt: cached.cachedAt, requiresPro: false };
     }
@@ -690,9 +681,11 @@ export const getInjuries = action({
       data: allInjuries,
     });
 
-    // Return filtered if team specified
+    // Return filtered if team specified (check both team.id and player.team_id)
     const injuries = args.teamId
-      ? allInjuries.filter((i) => i.team.id === args.teamId)
+      ? allInjuries.filter((i) =>
+          i.team?.id === args.teamId || (i.player as any)?.team_id === args.teamId
+        )
       : allInjuries;
 
     return { injuries, cachedAt: Date.now(), requiresPro: false };
@@ -875,5 +868,196 @@ export const updateDraftPicks = internalMutation({
         lastUpdated: Date.now(),
       });
     }
+  },
+});
+
+// ========================================
+// Box Score Actions
+// ========================================
+
+/**
+ * Get box score for a specific game
+ * Returns player stats for both teams
+ */
+export const getBoxScore = action({
+  args: {
+    date: v.string(),
+    homeTeamId: v.number(),
+    visitorTeamId: v.number(),
+  },
+  handler: async (
+    _ctx,
+    args
+  ): Promise<{
+    boxScore: BDLBoxScore | null;
+    isLive: boolean;
+  }> => {
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
+    }
+
+    const client = createBallDontLieClient(apiKey);
+
+    // First try to get live box scores (for in-progress games)
+    const liveBoxScores = await client.getLiveBoxScores();
+    const liveGame = liveBoxScores.find(
+      (game) =>
+        (game.home_team.id === args.homeTeamId && game.visitor_team.id === args.visitorTeamId) ||
+        (game.home_team.id === args.visitorTeamId && game.visitor_team.id === args.homeTeamId)
+    );
+
+    if (liveGame) {
+      return { boxScore: liveGame, isLive: true };
+    }
+
+    // Fetch historical box scores for the date
+    const boxScores = await client.getBoxScores(args.date);
+    const matchingGame = boxScores.find(
+      (game) =>
+        (game.home_team.id === args.homeTeamId && game.visitor_team.id === args.visitorTeamId) ||
+        (game.home_team.id === args.visitorTeamId && game.visitor_team.id === args.homeTeamId)
+    );
+
+    return { boxScore: matchingGame ?? null, isLive: false };
+  },
+});
+
+// ========================================
+// Box Score Testing
+// ========================================
+
+/**
+ * Test action to fetch box score data for a specific date
+ * Usage: npx convex run nba:testBoxScore '{"date": "2025-02-27"}'
+ */
+export const testBoxScore = action({
+  args: { date: v.string() },
+  handler: async (_ctx, args): Promise<{
+    totalGames: number;
+    hornetsGame: {
+      opponent: string;
+      hornetsScore: number;
+      opponentScore: number;
+      isHome: boolean;
+      players: Array<{
+        name: string;
+        min: string;
+        pts: number;
+        reb: number;
+        ast: number;
+        stl: number;
+        blk: number;
+        fgm: number;
+        fga: number;
+        fg_pct: number;
+        fg3m: number;
+        fg3a: number;
+        fg3_pct: number;
+        ftm: number;
+        fta: number;
+        ft_pct: number | null;
+        turnover: number;
+        plus_minus: number | null;
+      }>;
+    } | null;
+    allMatchups: string[];
+  }> => {
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
+    }
+
+    const client = createBallDontLieClient(apiKey);
+    const boxScores = await client.getBoxScores(args.date);
+
+    // Get all matchups for the date
+    const allMatchups = boxScores.map(
+      (game) => `${game.visitor_team.abbreviation} @ ${game.home_team.abbreviation}`
+    );
+
+    // Find Hornets game (could be home or visitor)
+    const hornetsGameData = boxScores.find(
+      (game) =>
+        game.home_team.abbreviation === "CHA" ||
+        game.visitor_team.abbreviation === "CHA"
+    );
+
+    let hornetsGame = null;
+    if (hornetsGameData) {
+      const isHome = hornetsGameData.home_team.abbreviation === "CHA";
+      const hornetsTeam = isHome ? hornetsGameData.home_team : hornetsGameData.visitor_team;
+      const opponentTeam = isHome ? hornetsGameData.visitor_team : hornetsGameData.home_team;
+
+      hornetsGame = {
+        opponent: opponentTeam.full_name,
+        hornetsScore: isHome ? hornetsGameData.home_team_score : hornetsGameData.visitor_team_score,
+        opponentScore: isHome ? hornetsGameData.visitor_team_score : hornetsGameData.home_team_score,
+        isHome,
+        players: hornetsTeam.players.map((p) => ({
+          name: `${p.player.first_name} ${p.player.last_name}`,
+          min: p.min,
+          pts: p.pts,
+          reb: p.reb,
+          ast: p.ast,
+          stl: p.stl,
+          blk: p.blk,
+          fgm: p.fgm,
+          fga: p.fga,
+          fg_pct: p.fg_pct,
+          fg3m: p.fg3m,
+          fg3a: p.fg3a,
+          fg3_pct: p.fg3_pct,
+          ftm: p.ftm,
+          fta: p.fta,
+          ft_pct: p.ft_pct,
+          turnover: p.turnover,
+          plus_minus: p.plus_minus,
+        })),
+      };
+    }
+
+    return {
+      totalGames: boxScores.length,
+      hornetsGame,
+      allMatchups,
+    };
+  },
+});
+
+/**
+ * Test action to fetch LIVE box scores for games in progress
+ * Usage: npx convex run nba:testLiveBoxScores
+ */
+export const testLiveBoxScores = action({
+  args: {},
+  handler: async (_ctx): Promise<{
+    liveGames: number;
+    games: Array<{
+      matchup: string;
+      score: string;
+      status: string;
+    }>;
+    rawData: unknown;
+  }> => {
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
+    }
+
+    const client = createBallDontLieClient(apiKey);
+    const liveBoxScores = await client.getLiveBoxScores();
+
+    const games = liveBoxScores.map((game) => ({
+      matchup: `${game.visitor_team.abbreviation} @ ${game.home_team.abbreviation}`,
+      score: `${game.visitor_team_score} - ${game.home_team_score}`,
+      status: game.datetime || "Live",
+    }));
+
+    return {
+      liveGames: liveBoxScores.length,
+      games,
+      rawData: liveBoxScores[0] ?? null,
+    };
   },
 });
