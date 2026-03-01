@@ -170,29 +170,50 @@ export function PlayerStatsCard({
 
       {/* Advanced Stats Section */}
       {isProUser ? (
-        <Pressable style={styles.advancedButton} onPress={onAdvancedPress}>
-          <View style={styles.advancedButtonContent}>
-            <Ionicons name="stats-chart" size={18} color={DesignTokens.accentGreen} />
-            <Text style={[styles.advancedButtonText, isDark && styles.textDark]}>
-              Advanced Stats
-            </Text>
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>PRO</Text>
+        <Pressable style={styles.advancedButtonWrapper} onPress={onAdvancedPress}>
+          <LinearGradient
+            colors={['#7C3AED', '#5B21B6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.advancedButton}
+          >
+            <View style={styles.advancedButtonContent}>
+              <View style={styles.advancedIconContainer}>
+                <Ionicons name="stats-chart" size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.advancedTextContainer}>
+                <Text style={styles.advancedButtonTitle}>Advanced Stats</Text>
+                <Text style={styles.advancedButtonSubtitle}>PER, TS%, Win Shares & more</Text>
+              </View>
+              <View style={styles.advancedProBadge}>
+                <Text style={styles.advancedProBadgeText}>PRO</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
             </View>
-            <Ionicons name="chevron-forward" size={18} color={isDark ? '#8E8E93' : DesignTokens.textSecondary} />
-          </View>
+          </LinearGradient>
         </Pressable>
       ) : (
-        <Pressable style={styles.lockedSection} onPress={onUnlockPress}>
-          <View style={styles.lockedContent}>
-            <Ionicons name="lock-closed" size={16} color={DesignTokens.accentGreen} />
-            <Text style={[styles.lockedText, isDark && styles.textSecondary]}>
-              Advanced stats (TS%, USG%, NET RTG)
-            </Text>
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>PRO</Text>
+        <Pressable style={styles.lockedButtonWrapper} onPress={onUnlockPress}>
+          <LinearGradient
+            colors={['#6B7280', '#4B5563']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.lockedButton}
+          >
+            <View style={styles.advancedButtonContent}>
+              <View style={styles.advancedIconContainer}>
+                <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.advancedTextContainer}>
+                <Text style={styles.advancedButtonTitle}>Advanced Stats</Text>
+                <Text style={styles.advancedButtonSubtitle}>Unlock with Pro</Text>
+              </View>
+              <View style={styles.advancedProBadge}>
+                <Text style={styles.advancedProBadgeText}>PRO</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
             </View>
-          </View>
+          </LinearGradient>
         </Pressable>
       )}
     </View>
@@ -338,37 +359,60 @@ const styles = StyleSheet.create({
   negativeRating: {
     color: DesignTokens.accentError,
   },
+  advancedButtonWrapper: {
+    marginTop: DesignTokens.spacing.md,
+    marginHorizontal: DesignTokens.spacing.sm,
+    marginBottom: DesignTokens.spacing.sm,
+  },
   advancedButton: {
-    padding: DesignTokens.spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: DesignTokens.border,
+    borderRadius: DesignTokens.radius.lg,
+    padding: DesignTokens.spacing.lg,
   },
   advancedButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: DesignTokens.spacing.sm,
+    gap: DesignTokens.spacing.md,
   },
-  advancedButtonText: {
-    ...Typography.bodySmall,
-    color: DesignTokens.textPrimary,
-    flex: 1,
-    fontWeight: '500',
-  },
-  lockedSection: {
-    padding: DesignTokens.spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: DesignTokens.border,
-  },
-  lockedContent: {
-    flexDirection: 'row',
+  advancedIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
-    gap: DesignTokens.spacing.sm,
-    opacity: 0.7,
+    justifyContent: 'center',
   },
-  lockedText: {
-    ...Typography.bodySmall,
-    color: DesignTokens.textSecondary,
+  advancedTextContainer: {
     flex: 1,
+  },
+  advancedButtonTitle: {
+    ...Typography.headline,
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  advancedButtonSubtitle: {
+    ...Typography.caption,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  advancedProBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: DesignTokens.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: DesignTokens.radius.sm,
+  },
+  advancedProBadgeText: {
+    ...Typography.captionSmall,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 10,
+  },
+  lockedButtonWrapper: {
+    marginTop: DesignTokens.spacing.md,
+    marginHorizontal: DesignTokens.spacing.sm,
+    marginBottom: DesignTokens.spacing.sm,
+  },
+  lockedButton: {
+    borderRadius: DesignTokens.radius.lg,
+    padding: DesignTokens.spacing.lg,
   },
   proBadge: {
     backgroundColor: DesignTokens.accentGreen,

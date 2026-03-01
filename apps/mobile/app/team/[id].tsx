@@ -600,13 +600,13 @@ export default function TeamDetailScreen() {
         animationType="fade"
         onRequestClose={() => setSelectedPlayer(null)}
       >
-        <Pressable
-          style={styles.playerModalOverlay}
-          onPress={() => setSelectedPlayer(null)}
-        >
+        <View style={styles.playerModalOverlay}>
           <Pressable
+            style={styles.playerModalBackdrop}
+            onPress={() => setSelectedPlayer(null)}
+          />
+          <View
             style={[styles.playerModalContent, isDark && styles.playerModalContentDark]}
-            onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.playerModalHeader}>
               <TouchableOpacity
@@ -625,8 +625,8 @@ export default function TeamDetailScreen() {
                 <PlayerCardContent player={selectedPlayer} />
               </View>
             )}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </>
   );
@@ -843,9 +843,12 @@ const styles = StyleSheet.create({
   // Player Modal Styles
   playerModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  playerModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   playerModalContent: {
     width: '95%',

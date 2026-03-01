@@ -706,7 +706,10 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        scrollEventThrottle={16}
+        bounces={true}>
         {/* Player Info Section */}
         <View style={styles.playerSection}>
           {/* Player photo */}
