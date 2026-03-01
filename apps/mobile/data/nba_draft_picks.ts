@@ -9,7 +9,7 @@
  * - RealGM (basketball.realgm.com)
  * - Pro Sports Transactions (prosportstransactions.com)
  *
- * Last updated: February 2026
+ * Last updated: March 2026 (post-trade deadline)
  *
  * NOTE: This data changes with every trade. Update after major trades
  * or at the start of each season.
@@ -100,8 +100,10 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // ==========================================
   4: [
     { year: 2026, round: 1, type: 'own' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'PHX', notes: 'Nurkic dump, subject to WAS/ORL/MEM swap chain' },
     { year: 2026, round: 2, type: 'own' },
     { year: 2027, round: 1, type: 'own' },
+    { year: 2027, round: 1, type: 'acquired', otherTeam: 'DAL', protection: 'Top-2 protected', notes: 'PJ Washington trade' },
     { year: 2027, round: 2, type: 'own' },
     { year: 2028, round: 1, type: 'own' },
     { year: 2028, round: 2, type: 'own' },
@@ -155,15 +157,17 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // ==========================================
   7: [
     { year: 2026, round: 1, type: 'own' },
-    { year: 2026, round: 1, type: 'acquired', otherTeam: 'OKC', notes: 'Least favorable of OKC/HOU/LAC' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'OKC', notes: 'Least favorable of OKC/LAC conveyance (~#30)' },
     { year: 2026, round: 2, type: 'own' },
-    { year: 2027, round: 1, type: 'traded', otherTeam: 'NYK', notes: 'Traded in Luka-era deals' },
+    { year: 2027, round: 1, type: 'traded', otherTeam: 'CHA', protection: 'Top-2 protected', notes: 'PJ Washington trade' },
     { year: 2027, round: 2, type: 'own' },
     { year: 2028, round: 1, type: 'own', notes: 'OKC has swap rights' },
     { year: 2028, round: 2, type: 'own' },
     { year: 2029, round: 1, type: 'own' },
+    { year: 2029, round: 1, type: 'acquired', otherTeam: 'LAL', notes: 'Luka-AD trade' },
     { year: 2029, round: 2, type: 'traded', otherTeam: 'BKN' },
     { year: 2030, round: 1, type: 'own' },
+    { year: 2030, round: 1, type: 'acquired', otherTeam: 'GSW', protection: 'Top-20 protected', notes: 'AD three-team deal via WAS' },
     { year: 2030, round: 2, type: 'own' },
     { year: 2031, round: 1, type: 'own' },
     { year: 2031, round: 2, type: 'own' },
@@ -175,7 +179,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   8: [
     { year: 2026, round: 1, type: 'own' },
     { year: 2026, round: 2, type: 'own' },
-    { year: 2027, round: 1, type: 'own', notes: 'OKC has swap rights if 6-30' },
+    { year: 2027, round: 1, type: 'traded', otherTeam: 'OKC', protection: 'Top-5 protected', notes: 'JaMychal Green trade' },
     { year: 2027, round: 2, type: 'own' },
     { year: 2028, round: 1, type: 'own' },
     { year: 2028, round: 2, type: 'own' },
@@ -218,7 +222,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
     { year: 2028, round: 2, type: 'own' },
     { year: 2029, round: 1, type: 'own' },
     { year: 2029, round: 2, type: 'own' },
-    { year: 2030, round: 1, type: 'own' },
+    { year: 2030, round: 1, type: 'traded', otherTeam: 'DAL', protection: 'Top-20 protected', notes: 'AD three-team deal via WAS, becomes 2nd-rounder if protected' },
     { year: 2030, round: 2, type: 'own' },
     { year: 2031, round: 1, type: 'own' },
     { year: 2031, round: 2, type: 'own' },
@@ -228,7 +232,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // 11 - Houston Rockets (HOU)
   // ==========================================
   11: [
-    { year: 2026, round: 1, type: 'own', protection: 'Top-4 protected', notes: 'If 5-30, goes to OKC/PHI/DAL' },
+    { year: 2026, round: 1, type: 'traded', otherTeam: 'PHI', protection: 'Top-4 protected', notes: 'Westbrook trade to OKC, conveyed to PHI via McCain trade' },
     { year: 2026, round: 2, type: 'own' },
     { year: 2027, round: 1, type: 'own', notes: 'BKN has swap rights' },
     { year: 2027, round: 2, type: 'own' },
@@ -246,13 +250,13 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // 12 - Indiana Pacers (IND)
   // ==========================================
   12: [
-    { year: 2026, round: 1, type: 'traded', otherTeam: 'LAC', protection: 'Top-4, 10-30 protected', notes: 'If protected, owes 2031 1st instead' },
+    { year: 2026, round: 1, type: 'traded', otherTeam: 'LAC', protection: 'Top-4, 10-30 protected', notes: 'Zubac trade; if protected, owes 2031 1st instead' },
     { year: 2026, round: 2, type: 'own' },
     { year: 2027, round: 1, type: 'own' },
     { year: 2027, round: 2, type: 'own' },
     { year: 2028, round: 1, type: 'own' },
     { year: 2028, round: 2, type: 'own' },
-    { year: 2029, round: 1, type: 'own' },
+    { year: 2029, round: 1, type: 'traded', otherTeam: 'LAC', notes: 'Zubac trade' },
     { year: 2029, round: 2, type: 'own' },
     { year: 2030, round: 1, type: 'own' },
     { year: 2030, round: 2, type: 'own' },
@@ -264,14 +268,15 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // 13 - LA Clippers (LAC)
   // ==========================================
   13: [
-    { year: 2026, round: 1, type: 'traded', otherTeam: 'OKC', notes: 'Part of OKC/PHI/DAL pick conveyance' },
-    { year: 2026, round: 1, type: 'acquired', otherTeam: 'IND', protection: 'Top-4, 10-30 protected' },
+    { year: 2026, round: 1, type: 'traded', otherTeam: 'OKC', notes: 'Unprotected (Paul George trade, final 1st-round obligation)' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'IND', protection: 'Top-4, 10-30 protected', notes: 'Zubac trade' },
     { year: 2026, round: 2, type: 'own' },
     { year: 2027, round: 1, type: 'own', notes: 'OKC has swap rights' },
     { year: 2027, round: 2, type: 'own' },
     { year: 2028, round: 1, type: 'own' },
     { year: 2028, round: 2, type: 'own' },
     { year: 2029, round: 1, type: 'own' },
+    { year: 2029, round: 1, type: 'acquired', otherTeam: 'IND', notes: 'Zubac trade' },
     { year: 2029, round: 2, type: 'own' },
     { year: 2030, round: 1, type: 'own' },
     { year: 2030, round: 2, type: 'own' },
@@ -289,7 +294,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
     { year: 2027, round: 2, type: 'own' },
     { year: 2028, round: 1, type: 'own' },
     { year: 2028, round: 2, type: 'own' },
-    { year: 2029, round: 1, type: 'own' },
+    { year: 2029, round: 1, type: 'traded', otherTeam: 'DAL', notes: 'Luka-AD trade' },
     { year: 2029, round: 2, type: 'own' },
     { year: 2030, round: 1, type: 'own' },
     { year: 2030, round: 2, type: 'own' },
@@ -302,8 +307,8 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // ==========================================
   15: [
     // 2026
-    { year: 2026, round: 1, type: 'own', notes: 'ORL has swap rights (Bane trade)' },
-    { year: 2026, round: 1, type: 'acquired', otherTeam: 'PHX', notes: 'More favorable of ORL/PHX (Bane trade)' },
+    { year: 2026, round: 1, type: 'own' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'ORL', notes: 'Unprotected (Bane trade), with PHX/WAS swap chain rights' },
     { year: 2026, round: 2, type: 'own' },
     // 2027
     { year: 2027, round: 1, type: 'own' },
@@ -315,7 +320,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
     { year: 2028, round: 2, type: 'traded', otherTeam: 'BKN' },
     // 2029
     { year: 2029, round: 1, type: 'own' },
-    { year: 2029, round: 1, type: 'swap', otherTeam: 'ORL', notes: 'Swap rights (Bane trade)' },
+    { year: 2029, round: 1, type: 'swap', otherTeam: 'ORL', protection: 'Top-2 protected', notes: 'Swap rights (Bane trade)' },
     { year: 2029, round: 2, type: 'traded', otherTeam: 'BKN' },
     // 2030
     { year: 2030, round: 1, type: 'own' },
@@ -430,15 +435,14 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // ==========================================
   21: [
     // 2026
-    { year: 2026, round: 1, type: 'own' },
+    { year: 2026, round: 1, type: 'traded', otherTeam: 'DAL', notes: 'Least favorable of OKC/LAC conveyance (via WAS, AD three-team deal)' },
     { year: 2026, round: 1, type: 'acquired', otherTeam: 'UTA', protection: 'Top-8 protected' },
-    { year: 2026, round: 1, type: 'acquired', otherTeam: 'LAC', notes: 'Most favorable of OKC/HOU/LAC' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'LAC', notes: 'Unprotected (Paul George trade), most favorable of OKC/LAC' },
     { year: 2026, round: 2, type: 'swap', otherTeam: 'DAL', notes: 'Swap of PHI 2nd' },
     // 2027
     { year: 2027, round: 1, type: 'own' },
     { year: 2027, round: 1, type: 'swap', otherTeam: 'LAC', notes: 'Swap rights' },
-    { year: 2027, round: 1, type: 'acquired', otherTeam: 'DEN', protection: 'Top-5 protected' },
-    { year: 2027, round: 1, type: 'acquired', otherTeam: 'SAS', protection: 'Top-16 protected' },
+    { year: 2027, round: 1, type: 'acquired', otherTeam: 'DEN', protection: 'Top-5 protected', notes: 'JaMychal Green trade' },
     { year: 2027, round: 2, type: 'swap', otherTeam: 'HOU', notes: 'Swap of HOU/IND/MIA' },
     // 2028
     { year: 2028, round: 1, type: 'swap', otherTeam: 'DAL', notes: 'Swap rights' },
@@ -460,15 +464,14 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // 22 - Orlando Magic (ORL)
   // ==========================================
   22: [
-    { year: 2026, round: 1, type: 'own' },
-    { year: 2026, round: 1, type: 'swap', otherTeam: 'MEM', notes: 'Swap rights (Bane trade)' },
+    { year: 2026, round: 1, type: 'traded', otherTeam: 'MEM', notes: 'Unprotected (Bane trade)' },
     { year: 2026, round: 2, type: 'own' },
     { year: 2026, round: 2, type: 'acquired', otherTeam: 'MIL' },
     { year: 2027, round: 1, type: 'own' },
     { year: 2027, round: 2, type: 'own' },
-    { year: 2028, round: 1, type: 'own', notes: 'Traded to POR (via MEM reroute)' },
+    { year: 2028, round: 1, type: 'traded', otherTeam: 'POR', notes: 'Via MEM (Bane trade, rerouted to POR)' },
     { year: 2028, round: 2, type: 'own' },
-    { year: 2029, round: 1, type: 'own', notes: 'MEM has swap rights (Bane trade)' },
+    { year: 2029, round: 1, type: 'own', notes: 'MEM has swap rights (Bane trade, top-2 protected)' },
     { year: 2029, round: 2, type: 'own' },
     { year: 2030, round: 1, type: 'traded', otherTeam: 'MEM', notes: 'Unprotected (Bane trade)' },
     { year: 2030, round: 2, type: 'own' },
@@ -481,10 +484,10 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // 23 - Philadelphia 76ers (PHI)
   // ==========================================
   23: [
-    { year: 2026, round: 1, type: 'traded', otherTeam: 'OKC', protection: 'Top-4 protected', notes: 'Rolled over from 2025' },
-    { year: 2026, round: 1, type: 'acquired', otherTeam: 'OKC', notes: '2nd most favorable of OKC/HOU/LAC (McCain trade)' },
+    { year: 2026, round: 1, type: 'traded', otherTeam: 'OKC', protection: 'Top-4 protected', notes: 'Al Horford trade, rolled over from 2025 (top-6)' },
+    { year: 2026, round: 1, type: 'acquired', otherTeam: 'HOU', protection: 'Top-4 protected', notes: 'Via OKC (McCain trade)' },
     { year: 2026, round: 2, type: 'own' },
-    { year: 2027, round: 1, type: 'own', notes: 'May owe to BKN (top-8 protected)' },
+    { year: 2027, round: 1, type: 'own', notes: 'Owes to BKN (top-8 protected, Harden trade); also OKC fallback if 2026 pick was protected' },
     { year: 2027, round: 2, type: 'own' },
     { year: 2027, round: 2, type: 'acquired', otherTeam: 'MIL' },
     { year: 2028, round: 1, type: 'own' },
@@ -501,7 +504,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // 24 - Phoenix Suns (PHX)
   // ==========================================
   24: [
-    { year: 2026, round: 1, type: 'traded', otherTeam: 'MEM', notes: 'Part of WAS/MEM/CHA swap scenario' },
+    { year: 2026, round: 1, type: 'traded', otherTeam: 'CHA', notes: 'Nurkic dump, subject to WAS/ORL/MEM swap chain' },
     { year: 2026, round: 2, type: 'own' },
     { year: 2027, round: 1, type: 'own' },
     { year: 2027, round: 2, type: 'own' },
@@ -563,9 +566,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   27: [
     { year: 2026, round: 1, type: 'own', notes: 'Swap rights in multi-team scenario' },
     { year: 2026, round: 2, type: 'own' },
-    { year: 2027, round: 1, type: 'own' },
-    { year: 2027, round: 1, type: 'traded', otherTeam: 'SAC', notes: 'Via LaVine three-team deal' },
-    { year: 2027, round: 1, type: 'traded', otherTeam: 'OKC', protection: 'Top-16 protected' },
+    { year: 2027, round: 1, type: 'traded', otherTeam: 'SAC', notes: 'Unprotected (LaVine three-team deal)' },
     { year: 2027, round: 2, type: 'own' },
     { year: 2028, round: 1, type: 'own' },
     { year: 2028, round: 2, type: 'own' },
@@ -600,7 +601,7 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
   // ==========================================
   29: [
     // 2026
-    { year: 2026, round: 1, type: 'own', notes: 'May owe to OKC (top-8 protected, Favors trade)' },
+    { year: 2026, round: 1, type: 'traded', otherTeam: 'OKC', protection: 'Top-8 protected', notes: 'Favors trade' },
     { year: 2026, round: 2, type: 'own' },
     // 2027
     { year: 2027, round: 1, type: 'own' },
@@ -619,7 +620,6 @@ export const NBA_DRAFT_PICKS: Record<number, DraftPickAsset[]> = {
     { year: 2030, round: 2, type: 'own' },
     // 2031
     { year: 2031, round: 1, type: 'own' },
-    { year: 2031, round: 1, type: 'acquired', otherTeam: 'PHX', notes: 'Unprotected (Pick swap with Suns)' },
     { year: 2031, round: 2, type: 'own' },
   ],
 
