@@ -112,6 +112,17 @@ export default function TeamDetailScreen() {
   // Store failed photo URLs to show initials fallback
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
 
+  // Helper to normalize names for matching (remove accents, suffixes, etc.)
+  const normalizeName = useCallback((name: string): string => {
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      .toLowerCase()
+      .replace(/\s+(jr\.?|sr\.?|ii|iii|iv)$/i, '') // Remove suffixes
+      .replace(/[^a-z\s]/g, '') // Remove non-letters except spaces
+      .trim();
+  }, []);
+
   // Helper to get player photo URL from local data
   const getPlayerPhotoUrl = useCallback((firstName: string, lastName: string): string | null => {
     if (!playerDataLoaded) return null;
@@ -119,21 +130,53 @@ export default function TeamDetailScreen() {
     const allPlayers = getAllPlayers();
     if (allPlayers.length === 0) return null;
 
-    const fullName = `${firstName} ${lastName}`.toLowerCase().trim();
+    const normalizedFirst = normalizeName(firstName);
+    const normalizedLast = normalizeName(lastName);
+    const fullName = `${normalizedFirst} ${normalizedLast}`;
 
     // Try exact match first
-    let player = allPlayers.find(p => p.name.toLowerCase().trim() === fullName);
+    let player = allPlayers.find(p => normalizeName(p.name) === fullName);
 
-    // Try last name match if exact fails
+    // Try first initial + last name match
+    if (!player && normalizedFirst.length > 0) {
+      player = allPlayers.find(p => {
+        const normalized = normalizeName(p.name);
+        const parts = normalized.split(' ');
+        if (parts.length < 2) return false;
+        const pFirst = parts[0];
+        const pLast = parts[parts.length - 1];
+        return pFirst[0] === normalizedFirst[0] && pLast === normalizedLast;
+      });
+    }
+
+    // Try last name only match (be more careful - only if unique-ish)
+    if (!player) {
+      const lastNameMatches = allPlayers.filter(p => {
+        const normalized = normalizeName(p.name);
+        const parts = normalized.split(' ');
+        return parts[parts.length - 1] === normalizedLast;
+      });
+      // Only use if there's exactly one match or first name also starts with same letter
+      if (lastNameMatches.length === 1) {
+        player = lastNameMatches[0];
+      } else if (lastNameMatches.length > 1 && normalizedFirst.length > 0) {
+        player = lastNameMatches.find(p => {
+          const normalized = normalizeName(p.name);
+          return normalized.startsWith(normalizedFirst[0]);
+        });
+      }
+    }
+
+    // Try contains match as last resort
     if (!player) {
       player = allPlayers.find(p => {
-        const nameParts = p.name.toLowerCase().split(' ');
-        return nameParts[nameParts.length - 1] === lastName.toLowerCase();
+        const normalized = normalizeName(p.name);
+        return normalized.includes(normalizedLast) && normalized.includes(normalizedFirst);
       });
     }
 
     return player?.photoUrl || null;
-  }, [playerDataLoaded]);
+  }, [playerDataLoaded, normalizeName]);
 
   const handlePhotoError = useCallback((playerId: number) => {
     setFailedPhotos(prev => new Set(prev).add(String(playerId)));
