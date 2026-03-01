@@ -7,6 +7,8 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
+  Modal,
+  TouchableOpacity,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAction, useQuery } from 'convex/react';
@@ -14,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
 import { ContractCard, InjuryBadge, InjuryBadgeLocked, ScoreCard, FutureDraftPicksCard } from '@/components/nba';
+import { PlayerCardContent } from '@/components/player-card/PlayerCardContent';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
 import { NBA_TEAMS } from '@/constants/nbaTeams';
@@ -23,6 +26,7 @@ import { useListsContext } from '@/context/ListsContext';
 import { api } from '@statcheck/convex';
 import { getAllPlayers } from '@/services/playerData';
 import { usePlayerData } from '@/context/PlayerDataContext';
+import type { Player } from '@/types';
 
 interface Game {
   id: number;
@@ -111,6 +115,9 @@ export default function TeamDetailScreen() {
 
   // Store failed photo URLs to show initials fallback
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
+
+  // Selected player for modal
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
   // Helper to normalize names for matching (remove accents, suffixes, etc.)
   const normalizeName = useCallback((name: string): string => {
@@ -514,10 +521,29 @@ export default function TeamDetailScreen() {
                 const playerId = String(pc.player.id);
                 const photoFailed = failedPhotos.has(playerId);
 
+                // Find the player data to create a Player object
+                const fullName = `${pc.player.first_name} ${pc.player.last_name}`;
+                const handlePlayerPress = () => {
+                  const playerObj: Player = {
+                    id: `nba-${pc.player.id}`,
+                    name: fullName,
+                    team: teamInfo?.abbreviation || 'N/A',
+                    position: pc.player.position || 'N/A',
+                    sport: 'NBA',
+                    photoUrl: photoUrl || undefined,
+                  };
+                  setSelectedPlayer(playerObj);
+                };
+
                 return (
                   <Pressable
                     key={pc.player.id}
-                    style={[styles.playerContractRow, isDark && styles.playerContractRowDark]}
+                    style={({ pressed }) => [
+                      styles.playerContractRow,
+                      isDark && styles.playerContractRowDark,
+                      pressed && styles.playerContractRowPressed,
+                    ]}
+                    onPress={handlePlayerPress}
                   >
                     {photoFailed ? (
                       <View style={[styles.contractPlayerPhoto, styles.contractPlayerInitials]}>
@@ -543,9 +569,12 @@ export default function TeamDetailScreen() {
                         {pc.player.position || 'N/A'}
                       </Text>
                     </View>
-                    <Text style={[styles.playerSalary, isDark && styles.textDark]}>
-                      {currentSalaryContract ? formatCurrency(currentSalaryContract.base_salary) : 'N/A'}
-                    </Text>
+                    <View style={styles.salaryContainer}>
+                      <Text style={[styles.playerSalary, isDark && styles.textDark]}>
+                        {currentSalaryContract ? formatCurrency(currentSalaryContract.base_salary) : 'N/A'}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted} />
+                    </View>
                   </Pressable>
                 );
               })}
@@ -563,6 +592,42 @@ export default function TeamDetailScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Player Card Modal */}
+      <Modal
+        visible={!!selectedPlayer}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedPlayer(null)}
+      >
+        <Pressable
+          style={styles.playerModalOverlay}
+          onPress={() => setSelectedPlayer(null)}
+        >
+          <Pressable
+            style={[styles.playerModalContent, isDark && styles.playerModalContentDark]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.playerModalHeader}>
+              <TouchableOpacity
+                onPress={() => setSelectedPlayer(null)}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+                />
+              </TouchableOpacity>
+            </View>
+            {selectedPlayer && (
+              <View style={styles.playerModalScrollWrapper}>
+                <PlayerCardContent player={selectedPlayer} />
+              </View>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </>
   );
 }
@@ -716,16 +781,25 @@ const styles = StyleSheet.create({
   playerContractRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: DesignTokens.spacing.sm,
+    paddingVertical: DesignTokens.spacing.md,
     paddingHorizontal: DesignTokens.spacing.md,
+    marginHorizontal: DesignTokens.spacing.xs,
+    marginVertical: DesignTokens.spacing.xs,
     backgroundColor: DesignTokens.cardBackground,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: DesignTokens.border,
+    borderRadius: DesignTokens.radius.md,
     gap: DesignTokens.spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   playerContractRowDark: {
     backgroundColor: DesignTokens.cardBackgroundDark,
-    borderBottomColor: DesignTokens.borderDark,
+  },
+  playerContractRowPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
   },
   contractPlayerPhoto: {
     width: 40,
@@ -756,10 +830,41 @@ const styles = StyleSheet.create({
     ...Typography.captionSmall,
     color: DesignTokens.textSecondary,
   },
+  salaryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DesignTokens.spacing.xs,
+  },
   playerSalary: {
     ...Typography.headline,
     color: DesignTokens.textPrimary,
     fontVariant: ['tabular-nums'],
+  },
+  // Player Modal Styles
+  playerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playerModalContent: {
+    width: '95%',
+    maxHeight: '90%',
+    backgroundColor: DesignTokens.backgroundSecondary,
+    borderRadius: DesignTokens.radius.xl,
+    overflow: 'hidden',
+  },
+  playerModalContentDark: {
+    backgroundColor: DesignTokens.backgroundSecondaryDark,
+  },
+  playerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: DesignTokens.spacing.md,
+    paddingBottom: 0,
+  },
+  playerModalScrollWrapper: {
+    flex: 1,
   },
   errorText: {
     ...Typography.body,
