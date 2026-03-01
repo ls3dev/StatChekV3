@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
   },
   playerModalContent: {
     width: '95%',
-    maxHeight: '90%',
+    height: '85%',
     backgroundColor: DesignTokens.backgroundSecondary,
     borderRadius: DesignTokens.radius.xl,
     overflow: 'hidden',
@@ -865,6 +865,7 @@ const styles = StyleSheet.create({
   },
   playerModalScrollWrapper: {
     flex: 1,
+    overflow: 'hidden',
   },
   errorText: {
     ...Typography.body,
