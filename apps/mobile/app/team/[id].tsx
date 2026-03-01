@@ -466,11 +466,32 @@ export default function TeamDetailScreen() {
                 const currentSalaryContract = pc.contracts.find(
                   (c) => c.season === currentSeason
                 );
+                const photoUrl = getPlayerPhotoUrl(pc.player.first_name, pc.player.last_name);
+                const initials = `${pc.player.first_name[0]}${pc.player.last_name[0]}`;
+                const playerId = String(pc.player.id);
+                const photoFailed = failedPhotos.has(playerId);
+
                 return (
                   <Pressable
                     key={pc.player.id}
                     style={[styles.playerContractRow, isDark && styles.playerContractRowDark]}
                   >
+                    {photoFailed ? (
+                      <View style={[styles.contractPlayerPhoto, styles.contractPlayerInitials]}>
+                        <Text style={styles.contractInitialsText}>{initials}</Text>
+                      </View>
+                    ) : photoUrl ? (
+                      <Image
+                        source={{ uri: photoUrl }}
+                        style={styles.contractPlayerPhoto}
+                        contentFit="cover"
+                        onError={() => handlePhotoError(pc.player.id)}
+                      />
+                    ) : (
+                      <View style={[styles.contractPlayerPhoto, styles.contractPlayerInitials]}>
+                        <Text style={styles.contractInitialsText}>{initials}</Text>
+                      </View>
+                    )}
                     <View style={styles.playerInfo}>
                       <Text style={[styles.playerName, isDark && styles.textDark]}>
                         {pc.player.first_name} {pc.player.last_name}
@@ -652,16 +673,33 @@ const styles = StyleSheet.create({
   playerContractRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: DesignTokens.spacing.sm,
     paddingHorizontal: DesignTokens.spacing.md,
     backgroundColor: DesignTokens.cardBackground,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: DesignTokens.border,
+    gap: DesignTokens.spacing.sm,
   },
   playerContractRowDark: {
     backgroundColor: DesignTokens.cardBackgroundDark,
     borderBottomColor: DesignTokens.borderDark,
+  },
+  contractPlayerPhoto: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: DesignTokens.cardBackground,
+  },
+  contractPlayerInitials: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: DesignTokens.accentGreen + '20',
+  },
+  contractInitialsText: {
+    ...Typography.body,
+    color: DesignTokens.accentGreen,
+    fontWeight: '700',
+    fontSize: 14,
   },
   playerInfo: {
     flex: 1,

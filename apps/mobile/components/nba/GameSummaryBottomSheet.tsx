@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -24,6 +25,8 @@ import { useAction } from 'convex/react';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
 import { api } from '@statcheck/convex';
+import { getAllPlayers } from '@/services/playerData';
+import { usePlayerData } from '@/context/PlayerDataContext';
 
 interface Team {
   id: number;
@@ -128,14 +131,44 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
   const router = useRouter();
   const translateY = useSharedValue(SHEET_HEIGHT);
   const backdropOpacity = useSharedValue(0);
+  const { isLoaded: playerDataLoaded } = usePlayerData();
 
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'visitor'>('visitor');
   const [boxScore, setBoxScore] = useState<BoxScore | null>(null);
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerBoxScore | null>(null);
 
   const getBoxScore = useAction(api.nba.getBoxScore);
+
+  // Helper to get player photo URL from local data
+  const getPlayerPhotoUrl = useCallback((firstName: string, lastName: string): string | null => {
+    if (!playerDataLoaded) return null;
+
+    const allPlayers = getAllPlayers();
+    if (allPlayers.length === 0) return null;
+
+    const fullName = `${firstName} ${lastName}`.toLowerCase().trim();
+
+    // Try exact match first
+    let player = allPlayers.find(p => p.name.toLowerCase().trim() === fullName);
+
+    // Try last name match if exact fails
+    if (!player) {
+      player = allPlayers.find(p => {
+        const nameParts = p.name.toLowerCase().split(' ');
+        return nameParts[nameParts.length - 1] === lastName.toLowerCase();
+      });
+    }
+
+    return player?.photoUrl || null;
+  }, [playerDataLoaded]);
+
+  const handlePhotoError = useCallback((playerId: number) => {
+    setFailedPhotos(prev => new Set(prev).add(String(playerId)));
+  }, []);
 
   const fetchBoxScore = useCallback(async () => {
     if (!game) return;
@@ -344,17 +377,43 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
   };
 
   const renderPlayerRow = (player: PlayerBoxScore, index: number) => {
-    const isEven = index % 2 === 0;
+    const photoUrl = getPlayerPhotoUrl(player.player.first_name, player.player.last_name);
+    const initials = `${player.player.first_name[0]}${player.player.last_name[0]}`;
+    const playerId = String(player.player.id);
+    const photoFailed = failedPhotos.has(playerId);
+
     return (
-      <View
+      <Pressable
         key={player.player.id}
-        style={[styles.playerRow, isEven && styles.playerRowAlt]}
+        style={({ pressed }) => [
+          styles.playerRow,
+          pressed && styles.playerRowPressed,
+        ]}
+        onPress={() => setSelectedPlayer(player)}
       >
         <View style={styles.playerNameCell}>
-          <Text style={styles.playerName} numberOfLines={1}>
-            {player.player.first_name.charAt(0)}. {player.player.last_name}
-          </Text>
-          <Text style={styles.playerPosition}>{player.player.position}</Text>
+          {photoFailed ? (
+            <View style={[styles.boxScorePlayerPhoto, styles.boxScorePlayerInitials]}>
+              <Text style={styles.boxScoreInitialsText}>{initials}</Text>
+            </View>
+          ) : photoUrl ? (
+            <ExpoImage
+              source={{ uri: photoUrl }}
+              style={styles.boxScorePlayerPhoto}
+              contentFit="cover"
+              onError={() => handlePhotoError(player.player.id)}
+            />
+          ) : (
+            <View style={[styles.boxScorePlayerPhoto, styles.boxScorePlayerInitials]}>
+              <Text style={styles.boxScoreInitialsText}>{initials}</Text>
+            </View>
+          )}
+          <View style={styles.playerNameInfo}>
+            <Text style={styles.playerName} numberOfLines={1}>
+              {player.player.first_name.charAt(0)}. {player.player.last_name}
+            </Text>
+            <Text style={styles.playerPosition}>{player.player.position}</Text>
+          </View>
         </View>
         <Text style={styles.statCell}>{formatMinutes(player.min)}</Text>
         <Text style={[styles.statCell, styles.statCellHighlight]}>{formatStat(player.pts)}</Text>
@@ -369,7 +428,116 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
         <Text style={[styles.statCell, player.plus_minus !== null && player.plus_minus > 0 ? styles.plusMinusPositive : player.plus_minus !== null && player.plus_minus < 0 ? styles.plusMinusNegative : null]}>
           {formatPlusMinus(player.plus_minus)}
         </Text>
-      </View>
+      </Pressable>
+    );
+  };
+
+  // Expanded player stats card
+  const renderPlayerCard = () => {
+    if (!selectedPlayer) return null;
+
+    const photoUrl = getPlayerPhotoUrl(selectedPlayer.player.first_name, selectedPlayer.player.last_name);
+    const initials = `${selectedPlayer.player.first_name[0]}${selectedPlayer.player.last_name[0]}`;
+    const playerId = String(selectedPlayer.player.id);
+    const photoFailed = failedPhotos.has(playerId);
+
+    const fgPct = selectedPlayer.fga > 0 ? ((selectedPlayer.fgm / selectedPlayer.fga) * 100).toFixed(1) : '0.0';
+    const fg3Pct = selectedPlayer.fg3a > 0 ? ((selectedPlayer.fg3m / selectedPlayer.fg3a) * 100).toFixed(1) : '0.0';
+    const ftPct = selectedPlayer.fta > 0 ? ((selectedPlayer.ftm / selectedPlayer.fta) * 100).toFixed(1) : '0.0';
+
+    return (
+      <Modal visible={!!selectedPlayer} transparent animationType="fade" onRequestClose={() => setSelectedPlayer(null)}>
+        <Pressable style={styles.playerCardOverlay} onPress={() => setSelectedPlayer(null)}>
+          <Pressable style={styles.playerCard} onPress={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <View style={styles.playerCardHeader}>
+              {photoFailed ? (
+                <View style={[styles.playerCardPhoto, styles.playerCardPhotoInitials]}>
+                  <Text style={styles.playerCardInitialsText}>{initials}</Text>
+                </View>
+              ) : photoUrl ? (
+                <ExpoImage
+                  source={{ uri: photoUrl }}
+                  style={styles.playerCardPhoto}
+                  contentFit="cover"
+                  onError={() => handlePhotoError(selectedPlayer.player.id)}
+                />
+              ) : (
+                <View style={[styles.playerCardPhoto, styles.playerCardPhotoInitials]}>
+                  <Text style={styles.playerCardInitialsText}>{initials}</Text>
+                </View>
+              )}
+              <View style={styles.playerCardInfo}>
+                <Text style={styles.playerCardName}>
+                  {selectedPlayer.player.first_name} {selectedPlayer.player.last_name}
+                </Text>
+                <Text style={styles.playerCardPosition}>{selectedPlayer.player.position}</Text>
+              </View>
+              <Pressable style={styles.playerCardClose} onPress={() => setSelectedPlayer(null)}>
+                <Text style={styles.playerCardCloseText}>✕</Text>
+              </Pressable>
+            </View>
+
+            {/* Main Stats */}
+            <View style={styles.playerCardMainStats}>
+              <View style={styles.playerCardMainStat}>
+                <Text style={styles.playerCardMainStatValue}>{formatStat(selectedPlayer.pts)}</Text>
+                <Text style={styles.playerCardMainStatLabel}>PTS</Text>
+              </View>
+              <View style={styles.playerCardMainStat}>
+                <Text style={styles.playerCardMainStatValue}>{formatStat(selectedPlayer.reb)}</Text>
+                <Text style={styles.playerCardMainStatLabel}>REB</Text>
+              </View>
+              <View style={styles.playerCardMainStat}>
+                <Text style={styles.playerCardMainStatValue}>{formatStat(selectedPlayer.ast)}</Text>
+                <Text style={styles.playerCardMainStatLabel}>AST</Text>
+              </View>
+              <View style={styles.playerCardMainStat}>
+                <Text style={[
+                  styles.playerCardMainStatValue,
+                  selectedPlayer.plus_minus !== null && selectedPlayer.plus_minus > 0 && styles.plusMinusPositive,
+                  selectedPlayer.plus_minus !== null && selectedPlayer.plus_minus < 0 && styles.plusMinusNegative,
+                ]}>
+                  {formatPlusMinus(selectedPlayer.plus_minus)}
+                </Text>
+                <Text style={styles.playerCardMainStatLabel}>+/-</Text>
+              </View>
+            </View>
+
+            {/* Detailed Stats */}
+            <View style={styles.playerCardDetailedStats}>
+              <View style={styles.playerCardStatRow}>
+                <Text style={styles.playerCardStatLabel}>Minutes</Text>
+                <Text style={styles.playerCardStatValue}>{selectedPlayer.min || '-'}</Text>
+              </View>
+              <View style={styles.playerCardStatRow}>
+                <Text style={styles.playerCardStatLabel}>Field Goals</Text>
+                <Text style={styles.playerCardStatValue}>{selectedPlayer.fgm}-{selectedPlayer.fga} ({fgPct}%)</Text>
+              </View>
+              <View style={styles.playerCardStatRow}>
+                <Text style={styles.playerCardStatLabel}>3-Pointers</Text>
+                <Text style={styles.playerCardStatValue}>{selectedPlayer.fg3m}-{selectedPlayer.fg3a} ({fg3Pct}%)</Text>
+              </View>
+              <View style={styles.playerCardStatRow}>
+                <Text style={styles.playerCardStatLabel}>Free Throws</Text>
+                <Text style={styles.playerCardStatValue}>{selectedPlayer.ftm}-{selectedPlayer.fta} ({ftPct}%)</Text>
+              </View>
+              <View style={styles.playerCardStatRow}>
+                <Text style={styles.playerCardStatLabel}>Steals</Text>
+                <Text style={styles.playerCardStatValue}>{formatStat(selectedPlayer.stl)}</Text>
+              </View>
+              <View style={styles.playerCardStatRow}>
+                <Text style={styles.playerCardStatLabel}>Blocks</Text>
+                <Text style={styles.playerCardStatValue}>{formatStat(selectedPlayer.blk)}</Text>
+              </View>
+              <View style={styles.playerCardStatRow}>
+                <Text style={styles.playerCardStatLabel}>Turnovers</Text>
+                <Text style={styles.playerCardStatValue}>{formatStat(selectedPlayer.turnover)}</Text>
+              </View>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     );
   };
 
@@ -503,7 +671,7 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View>
                       <View style={styles.statsHeader}>
-                        <View style={styles.playerNameCell}>
+                        <View style={styles.statsHeaderNameCell}>
                           <Text style={styles.statsHeaderText}>PLAYER</Text>
                         </View>
                         <Text style={[styles.statCell, styles.statsHeaderText]}>MIN</Text>
@@ -528,6 +696,9 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
             )}
           </Animated.View>
         </GestureDetector>
+
+        {/* Player Stats Card Modal */}
+        {renderPlayerCard()}
       </GestureHandlerRootView>
     </Modal>
   );
@@ -770,31 +941,67 @@ const styles = StyleSheet.create({
   statsScroll: {
     flex: 1,
     marginTop: 16,
+    paddingBottom: 16,
   },
   statsHeader: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.divider,
+    marginBottom: 4,
   },
   statsHeaderText: {
     fontSize: 10,
     fontWeight: '600',
     color: COLORS.textMuted,
   },
+  statsHeaderNameCell: {
+    width: 130,
+    paddingRight: 8,
+  },
   playerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  playerRowAlt: {
+    paddingVertical: 14,
+    marginHorizontal: 8,
+    marginVertical: 4,
+    borderRadius: 12,
     backgroundColor: COLORS.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  playerRowPressed: {
+    backgroundColor: COLORS.cardAlt,
+    transform: [{ scale: 0.98 }],
   },
   playerNameCell: {
-    width: 100,
+    width: 130,
     paddingRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  boxScorePlayerPhoto: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.card,
+  },
+  boxScorePlayerInitials: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.accent + '30',
+  },
+  boxScoreInitialsText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  playerNameInfo: {
+    flex: 1,
   },
   playerName: {
     fontSize: 13,
@@ -821,5 +1028,116 @@ const styles = StyleSheet.create({
   },
   plusMinusNegative: {
     color: COLORS.live,
+  },
+  // Player Card Modal Styles
+  playerCardOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  playerCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 360,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+  playerCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  playerCardPhoto: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.cardAlt,
+  },
+  playerCardPhotoInitials: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.accent + '30',
+  },
+  playerCardInitialsText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
+  playerCardInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  playerCardName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  playerCardPosition: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  playerCardClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.cardAlt,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playerCardCloseText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  playerCardMainStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.divider,
+    marginBottom: 16,
+  },
+  playerCardMainStat: {
+    alignItems: 'center',
+  },
+  playerCardMainStatValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: COLORS.text,
+    fontVariant: ['tabular-nums'],
+  },
+  playerCardMainStatLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+    marginTop: 4,
+  },
+  playerCardDetailedStats: {
+    gap: 12,
+  },
+  playerCardStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  playerCardStatLabel: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  playerCardStatValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    fontVariant: ['tabular-nums'],
   },
 });
