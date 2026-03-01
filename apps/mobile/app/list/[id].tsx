@@ -184,7 +184,6 @@ export default function ListDetailScreen() {
       } else {
         await Share.share({
           message: shareMessage,
-          url: shareUrl, // iOS will use this for rich preview
           title: list.name,
         });
       }

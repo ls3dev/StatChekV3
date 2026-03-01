@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useUser } from '@clerk/clerk-expo';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '@statcheck/convex';
 
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
@@ -75,6 +77,20 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  // Username state
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [isSavingUsername, setIsSavingUsername] = useState(false);
+
+  // Convex queries/mutations for username
+  const convexUser = useQuery(api.users.getCurrentUser);
+  const setUsernameMutation = useMutation(api.users.setUsername);
+  const checkUsernameQuery = useQuery(
+    api.users.checkUsernameAvailable,
+    usernameInput.length >= 3 ? { username: usernameInput } : 'skip'
+  );
+
   // Calculate stats like web profile
   const totalLists = lists.length;
   const totalReceipts = lists.reduce(
@@ -88,6 +104,65 @@ export default function ProfileScreen() {
     name: clerkUser.fullName || clerkUser.firstName || 'User',
     email: clerkUser.primaryEmailAddress?.emailAddress,
   } : null);
+
+  // Get username from Convex user
+  const currentUsername = convexUser?.username;
+
+  // Debounced username validation
+  useEffect(() => {
+    if (usernameInput.length === 0) {
+      setUsernameError(null);
+      return;
+    }
+
+    if (usernameInput.length < 3) {
+      setUsernameError('Username must be at least 3 characters');
+      return;
+    }
+
+    if (usernameInput.length > 20) {
+      setUsernameError('Username must be 20 characters or less');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(usernameInput)) {
+      setUsernameError('Only letters, numbers, and underscores allowed');
+      return;
+    }
+
+    // Check availability from query
+    if (checkUsernameQuery !== undefined) {
+      if (!checkUsernameQuery.available) {
+        setUsernameError('Username is already taken');
+      } else {
+        setUsernameError(null);
+      }
+    }
+  }, [usernameInput, checkUsernameQuery]);
+
+  const handleOpenUsernameModal = useCallback(() => {
+    setUsernameInput(currentUsername || '');
+    setUsernameError(null);
+    setShowUsernameModal(true);
+  }, [currentUsername]);
+
+  const handleSaveUsername = useCallback(async () => {
+    if (usernameError || usernameInput.length < 3) return;
+
+    setIsSavingUsername(true);
+    try {
+      const result = await setUsernameMutation({ username: usernameInput });
+      if (result.success) {
+        setShowUsernameModal(false);
+      } else {
+        setUsernameError(result.error || 'Failed to save username');
+      }
+    } catch (error) {
+      setUsernameError('Failed to save username');
+    } finally {
+      setIsSavingUsername(false);
+    }
+  }, [usernameInput, usernameError, setUsernameMutation]);
 
   const handleToggleTheme = async () => {
     await toggleTheme();
@@ -154,6 +229,34 @@ export default function ProfileScreen() {
             </View>
             {isLoggedIn && displayUser ? (
               <>
+                {/* Username with edit button */}
+                <Pressable
+                  onPress={handleOpenUsernameModal}
+                  style={({ pressed }) => [styles.usernameRow, { opacity: pressed ? 0.7 : 1 }]}
+                >
+                  {currentUsername ? (
+                    <Text
+                      style={[
+                        styles.usernameText,
+                        { color: DesignTokens.accentGreen },
+                      ]}>
+                      @{currentUsername}
+                    </Text>
+                  ) : (
+                    <Text
+                      style={[
+                        styles.usernameText,
+                        { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+                      ]}>
+                      Set username
+                    </Text>
+                  )}
+                  <Ionicons
+                    name="pencil"
+                    size={14}
+                    color={currentUsername ? DesignTokens.accentGreen : (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
+                  />
+                </Pressable>
                 <Text
                   style={[
                     styles.profileName,
@@ -406,6 +509,114 @@ export default function ProfileScreen() {
         </View>
 
       </ScrollView>
+
+      {/* Username Edit Modal */}
+      <Modal
+        visible={showUsernameModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowUsernameModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+                ]}
+              >
+                {currentUsername ? 'Edit Username' : 'Set Username'}
+              </Text>
+              <Pressable onPress={() => setShowUsernameModal(false)}>
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
+                />
+              </Pressable>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text
+                style={[
+                  styles.inputPrefix,
+                  { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+                ]}
+              >
+                @
+              </Text>
+              <TextInput
+                style={[
+                  styles.usernameInput,
+                  {
+                    color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary,
+                    borderColor: usernameError
+                      ? '#EF4444'
+                      : usernameInput.length >= 3 && !usernameError
+                      ? DesignTokens.accentGreen
+                      : isDark
+                      ? DesignTokens.borderDark
+                      : DesignTokens.border,
+                  },
+                ]}
+                value={usernameInput}
+                onChangeText={setUsernameInput}
+                placeholder="username"
+                placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={20}
+              />
+            </View>
+
+            {usernameError && (
+              <Text style={styles.errorText}>{usernameError}</Text>
+            )}
+
+            {usernameInput.length >= 3 && !usernameError && (
+              <Text style={styles.availableText}>Username is available</Text>
+            )}
+
+            <Text
+              style={[
+                styles.usernameHint,
+                { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+              ]}
+            >
+              3-20 characters. Letters, numbers, and underscores only.
+            </Text>
+
+            <Pressable
+              onPress={handleSaveUsername}
+              disabled={isSavingUsername || !!usernameError || usernameInput.length < 3}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+            >
+              <LinearGradient
+                colors={
+                  isSavingUsername || !!usernameError || usernameInput.length < 3
+                    ? ['#9CA3AF', '#9CA3AF']
+                    : ['#7C3AED', '#5B21B6']
+                }
+                style={styles.saveButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                {isSavingUsername ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save Username</Text>
+                )}
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -607,5 +818,78 @@ const styles = StyleSheet.create({
   statLabel: {
     ...Typography.caption,
     textAlign: 'center',
+  },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DesignTokens.spacing.xs,
+    marginBottom: DesignTokens.spacing.xs,
+  },
+  usernameText: {
+    ...Typography.body,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: DesignTokens.radius.xl,
+    borderTopRightRadius: DesignTokens.radius.xl,
+    padding: DesignTokens.spacing.xl,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: DesignTokens.spacing.lg,
+  },
+  modalTitle: {
+    ...Typography.headline,
+    fontSize: 18,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inputPrefix: {
+    ...Typography.bodyLarge,
+    fontWeight: '600',
+    marginRight: DesignTokens.spacing.xs,
+  },
+  usernameInput: {
+    flex: 1,
+    ...Typography.body,
+    borderWidth: 1,
+    borderRadius: DesignTokens.radius.md,
+    paddingHorizontal: DesignTokens.spacing.md,
+    paddingVertical: DesignTokens.spacing.md,
+  },
+  errorText: {
+    ...Typography.caption,
+    color: '#EF4444',
+    marginTop: DesignTokens.spacing.sm,
+  },
+  availableText: {
+    ...Typography.caption,
+    color: DesignTokens.accentGreen,
+    marginTop: DesignTokens.spacing.sm,
+  },
+  usernameHint: {
+    ...Typography.caption,
+    marginTop: DesignTokens.spacing.sm,
+    marginBottom: DesignTokens.spacing.lg,
+  },
+  saveButton: {
+    borderRadius: DesignTokens.radius.lg,
+    paddingVertical: DesignTokens.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    ...Typography.headline,
+    color: '#FFFFFF',
   },
 });

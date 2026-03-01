@@ -45,12 +45,32 @@ const getPositionColor = (position: string) => {
 };
 
 // Generate Basketball Reference URL from player name
-// Format: https://www.basketball-reference.com/players/[first-letter]/[last5][first2]01.html
+// Format: https://www.basketball-reference.com/players/[first-letter]/[last5][first2]XX.html
+// Known conflicts: when multiple players share the same URL pattern, Basketball Reference uses 01, 02, 03, etc.
+const BASKETBALL_REFERENCE_OVERRIDES: Record<string, string> = {
+  'jaylen brown': 'brownja02',      // brownja01 is Jabari Brown
+  'marcus morris': 'morrima03',     // Earlier Marcus Morris players exist
+  'gary payton ii': 'paytoga02',    // Gary Payton Sr is 01
+  'tim hardaway jr.': 'hardati02',  // Tim Hardaway Sr is 01
+  'larry nance jr.': 'nancela02',   // Larry Nance Sr is 01
+  'gary trent jr.': 'trentga02',    // Gary Trent Sr is 01
+  'kenyon martin jr.': 'martike04', // Earlier Kenyon Martins exist
+  'scottie barnes': 'barnesc01',    // Correct - just verifying format
+};
+
 const generateBasketballReferenceUrl = (playerName: string): string => {
   const normalized = playerName
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Remove accents
-    .toLowerCase();
+    .toLowerCase()
+    .trim();
+
+  // Check for known overrides first
+  const override = BASKETBALL_REFERENCE_OVERRIDES[normalized];
+  if (override) {
+    const firstLetter = override[0];
+    return `https://www.basketball-reference.com/players/${firstLetter}/${override}.html`;
+  }
 
   const parts = normalized.split(' ');
   if (parts.length < 2) return '';
@@ -79,22 +99,46 @@ interface BasicStats {
   ft_pct: number;
 }
 
+// Basketball Reference advanced stats
 interface AdvancedStats {
-  true_shooting_percentage: number;
-  usage_percentage: number;
-  net_rating: number;
-  offensive_rating: number;
-  defensive_rating: number;
-  pie: number;
-  pace: number;
-  effective_field_goal_percentage: number;
-  assist_percentage: number;
-  rebound_percentage: number;
-  offensive_rebound_percentage: number;
-  defensive_rebound_percentage: number;
-  turnover_ratio: number;
-  assist_ratio: number;
-  assist_to_turnover: number;
+  season?: string;
+  per?: number;              // Player Efficiency Rating
+  ts_pct?: number;           // True Shooting %
+  efg_pct?: number;          // Effective FG %
+  usg_pct?: number;          // Usage %
+  ows?: number;              // Offensive Win Shares
+  dws?: number;              // Defensive Win Shares
+  ws?: number;               // Win Shares
+  obpm?: number;             // Offensive Box Plus/Minus
+  dbpm?: number;             // Defensive Box Plus/Minus
+  bpm?: number;              // Box Plus/Minus
+  vorp?: number;             // Value Over Replacement Player
+  ast_pct?: number;          // Assist %
+  tov_pct?: number;          // Turnover %
+  orb_pct?: number;          // Offensive Rebound %
+  drb_pct?: number;          // Defensive Rebound %
+  trb_pct?: number;          // Total Rebound %
+  stl_pct?: number;          // Steal %
+  blk_pct?: number;          // Block %
+  // Legacy fields for compatibility
+  true_shooting_percentage?: number;
+  usage_percentage?: number;
+  net_rating?: number;
+  offensive_rating?: number;
+  defensive_rating?: number;
+  pie?: number;
+  per?: number;
+  pace?: number;
+  effective_field_goal_percentage?: number;
+  assist_percentage?: number;
+  rebound_percentage?: number;
+  offensive_rebound_percentage?: number;
+  defensive_rebound_percentage?: number;
+  turnover_ratio?: number;
+  steal_percentage?: number;
+  block_percentage?: number;
+  assist_ratio?: number;
+  assist_to_turnover?: number;
 }
 
 interface Contract {
@@ -232,12 +276,16 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
           setBasicStats(basicResult.stats as unknown as BasicStats);
         }
 
-        // Fetch advanced stats if Pro user (wrapped in try-catch since this can fail)
+        // Fetch advanced stats if Pro user (scraped from Basketball Reference)
         if (isProUser) {
           try {
-            const advancedResult = await getAdvancedStats({ playerId: bdlPlayerId });
+            const advancedResult = await getAdvancedStats({
+              playerId: bdlPlayerId,
+              playerName: player.name,
+            });
             if (advancedResult.stats && !advancedResult.requiresPro) {
-              setAdvancedStats(advancedResult.stats as unknown as AdvancedStats);
+              // Stats come directly from Basketball Reference
+              setAdvancedStats(advancedResult.stats as AdvancedStats);
             }
           } catch (advError) {
             // Advanced stats failed but basic stats still work - don't show error
@@ -380,7 +428,6 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
       // Use native share sheet
       await Share.share({
         message: `Check out ${player.name} on StatCheck!\n${shareUrl}`,
-        url: shareUrl,
         title: `${player.name} - StatCheck`,
       });
     } catch (error) {
@@ -758,23 +805,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
       <AdvancedStatsBottomSheet
         isVisible={showAdvancedStats}
         onDismiss={() => setShowAdvancedStats(false)}
-        stats={advancedStats ? {
-          true_shooting_percentage: advancedStats.true_shooting_percentage,
-          usage_percentage: advancedStats.usage_percentage,
-          net_rating: advancedStats.net_rating,
-          offensive_rating: advancedStats.offensive_rating,
-          defensive_rating: advancedStats.defensive_rating,
-          pie: advancedStats.pie,
-          pace: advancedStats.pace,
-          effective_field_goal_percentage: advancedStats.effective_field_goal_percentage,
-          assist_percentage: advancedStats.assist_percentage,
-          rebound_percentage: advancedStats.rebound_percentage,
-          offensive_rebound_percentage: advancedStats.offensive_rebound_percentage,
-          defensive_rebound_percentage: advancedStats.defensive_rebound_percentage,
-          turnover_ratio: advancedStats.turnover_ratio,
-          assist_ratio: advancedStats.assist_ratio,
-          assist_to_turnover: advancedStats.assist_to_turnover,
-        } : null}
+        stats={advancedStats}
         playerName={player.name}
         isLoading={isLoadingStats && !advancedStats}
       />
