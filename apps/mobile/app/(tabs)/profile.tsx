@@ -253,24 +253,10 @@ export default function ProfileScreen() {
                   )}
                   <Ionicons
                     name="pencil"
-                    size={14}
+                    size={16}
                     color={currentUsername ? DesignTokens.accentGreen : (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
                   />
                 </Pressable>
-                <Text
-                  style={[
-                    styles.profileName,
-                    { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
-                  ]}>
-                  {displayUser.name || 'Sports Fan'}
-                </Text>
-                <Text
-                  style={[
-                    styles.profileSubtitle,
-                    { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
-                  ]}>
-                  {displayUser.email}
-                </Text>
               </>
             ) : (
               <>
@@ -822,12 +808,11 @@ const styles = StyleSheet.create({
   usernameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: DesignTokens.spacing.xs,
-    marginBottom: DesignTokens.spacing.xs,
+    gap: DesignTokens.spacing.sm,
   },
   usernameText: {
-    ...Typography.body,
-    fontWeight: '600',
+    ...Typography.headline,
+    fontSize: 20,
   },
   modalOverlay: {
     flex: 1,
