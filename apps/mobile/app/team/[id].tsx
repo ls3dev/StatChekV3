@@ -209,14 +209,6 @@ export default function TeamDetailScreen() {
     setShowPaywall(true);
   };
 
-  const handleOpenTradeSimulator = () => {
-    if (!isProUser) {
-      setShowPaywall(true);
-      return;
-    }
-    router.push(`/trade-simulator?fromTeamId=${teamId}` as any);
-  };
-
   const formatCurrency = (amount: number) => {
     if (amount >= 1_000_000) {
       return `$${(amount / 1_000_000).toFixed(1)}M`;
@@ -330,21 +322,6 @@ export default function TeamDetailScreen() {
             {teamInfo.city} {teamInfo.name}
           </Text>
         </View>
-
-        <Pressable
-          style={[styles.tradeSimulatorButton, isDark && styles.tradeSimulatorButtonDark]}
-          onPress={handleOpenTradeSimulator}
-        >
-          <Ionicons name="swap-horizontal" size={18} color={DesignTokens.accentGreen} />
-          <Text style={[styles.tradeSimulatorButtonText, isDark && styles.textDark]}>
-            Trade Simulator
-          </Text>
-          {!isProUser && (
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>PRO</Text>
-            </View>
-          )}
-        </Pressable>
 
         {/* Live Games Section */}
         <View style={styles.section}>
@@ -565,29 +542,6 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: DesignTokens.spacing.md,
-  },
-  tradeSimulatorButton: {
-    marginHorizontal: DesignTokens.spacing.md,
-    marginTop: DesignTokens.spacing.md,
-    marginBottom: DesignTokens.spacing.xs,
-    paddingVertical: DesignTokens.spacing.sm,
-    paddingHorizontal: DesignTokens.spacing.md,
-    borderRadius: DesignTokens.radius.md,
-    backgroundColor: DesignTokens.cardBackground,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: DesignTokens.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: DesignTokens.spacing.sm,
-  },
-  tradeSimulatorButtonDark: {
-    backgroundColor: DesignTokens.cardBackgroundDark,
-    borderColor: DesignTokens.borderDark,
-  },
-  tradeSimulatorButtonText: {
-    ...Typography.body,
-    color: DesignTokens.textPrimary,
-    fontWeight: '600',
   },
   sectionHeader: {
     flexDirection: 'row',

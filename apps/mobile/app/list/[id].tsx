@@ -29,7 +29,7 @@ import { usePlayerData } from '@/context/PlayerDataContext';
 import { getPlayerById } from '@/services/playerData';
 import type { Player, PlayerListItem } from '@/types';
 
-const SHARE_BASE_URL = 'https://statcheck.app/list';
+const SHARE_BASE_URL = 'https://www.statcheckapp.com/list';
 
 // Type for player with full data
 type PlayerWithData = PlayerListItem & { player: Player };

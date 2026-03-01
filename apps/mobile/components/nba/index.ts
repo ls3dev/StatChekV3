@@ -7,3 +7,4 @@ export { PlayerStatsCard } from './PlayerStatsCard';
 export { FutureDraftPicksCard } from './FutureDraftPicksCard';
 export { GameSummaryBottomSheet } from './GameSummaryBottomSheet';
 export { AdvancedStatsBottomSheet } from './AdvancedStatsBottomSheet';
+export { TeamsGrid } from './TeamsGrid';

@@ -16,7 +16,7 @@ let mlbPlayers: Player[] | null = null;
 const getPlayersBySport = (sport: Sport): Player[] => {
   switch (sport) {
     case 'NBA':
-      return getAllPlayers(); // Uses centralized service with InteractionManager
+      return getAllPlayers().filter(p => p.sport === 'NBA');
     case 'NFL':
       if (!nflPlayers) {
         // eslint-disable-next-line @typescript-eslint/no-require-imports

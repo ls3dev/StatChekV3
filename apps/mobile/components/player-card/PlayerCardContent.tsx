@@ -375,7 +375,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
         links,
       });
 
-      const shareUrl = `https://statcheck.app/player/${shareId}`;
+      const shareUrl = `https://www.statcheckapp.com/player/${shareId}`;
 
       // Use native share sheet
       await Share.share({

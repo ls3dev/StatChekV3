@@ -9,6 +9,7 @@ import { HeroSearchCard } from '@/components/HeroSearchCard';
 import { LeagueLeadersSection } from '@/components/LeagueLeadersSection';
 import { RecentPlayersSection } from '@/components/RecentPlayersSection';
 import { PlayerCardBottomSheet } from '@/components/player-card';
+import { TeamsGrid } from '@/components/nba';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useRecentPlayers } from '@/context/RecentPlayersContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -77,6 +78,9 @@ export default function HomeScreen() {
 
         {/* League Leaders */}
         <LeagueLeadersSection onPlayerSelect={handlePlayerSelect} />
+
+        {/* NBA Teams Grid */}
+        <TeamsGrid />
       </ScrollView>
 
       {/* Bottom sheet for player details */}
