@@ -202,7 +202,7 @@ export default function ScoresScreen() {
             {selectedSport} Scores Coming Soon
           </Text>
           <Text style={[styles.comingSoonText, isDark && styles.textSecondary]}>
-            We're working on bringing you live {selectedSport} scores. Stay tuned!
+            You can still search for your favorite {selectedSport} player on the Home tab
           </Text>
         </View>
       ) : isLoading ? (

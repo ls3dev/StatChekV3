@@ -13,13 +13,17 @@ import { TeamsGrid } from '@/components/nba';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useRecentPlayers } from '@/context/RecentPlayersContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useSport } from '@/context/SportContext';
 import type { Player } from '@/types';
 
 export default function HomeScreen() {
   const { isDark } = useTheme();
+  const { selectedSport } = useSport();
   const router = useRouter();
   const { recentPlayers, addRecentPlayer, clearRecentPlayers } = useRecentPlayers();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+
+  const isNBA = selectedSport === 'NBA';
 
   const handlePlayerSelect = async (player: Player) => {
     await addRecentPlayer(player);
@@ -76,11 +80,28 @@ export default function HomeScreen() {
           onClear={handleClearRecentPlayers}
         />
 
-        {/* League Leaders */}
-        <LeagueLeadersSection onPlayerSelect={handlePlayerSelect} />
+        {isNBA ? (
+          <>
+            {/* League Leaders */}
+            <LeagueLeadersSection onPlayerSelect={handlePlayerSelect} />
 
-        {/* NBA Teams Grid */}
-        <TeamsGrid />
+            {/* NBA Teams Grid */}
+            <TeamsGrid />
+          </>
+        ) : (
+          /* Coming Soon for NFL/MLB */
+          <View style={styles.comingSoonContainer}>
+            <Text style={[styles.comingSoonEmoji]}>
+              {selectedSport === 'NFL' ? '🏈' : '⚾'}
+            </Text>
+            <Text style={[styles.comingSoonTitle, { color: isDark ? '#FFFFFF' : '#1F2937' }]}>
+              {selectedSport} Coming Soon
+            </Text>
+            <Text style={[styles.comingSoonSubtitle, { color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)' }]}>
+              You can still search for your favorite player using the search above
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* Bottom sheet for player details */}
@@ -121,5 +142,26 @@ const styles = StyleSheet.create({
     ...Typography.headline,
     color: '#FFFFFF',
     fontSize: 16,
+  },
+  comingSoonContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: DesignTokens.spacing.xxl * 2,
+    paddingHorizontal: DesignTokens.spacing.xl,
+  },
+  comingSoonEmoji: {
+    fontSize: 64,
+    marginBottom: DesignTokens.spacing.lg,
+  },
+  comingSoonTitle: {
+    ...Typography.title2,
+    fontWeight: '700',
+    marginBottom: DesignTokens.spacing.sm,
+    textAlign: 'center',
+  },
+  comingSoonSubtitle: {
+    ...Typography.body,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

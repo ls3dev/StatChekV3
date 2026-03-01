@@ -134,7 +134,7 @@ export default function StandingsScreen() {
             {selectedSport} Standings Coming Soon
           </Text>
           <Text style={[styles.comingSoonText, isDark && styles.textSecondary]}>
-            We're working on bringing you {selectedSport} standings. Stay tuned!
+            You can still search for your favorite {selectedSport} player on the Home tab
           </Text>
         </View>
       ) : (

@@ -1,23 +1,23 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  Modal,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
-import { DesignTokens, Typography } from '@/constants/theme';
+import { DesignTokens } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useSport, Sport } from '@/context/SportContext';
 
-const SPORTS: { id: Sport; label: string; icon: string; color: string }[] = [
-  { id: 'NBA', label: 'NBA', icon: '🏀', color: '#F97316' },
-  { id: 'NFL', label: 'NFL', icon: '🏈', color: '#3B82F6' },
-  { id: 'MLB', label: 'MLB', icon: '⚾', color: '#22C55E' },
+const SPORTS: { id: Sport; label: string; icon: string; available: boolean }[] = [
+  { id: 'NBA', label: 'NBA', icon: '🏀', available: true },
+  { id: 'NFL', label: 'NFL', icon: '🏈', available: false },
+  { id: 'MLB', label: 'MLB', icon: '⚾', available: false },
 ];
-
-const SPORT_TAB_WIDTH = 72;
 
 interface SportSelectorProps {
   compact?: boolean;
@@ -26,106 +26,166 @@ interface SportSelectorProps {
 export function SportSelector({ compact = false }: SportSelectorProps) {
   const { isDark } = useTheme();
   const { selectedSport, setSelectedSport } = useSport();
-  const indicatorPosition = useSharedValue(SPORTS.findIndex(s => s.id === selectedSport));
+  const [isOpen, setIsOpen] = useState(false);
 
-  React.useEffect(() => {
-    indicatorPosition.value = withSpring(SPORTS.findIndex(s => s.id === selectedSport), {
-      damping: 20,
-      stiffness: 300,
-    });
-  }, [selectedSport, indicatorPosition]);
+  const selectedSportData = SPORTS.find((s) => s.id === selectedSport) || SPORTS[0];
 
-  const indicatorStyle = useAnimatedStyle(() => {
-    const sportIndex = Math.round(indicatorPosition.value);
-    const currentSport = SPORTS[sportIndex] || SPORTS[0];
+  const handleSelect = (sport: (typeof SPORTS)[number]) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedSport(sport.id);
+    setIsOpen(false);
+  };
 
-    return {
-      transform: [{ translateX: indicatorPosition.value * (SPORT_TAB_WIDTH + 4) }],
-      backgroundColor: currentSport.color,
-    };
-  });
+  const textColor = isDark ? '#FFFFFF' : '#1F2937';
+  const mutedTextColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
 
   return (
-    <View
-      style={[
-        styles.container,
-        compact && styles.containerCompact,
-        {
-          backgroundColor: isDark ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.95)',
-        },
-      ]}
-    >
-      <Animated.View style={[styles.indicator, indicatorStyle]} />
-      <View style={styles.tabsRow}>
-        {SPORTS.map((sport) => {
-          const isSelected = selectedSport === sport.id;
-          return (
-            <Pressable
-              key={sport.id}
-              style={styles.tab}
-              onPress={() => setSelectedSport(sport.id)}
-            >
-              <Text style={styles.tabIcon}>{sport.icon}</Text>
-              <Text
+    <>
+      {/* Dropdown Trigger Button */}
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setIsOpen(true);
+        }}
+        style={[
+          styles.dropdownTrigger,
+          compact && styles.dropdownTriggerCompact,
+          {
+            backgroundColor: isDark ? 'rgba(31, 41, 55, 0.8)' : 'rgba(255, 255, 255, 0.95)',
+          },
+        ]}
+      >
+        <Text style={styles.icon}>{selectedSportData.icon}</Text>
+        <Text style={[styles.label, { color: textColor }]}>{selectedSportData.label}</Text>
+        <Ionicons name="chevron-down" size={16} color={mutedTextColor} />
+      </Pressable>
+
+      {/* Bottom Sheet Modal */}
+      <Modal visible={isOpen} transparent animationType="slide" onRequestClose={() => setIsOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setIsOpen(false)} />
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+            },
+          ]}
+        >
+          <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)' }]} />
+          <Text style={[styles.sheetTitle, { color: textColor }]}>Select Sport</Text>
+
+          {SPORTS.map((sport) => {
+            const isSelected = sport.id === selectedSport;
+            return (
+              <Pressable
+                key={sport.id}
                 style={[
-                  styles.tabLabel,
+                  styles.option,
                   {
-                    color: isSelected
-                      ? '#FFFFFF'
-                      : isDark
-                      ? 'rgba(255,255,255,0.5)'
-                      : 'rgba(0,0,0,0.4)',
-                    fontWeight: isSelected ? '700' : '600',
+                    backgroundColor: isSelected
+                      ? isDark
+                        ? 'rgba(249, 115, 22, 0.15)'
+                        : 'rgba(249, 115, 22, 0.1)'
+                      : 'transparent',
                   },
                 ]}
+                onPress={() => handleSelect(sport)}
               >
-                {sport.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
+                <Text style={styles.optionIcon}>{sport.icon}</Text>
+                <Text
+                  style={[
+                    styles.optionLabel,
+                    {
+                      color: textColor,
+                      fontWeight: isSelected ? '600' : '400',
+                    },
+                  ]}
+                >
+                  {sport.label}
+                </Text>
+                {!sport.available && <Text style={[styles.comingSoon, { color: mutedTextColor }]}>Coming Soon</Text>}
+                {isSelected && <Ionicons name="checkmark" size={20} color="#F97316" style={styles.checkmark} />}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    borderRadius: DesignTokens.radius.xl,
-    padding: 4,
-    alignSelf: 'center',
-    marginVertical: DesignTokens.spacing.sm,
-  },
-  containerCompact: {
-    marginVertical: DesignTokens.spacing.xs,
-  },
-  indicator: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    width: SPORT_TAB_WIDTH,
-    height: 36,
-    borderRadius: DesignTokens.radius.lg,
-  },
-  tabsRow: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  tab: {
-    width: SPORT_TAB_WIDTH,
+  dropdownTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    alignSelf: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: DesignTokens.radius.lg,
-    gap: 4,
+    paddingHorizontal: 14,
+    borderRadius: DesignTokens.radius.xl,
+    gap: 6,
+    marginVertical: DesignTokens.spacing.sm,
   },
-  tabIcon: {
+  dropdownTriggerCompact: {
+    marginVertical: DesignTokens.spacing.xs,
+  },
+  icon: {
+    fontSize: 16,
+  },
+  label: {
     fontSize: 14,
-  },
-  tabLabel: {
-    fontSize: 13,
+    fontWeight: '600',
     letterSpacing: 0.3,
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: DesignTokens.radius.xl,
+    borderTopRightRadius: DesignTokens.radius.xl,
+    paddingTop: 12,
+    paddingBottom: 40,
+    paddingHorizontal: 16,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: DesignTokens.radius.lg,
+    marginBottom: 4,
+  },
+  optionIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  optionLabel: {
+    fontSize: 16,
+    flex: 1,
+  },
+  comingSoon: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  checkmark: {
+    marginLeft: 'auto',
   },
 });
