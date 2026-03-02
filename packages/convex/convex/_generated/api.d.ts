@@ -10,6 +10,7 @@
 
 import type * as http from "../http.js";
 import type * as lib_balldontlie from "../lib/balldontlie.js";
+import type * as lib_basketballReference from "../lib/basketballReference.js";
 import type * as nba from "../nba.js";
 import type * as playerLinks from "../playerLinks.js";
 import type * as proWebhook from "../proWebhook.js";
@@ -31,6 +32,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/balldontlie": typeof lib_balldontlie;
+  "lib/basketballReference": typeof lib_basketballReference;
   nba: typeof nba;
   playerLinks: typeof playerLinks;
   proWebhook: typeof proWebhook;

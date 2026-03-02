@@ -31,7 +31,8 @@ import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { SportProvider } from '@/context/SportContext';
 import { AuthPromptModal } from '@/components/auth/AuthPromptModal';
-import { PaywallModal } from '@/components/PaywallModal';
+import { PaywallProvider } from '@/context/PaywallContext';
+import { PaywallBottomSheet } from '@/components/PaywallBottomSheet';
 
 export const unstable_settings = {
   // Start with auth flow, will redirect to tabs after onboarding/auth
@@ -144,7 +145,7 @@ function RootLayoutNav() {
                 <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
               </Stack>
               <AuthPromptModal />
-              <PaywallModal />
+              <PaywallBottomSheet />
               <StatusBar style={isDark ? 'light' : 'dark'} />
             </RecentPlayersProvider>
           </PlayerLinksProvider>
@@ -160,6 +161,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ConvexProviderWrapper>
           <RevenueCatProvider>
+            <PaywallProvider>
             <AuthProvider>
               <ThemeProvider>
                 <SportProvider>
@@ -167,6 +169,7 @@ export default function RootLayout() {
                 </SportProvider>
               </ThemeProvider>
             </AuthProvider>
+            </PaywallProvider>
           </RevenueCatProvider>
         </ConvexProviderWrapper>
       </SafeAreaProvider>

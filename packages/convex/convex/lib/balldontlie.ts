@@ -91,12 +91,38 @@ export interface BDLSeasonAverages {
   dreb: number;
 }
 
+// API response fields for per-game advanced stats
+interface BDLAdvancedStatsGame {
+  id: number;
+  pie: number;
+  pace: number;
+  usage_percentage: number;
+  true_shooting_percentage: number;
+  effective_field_goal_percentage: number;
+  assist_percentage: number;
+  assist_ratio: number;
+  assist_to_turnover: number;
+  rebound_percentage: number;
+  offensive_rebound_percentage: number;
+  defensive_rebound_percentage: number;
+  steal_percentage?: number;
+  block_percentage?: number;
+  turnover_ratio: number;
+  net_rating: number;
+  offensive_rating: number;
+  defensive_rating: number;
+  player: BDLPlayer;
+  team: BDLTeam;
+  game: BDLGame;
+}
+
+// Aggregated season averages (what we return)
 export interface BDLAdvancedStats {
   player_id: number;
   season: number;
   pie: number; // Player Impact Estimate
   pace: number;
-  per: number; // Player Efficiency Rating
+  per: number; // Player Efficiency Rating (not in API, calculated)
   usg_pct: number; // Usage Rate
   ts_pct: number; // True Shooting %
   efg_pct: number; // Effective FG%
@@ -373,6 +399,7 @@ class BallDontLieClient {
 
   /**
    * Get advanced season averages for a player
+   * NOTE: The API returns per-game stats, so we aggregate them into season averages
    * Cache: 1 hour
    * Requires: Pro
    */
@@ -381,14 +408,81 @@ class BallDontLieClient {
     season?: number
   ): Promise<BDLAdvancedStats | null> {
     try {
-      const response = await this.fetch<BDLPaginatedResponse<BDLAdvancedStats>>(
+      const targetSeason = season ?? getCurrentNBASeason();
+      const response = await this.fetch<BDLPaginatedResponse<BDLAdvancedStatsGame>>(
         "/stats/advanced",
         {
           "player_ids[]": playerId,
-          season: season ?? getCurrentNBASeason(),
+          season: targetSeason,
+          per_page: 100, // Get more games for better averaging
         }
       );
-      return response.data[0] ?? null;
+
+      const games = response.data;
+      if (!games || games.length === 0) {
+        return null;
+      }
+
+      // Aggregate all game stats into season averages
+      const numGames = games.length;
+      const sum = games.reduce(
+        (acc, game) => ({
+          pie: acc.pie + (game.pie || 0),
+          pace: acc.pace + (game.pace || 0),
+          usg_pct: acc.usg_pct + (game.usage_percentage || 0),
+          ts_pct: acc.ts_pct + (game.true_shooting_percentage || 0),
+          efg_pct: acc.efg_pct + (game.effective_field_goal_percentage || 0),
+          ast_pct: acc.ast_pct + (game.assist_percentage || 0),
+          reb_pct: acc.reb_pct + (game.rebound_percentage || 0),
+          oreb_pct: acc.oreb_pct + (game.offensive_rebound_percentage || 0),
+          dreb_pct: acc.dreb_pct + (game.defensive_rebound_percentage || 0),
+          stl_pct: acc.stl_pct + (game.steal_percentage || 0),
+          blk_pct: acc.blk_pct + (game.block_percentage || 0),
+          tov_pct: acc.tov_pct + (game.turnover_ratio || 0),
+          net_rating: acc.net_rating + (game.net_rating || 0),
+          off_rating: acc.off_rating + (game.offensive_rating || 0),
+          def_rating: acc.def_rating + (game.defensive_rating || 0),
+        }),
+        {
+          pie: 0,
+          pace: 0,
+          usg_pct: 0,
+          ts_pct: 0,
+          efg_pct: 0,
+          ast_pct: 0,
+          reb_pct: 0,
+          oreb_pct: 0,
+          dreb_pct: 0,
+          stl_pct: 0,
+          blk_pct: 0,
+          tov_pct: 0,
+          net_rating: 0,
+          off_rating: 0,
+          def_rating: 0,
+        }
+      );
+
+      // Return averaged stats (PER is not available from API)
+      return {
+        player_id: playerId,
+        season: targetSeason,
+        pie: sum.pie / numGames,
+        pace: sum.pace / numGames,
+        per: 0, // PER not available from this endpoint
+        usg_pct: sum.usg_pct / numGames,
+        ts_pct: sum.ts_pct / numGames,
+        efg_pct: sum.efg_pct / numGames,
+        ast_pct: sum.ast_pct / numGames,
+        reb_pct: sum.reb_pct / numGames,
+        oreb_pct: sum.oreb_pct / numGames,
+        dreb_pct: sum.dreb_pct / numGames,
+        stl_pct: sum.stl_pct / numGames,
+        blk_pct: sum.blk_pct / numGames,
+        tov_pct: sum.tov_pct / numGames,
+        net_rating: sum.net_rating / numGames,
+        off_rating: sum.off_rating / numGames,
+        def_rating: sum.def_rating / numGames,
+      };
     } catch (error) {
       // Advanced stats endpoint may not be available for all players
       console.warn("Advanced stats not available:", error);

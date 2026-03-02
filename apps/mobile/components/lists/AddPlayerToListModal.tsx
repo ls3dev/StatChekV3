@@ -55,6 +55,7 @@ export function AddPlayerToListModal({ visible, onClose, player }: AddPlayerToLi
   };
 
   const availableLists = lists.filter((list) => !isPlayerInList(list.id, player.id));
+  const listsWithPlayer = lists.filter((list) => isPlayerInList(list.id, player.id));
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
@@ -120,6 +121,7 @@ export function AddPlayerToListModal({ visible, onClose, player }: AddPlayerToLi
             <>
               {/* Lists */}
               <ScrollView style={styles.listsContainer} showsVerticalScrollIndicator={false}>
+                {/* Lists where player can be added */}
                 {availableLists.length > 0 ? (
                   availableLists.map((list) => (
                     <ListOption
@@ -130,18 +132,40 @@ export function AddPlayerToListModal({ visible, onClose, player }: AddPlayerToLi
                       isDark={isDark}
                     />
                   ))
-                ) : (
+                ) : lists.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Text
                       style={[
                         styles.emptyText,
                         { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
                       ]}>
-                      {lists.length === 0
-                        ? 'No lists yet. Create one below!'
-                        : 'Player is already in all your lists.'}
+                      No lists yet. Create one below!
                     </Text>
                   </View>
+                ) : null}
+
+                {/* Lists where player is already added */}
+                {listsWithPlayer.length > 0 && (
+                  <>
+                    {availableLists.length > 0 && (
+                      <View
+                        style={[
+                          styles.alreadyAddedDivider,
+                          { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
+                        ]}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        styles.alreadyAddedLabel,
+                        { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+                      ]}>
+                      Already in these lists
+                    </Text>
+                    {listsWithPlayer.map((list) => (
+                      <AlreadyInListItem key={list.id} list={list} isDark={isDark} />
+                    ))}
+                  </>
                 )}
               </ScrollView>
 
@@ -327,6 +351,53 @@ function ListOption({
   );
 }
 
+// Already in list item component (non-selectable)
+function AlreadyInListItem({
+  list,
+  isDark,
+}: {
+  list: PlayerList;
+  isDark: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.listOption,
+        styles.alreadyInListItem,
+        {
+          backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+          borderColor: 'transparent',
+        },
+      ]}>
+      <View style={styles.listOptionContent}>
+        <Ionicons
+          name="checkmark-circle"
+          size={20}
+          color={DesignTokens.accentGreen}
+        />
+        <View style={styles.listOptionInfo}>
+          <Text
+            style={[
+              styles.listOptionName,
+              { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+            ]}
+            numberOfLines={1}>
+            {list.name}
+          </Text>
+          <Text
+            style={[
+              styles.listOptionMeta,
+              { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+            ]}>
+            {list.players.length} player{list.players.length !== 1 ? 's' : ''}
+          </Text>
+        </View>
+      </View>
+      <Text style={[styles.addedBadge, { color: DesignTokens.accentGreen }]}>Added</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -363,7 +434,7 @@ const styles = StyleSheet.create({
     ...Typography.caption,
   },
   listsContainer: {
-    maxHeight: 200,
+    maxHeight: 280,
   },
   listOption: {
     flexDirection: 'row',
@@ -486,5 +557,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     ...Typography.headline,
     fontSize: 15,
+  },
+  alreadyInListItem: {
+    opacity: 0.7,
+  },
+  alreadyAddedDivider: {
+    height: 1,
+    marginVertical: DesignTokens.spacing.md,
+  },
+  alreadyAddedLabel: {
+    ...Typography.caption,
+    fontWeight: '600',
+    marginBottom: DesignTokens.spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  addedBadge: {
+    ...Typography.caption,
+    fontWeight: '600',
   },
 });

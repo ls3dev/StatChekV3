@@ -22,11 +22,13 @@ import Animated, {
 import { useRouter } from 'expo-router';
 import { useAction } from 'convex/react';
 
+import { Ionicons } from '@expo/vector-icons';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
 import { api } from '@statcheck/convex';
 import { getAllPlayers } from '@/services/playerData';
 import { usePlayerData } from '@/context/PlayerDataContext';
+import type { Player } from '@/types';
 
 interface Team {
   id: number;
@@ -106,6 +108,7 @@ type GameSummaryBottomSheetProps = {
   game: Game | null;
   isVisible: boolean;
   onDismiss: () => void;
+  onOpenFullPlayerCard?: (player: Player) => void;
 };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -127,7 +130,7 @@ const COLORS = {
   tabInactive: '#8E8E93',
 };
 
-export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSummaryBottomSheetProps) {
+export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullPlayerCard }: GameSummaryBottomSheetProps) {
   const router = useRouter();
   const translateY = useSharedValue(SHEET_HEIGHT);
   const backdropOpacity = useSharedValue(0);
@@ -140,6 +143,7 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
   const [error, setError] = useState<string | null>(null);
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerBoxScore | null>(null);
+  const [fullPlayerCard, setFullPlayerCard] = useState<Player | null>(null);
 
   const getBoxScore = useAction(api.nba.getBoxScore);
 
@@ -289,6 +293,20 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
   const backdropAnimatedStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
   }));
+
+  const constructPlayerFromBoxScore = useCallback((boxPlayer: PlayerBoxScore): Player => {
+    const teamData = selectedTeam === 'home' ? game!.home_team : game!.visitor_team;
+    const photoUrl = getPlayerPhotoUrl(boxPlayer.player.first_name, boxPlayer.player.last_name);
+    return {
+      id: `nba-${boxPlayer.player.id}`,
+      name: `${boxPlayer.player.first_name} ${boxPlayer.player.last_name}`,
+      sport: 'NBA',
+      team: teamData.abbreviation,
+      position: boxPlayer.player.position,
+      number: '',
+      photoUrl: photoUrl ?? undefined,
+    };
+  }, [selectedTeam, game, getPlayerPhotoUrl]);
 
   const handleTeamPress = (teamId: number) => {
     onDismiss();
@@ -489,7 +507,7 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
     const ftPct = selectedPlayer.fta > 0 ? ((selectedPlayer.ftm / selectedPlayer.fta) * 100).toFixed(1) : '0.0';
 
     return (
-      <Modal visible={!!selectedPlayer} transparent animationType="fade" onRequestClose={() => setSelectedPlayer(null)}>
+      <View style={[StyleSheet.absoluteFill, { zIndex: 100 }]} pointerEvents="box-none">
         <Pressable style={styles.playerCardOverlay} onPress={() => setSelectedPlayer(null)}>
           <Pressable style={styles.playerCard} onPress={(e) => e.stopPropagation()}>
             {/* Header */}
@@ -578,9 +596,23 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
                 <Text style={styles.playerCardStatValue}>{formatStat(selectedPlayer.turnover)}</Text>
               </View>
             </View>
+
+            {/* View Full Profile Button */}
+            <Pressable
+              style={styles.viewFullProfileButton}
+              onPress={() => {
+                const player = constructPlayerFromBoxScore(selectedPlayer);
+                setSelectedPlayer(null);
+                onDismiss();
+                onOpenFullPlayerCard?.(player);
+              }}
+            >
+              <Text style={styles.viewFullProfileText}>View Full Profile</Text>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.accent} />
+            </Pressable>
           </Pressable>
         </Pressable>
-      </Modal>
+      </View>
     );
   };
 
@@ -740,8 +772,8 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss }: GameSumma
           </Animated.View>
         </GestureDetector>
 
-        {/* Player Stats Card Modal */}
-        {renderPlayerCard()}
+        {/* Player Stats Card Overlay */}
+        {selectedPlayer && renderPlayerCard()}
       </GestureHandlerRootView>
     </Modal>
   );
@@ -1182,5 +1214,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     fontVariant: ['tabular-nums'],
+  },
+  viewFullProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    marginTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.divider,
+    gap: 6,
+  },
+  viewFullProfileText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.accent,
   },
 });

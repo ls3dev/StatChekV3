@@ -111,7 +111,7 @@ export function PlayerCardBottomSheet({ player, isVisible, onDismiss }: PlayerCa
 
             {/* Player card content */}
             <View style={styles.cardWrapper}>
-              <PlayerCardContent player={player} />
+              <PlayerCardContent player={player} onDismiss={onDismiss} />
             </View>
           </Animated.View>
         </GestureDetector>

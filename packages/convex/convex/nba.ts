@@ -17,6 +17,11 @@ import {
   type BDLBoxScore,
   type BDLPlayerBoxScore,
 } from "./lib/balldontlie";
+import {
+  fetchBBRefAdvancedStats,
+  getCurrentSeasonString,
+  type BBRefAdvancedStats,
+} from "./lib/basketballReference";
 
 // ========================================
 // Internal Queries (for cache lookups)
@@ -292,8 +297,25 @@ export const _upsertDraftPicks = internalMutation({
 export const _checkProStatus = internalQuery({
   args: {},
   handler: async (ctx) => {
-    // TODO: Temporarily bypassing pro check - all users are pro
-    return { isProUser: true };
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { isProUser: false };
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) {
+      return { isProUser: false };
+    }
+
+    const isProUser =
+      user.isProUser === true &&
+      (!user.proExpiresAt || user.proExpiresAt > Date.now());
+
+    return { isProUser };
   },
 });
 
@@ -471,14 +493,19 @@ export const getLeaders = action({
 
 /**
  * Get advanced player stats (PRO)
+ * Scrapes from Basketball Reference for accurate current season data
  */
 export const getAdvancedStats = action({
-  args: { playerId: v.number(), season: v.optional(v.number()) },
+  args: {
+    playerId: v.number(),
+    playerName: v.string(),
+    season: v.optional(v.string()),
+  },
   handler: async (
     ctx,
     args
   ): Promise<{
-    stats: BDLAdvancedStats | null;
+    stats: BBRefAdvancedStats | null;
     cachedAt: number;
     requiresPro: boolean;
   }> => {
@@ -488,40 +515,41 @@ export const getAdvancedStats = action({
       return { stats: null, cachedAt: 0, requiresPro: true };
     }
 
-    const season = args.season ?? getCurrentNBASeason();
+    const season = args.season ?? getCurrentSeasonString();
+    const numericSeason = getCurrentNBASeason();
 
-    // Check cache
+    // Check cache first
     const cached = await ctx.runQuery(internal.nba._getPlayerStatsCache, {
       playerId: args.playerId,
-      season,
+      season: numericSeason,
     });
 
-    if (
-      cached?.data?.advanced &&
-      isCacheValid(cached.cachedAt, CACHE_TTL.SEASON_AVERAGES)
-    ) {
-      return {
-        stats: cached.data.advanced as BDLAdvancedStats,
-        cachedAt: cached.cachedAt,
-        requiresPro: false,
-      };
-    }
+    // Skip BBRef cache - force fresh fetch to fix stale data
+    // TODO: Re-enable after all users have fresh data
+    // if (
+    //   cached?.data?.bbrefAdvanced &&
+    //   isCacheValid(cached.cachedAt, CACHE_TTL.SEASON_AVERAGES)
+    // ) {
+    //   return {
+    //     stats: cached.data.bbrefAdvanced as BBRefAdvancedStats,
+    //     cachedAt: cached.cachedAt,
+    //     requiresPro: false,
+    //   };
+    // }
 
-    // Fetch from API
-    const apiKey = process.env.BALLDONTLIE_API_KEY;
-    if (!apiKey) {
-      throw new Error("BALLDONTLIE_API_KEY not configured");
-    }
+    // Fetch from Basketball Reference
+    const stats = await fetchBBRefAdvancedStats(args.playerName, season);
 
-    const client = createBallDontLieClient(apiKey);
-    const stats = await client.getAdvancedStats(args.playerId, season);
+    if (!stats) {
+      return { stats: null, cachedAt: Date.now(), requiresPro: false };
+    }
 
     // Update cache
     const existingCache = cached?.data ?? {};
     await ctx.runMutation(internal.nba._upsertPlayerStatsCache, {
       playerId: args.playerId,
-      season,
-      data: { ...existingCache, advanced: stats },
+      season: numericSeason,
+      data: { ...existingCache, bbrefAdvanced: stats },
     });
 
     return { stats, cachedAt: Date.now(), requiresPro: false };
@@ -731,11 +759,17 @@ export const searchPlayerByName = action({
 
     const client = createBallDontLieClient(apiKey);
 
-    // BDL API works better with last name for unique matches
+    // Search with full name first for better accuracy, fallback to last name
     const nameParts = args.name.trim().split(/\s+/);
-    const searchTerm = nameParts.length > 1 ? nameParts[nameParts.length - 1] : args.name;
 
-    const results = await client.searchPlayers(searchTerm, 10);
+    // Try full name first
+    let results = await client.searchPlayers(args.name.trim(), 25);
+
+    // If no results with full name, try last name only
+    if (results.data.length === 0 && nameParts.length > 1) {
+      const lastName = nameParts[nameParts.length - 1];
+      results = await client.searchPlayers(lastName, 25);
+    }
 
     // Find best match - prefer exact name match
     const normalizedInput = args.name.toLowerCase().trim();

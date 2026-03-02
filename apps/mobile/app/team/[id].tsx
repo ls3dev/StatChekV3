@@ -22,7 +22,7 @@ import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
 import { NBA_TEAMS } from '@/constants/nbaTeams';
 import { useTheme } from '@/context/ThemeContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
-import { useListsContext } from '@/context/ListsContext';
+import { usePaywall } from '@/context/PaywallContext';
 import { api } from '@statcheck/convex';
 import { getAllPlayers } from '@/services/playerData';
 import { usePlayerData } from '@/context/PlayerDataContext';
@@ -91,7 +91,7 @@ export default function TeamDetailScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const { isProUser } = useRevenueCat();
-  const { setShowPaywall } = useListsContext();
+  const { openPaywall } = usePaywall();
   const { isLoaded: playerDataLoaded } = usePlayerData();
 
   const teamId = parseInt(id || '0', 10);
@@ -256,7 +256,7 @@ export default function TeamDetailScreen() {
   }, [fetchData]);
 
   const handleUnlockPress = () => {
-    setShowPaywall(true);
+    openPaywall();
   };
 
   const formatCurrency = (amount: number) => {
@@ -409,17 +409,15 @@ export default function TeamDetailScreen() {
           <View style={styles.sectionHeader}>
             <Ionicons name="medical" size={20} color={DesignTokens.accentGreen} />
             <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Injury Report</Text>
-            {!injuriesRequiresPro && (
-              <View style={styles.proBadge}>
-                <Text style={styles.proBadgeText}>PRO</Text>
-              </View>
-            )}
+            <View style={styles.proBadge}>
+              <Text style={styles.proBadgeText}>PRO</Text>
+            </View>
           </View>
 
-          {isLoadingInjuries ? (
-            <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
-          ) : injuriesRequiresPro ? (
+          {!isProUser || injuriesRequiresPro ? (
             <InjuryBadgeLocked onUnlockPress={handleUnlockPress} />
+          ) : isLoadingInjuries ? (
+            <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
           ) : injuries.length === 0 ? (
             <View style={[styles.emptyCard, isDark && styles.emptyCardDark]}>
               <Ionicons name="checkmark-circle" size={24} color={DesignTokens.accentSuccess} />
@@ -477,17 +475,15 @@ export default function TeamDetailScreen() {
           <View style={styles.sectionHeader}>
             <Ionicons name="document-text" size={20} color={DesignTokens.accentGreen} />
             <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Team Payroll</Text>
-            {!contractsRequiresPro && (
-              <View style={styles.proBadge}>
-                <Text style={styles.proBadgeText}>PRO</Text>
-              </View>
-            )}
+            <View style={styles.proBadge}>
+              <Text style={styles.proBadgeText}>PRO</Text>
+            </View>
           </View>
 
-          {isLoadingContracts ? (
-            <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
-          ) : contractsRequiresPro ? (
+          {!isProUser || contractsRequiresPro ? (
             <ContractCard contracts={[]} isLocked onUnlockPress={handleUnlockPress} />
+          ) : isLoadingContracts ? (
+            <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
           ) : (
             <>
               {/* Team Summary */}
@@ -622,7 +618,7 @@ export default function TeamDetailScreen() {
             </View>
             {selectedPlayer && (
               <View style={styles.playerModalScrollWrapper}>
-                <PlayerCardContent player={selectedPlayer} />
+                <PlayerCardContent player={selectedPlayer} onDismiss={() => setSelectedPlayer(null)} />
               </View>
             )}
           </View>

@@ -15,16 +15,18 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   withSpring,
-  runOnJS,
+  useDerivedValue,
 } from 'react-native-reanimated';
 import { ONBOARDING_SLIDES } from '@/constants/onboarding';
 import { OnboardingSlide } from '@/components/onboarding/OnboardingSlide';
+import { OnboardingPaywallSlide } from '@/components/onboarding/OnboardingPaywallSlide';
 import { OnboardingPagination } from '@/components/onboarding/OnboardingPagination';
 import { setOnboardingComplete } from '@/utils/storage';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const TOTAL_SLIDES = ONBOARDING_SLIDES.length + 1; // +1 for paywall slide
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -53,9 +55,14 @@ export default function OnboardingScreen() {
     router.replace('/(tabs)');
   };
 
+  const isOnPaywallSlide = useDerivedValue(() => {
+    return currentIndex.value === TOTAL_SLIDES - 1;
+  });
+
   const handleNext = () => {
-    const nextIndex = Math.min(currentIndex.value + 1, ONBOARDING_SLIDES.length - 1);
+    const nextIndex = Math.min(currentIndex.value + 1, TOTAL_SLIDES - 1);
     if (nextIndex === currentIndex.value) {
+      // On last slide (paywall) — complete onboarding
       handleComplete();
     } else {
       scrollRef.current?.scrollTo({
@@ -66,9 +73,24 @@ export default function OnboardingScreen() {
   };
 
   const buttonAnimatedStyle = useAnimatedStyle(() => {
-    const isLastSlide = currentIndex.value === ONBOARDING_SLIDES.length - 1;
+    const isLast = currentIndex.value === TOTAL_SLIDES - 1;
     return {
-      transform: [{ scale: withSpring(isLastSlide ? 1.05 : 1) }],
+      transform: [{ scale: withSpring(isLast ? 1.05 : 1) }],
+    };
+  });
+
+  const buttonTextAnimatedStyle = useAnimatedStyle(() => {
+    // We can't animate text content, so we'll handle this with two overlapping texts
+    const isLast = currentIndex.value === TOTAL_SLIDES - 1;
+    return {
+      opacity: isLast ? 0 : 1,
+    };
+  });
+
+  const getStartedTextAnimatedStyle = useAnimatedStyle(() => {
+    const isLast = currentIndex.value === TOTAL_SLIDES - 1;
+    return {
+      opacity: isLast ? 1 : 0,
     };
   });
 
@@ -112,13 +134,17 @@ export default function OnboardingScreen() {
               scrollX={scrollX}
             />
           ))}
+          <OnboardingPaywallSlide
+            index={ONBOARDING_SLIDES.length}
+            scrollX={scrollX}
+          />
         </Animated.ScrollView>
       </View>
 
       {/* Bottom section */}
       <View style={[styles.bottomSection, { paddingBottom: insets.bottom + DesignTokens.spacing.xl }]}>
         <OnboardingPagination
-          totalSlides={ONBOARDING_SLIDES.length}
+          totalSlides={TOTAL_SLIDES}
           scrollX={scrollX}
         />
 
@@ -130,7 +156,10 @@ export default function OnboardingScreen() {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.buttonText}>Continue</Text>
+              <View style={styles.buttonTextContainer}>
+                <Animated.Text style={[styles.buttonText, buttonTextAnimatedStyle]}>Continue</Animated.Text>
+                <Animated.Text style={[styles.buttonText, styles.buttonTextOverlay, getStartedTextAnimatedStyle]}>Get Started</Animated.Text>
+              </View>
             </LinearGradient>
           </Pressable>
         </Animated.View>
@@ -172,8 +201,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  buttonTextContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   buttonText: {
     ...Typography.headline,
     color: '#FFFFFF',
+  },
+  buttonTextOverlay: {
+    position: 'absolute',
   },
 });

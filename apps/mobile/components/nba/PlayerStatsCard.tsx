@@ -1,9 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { AdvancedStatsSection, type AdvancedStats as FullAdvancedStats } from './AdvancedStatsSection';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface BasicStats {
   games_played: number;
@@ -36,6 +41,9 @@ interface PlayerStatsCardProps {
   isProUser?: boolean;
   onUnlockPress?: () => void;
   onAdvancedPress?: () => void;
+  isAdvancedExpanded?: boolean;
+  fullAdvancedStats?: FullAdvancedStats | null;
+  isAdvancedLoading?: boolean;
 }
 
 interface StatItemProps {
@@ -64,6 +72,9 @@ export function PlayerStatsCard({
   isProUser = false,
   onUnlockPress,
   onAdvancedPress,
+  isAdvancedExpanded = false,
+  fullAdvancedStats,
+  isAdvancedLoading = false,
 }: PlayerStatsCardProps) {
   const { isDark } = useTheme();
 
@@ -170,28 +181,45 @@ export function PlayerStatsCard({
 
       {/* Advanced Stats Section */}
       {isProUser ? (
-        <Pressable style={styles.advancedButtonWrapper} onPress={onAdvancedPress}>
-          <LinearGradient
-            colors={['#7C3AED', '#5B21B6']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.advancedButton}
+        <>
+          <Pressable
+            style={styles.advancedButtonWrapper}
+            onPress={() => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              onAdvancedPress?.();
+            }}
           >
-            <View style={styles.advancedButtonContent}>
-              <View style={styles.advancedIconContainer}>
-                <Ionicons name="stats-chart" size={24} color="#FFFFFF" />
+            <LinearGradient
+              colors={['#7C3AED', '#5B21B6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.advancedButton}
+            >
+              <View style={styles.advancedButtonContent}>
+                <View style={styles.advancedIconContainer}>
+                  <Ionicons name="stats-chart" size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.advancedTextContainer}>
+                  <Text style={styles.advancedButtonTitle}>Advanced Stats</Text>
+                  <Text style={styles.advancedButtonSubtitle}>PER, TS%, Win Shares & more</Text>
+                </View>
+                <View style={styles.advancedProBadge}>
+                  <Text style={styles.advancedProBadgeText}>PRO</Text>
+                </View>
+                <Ionicons
+                  name={isAdvancedExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={24}
+                  color="rgba(255,255,255,0.8)"
+                />
               </View>
-              <View style={styles.advancedTextContainer}>
-                <Text style={styles.advancedButtonTitle}>Advanced Stats</Text>
-                <Text style={styles.advancedButtonSubtitle}>PER, TS%, Win Shares & more</Text>
-              </View>
-              <View style={styles.advancedProBadge}>
-                <Text style={styles.advancedProBadgeText}>PRO</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
-            </View>
-          </LinearGradient>
-        </Pressable>
+            </LinearGradient>
+          </Pressable>
+          <AdvancedStatsSection
+            isExpanded={isAdvancedExpanded}
+            stats={fullAdvancedStats ?? null}
+            isLoading={isAdvancedLoading}
+          />
+        </>
       ) : (
         <Pressable style={styles.lockedButtonWrapper} onPress={onUnlockPress}>
           <LinearGradient
@@ -395,7 +423,7 @@ const styles = StyleSheet.create({
   },
   advancedProBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: DesignTokens.spacing.sm,
+    paddingHorizontal: DesignTokens.spacing.md,
     paddingVertical: 4,
     borderRadius: DesignTokens.radius.sm,
   },
@@ -403,7 +431,7 @@ const styles = StyleSheet.create({
     ...Typography.captionSmall,
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 10,
+    fontSize: 11,
   },
   lockedButtonWrapper: {
     marginTop: DesignTokens.spacing.md,
@@ -416,7 +444,7 @@ const styles = StyleSheet.create({
   },
   proBadge: {
     backgroundColor: DesignTokens.accentGreen,
-    paddingHorizontal: DesignTokens.spacing.xs,
+    paddingHorizontal: DesignTokens.spacing.sm,
     paddingVertical: 2,
     borderRadius: DesignTokens.radius.sm,
   },
@@ -424,7 +452,7 @@ const styles = StyleSheet.create({
     ...Typography.captionSmall,
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 9,
+    fontSize: 11,
   },
   textDark: {
     color: DesignTokens.textPrimaryDark,

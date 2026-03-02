@@ -4,12 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState, useEffect, useCallback } from 'react';
 import { ActivityIndicator, Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useMutation, useAction } from 'convex/react';
+import { useRouter } from 'expo-router';
 import { api } from '@statcheck/convex';
 
 import { BrandGradient, DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { useListsContext } from '@/context/ListsContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
+import { usePaywall } from '@/context/PaywallContext';
 import { usePlayerLinks } from '@/hooks/usePlayerLinks';
 import type { Player, PlayerLink } from '@/types';
 
@@ -19,11 +20,11 @@ import { LinkItem } from '../LinkItem';
 import { AddPlayerToListModal } from '../lists';
 import { PlayerStatsCard } from '../nba/PlayerStatsCard';
 import { ContractCard } from '../nba/ContractCard';
-import { AdvancedStatsBottomSheet } from '../nba/AdvancedStatsBottomSheet';
 import { PlayerCardTabs, type PlayerCardTab } from './PlayerCardTabs';
 
 type PlayerCardContentProps = {
   player: Player;
+  onDismiss?: () => void;
 };
 
 const getPositionColor = (position: string) => {
@@ -127,7 +128,6 @@ interface AdvancedStats {
   offensive_rating?: number;
   defensive_rating?: number;
   pie?: number;
-  per?: number;
   pace?: number;
   effective_field_goal_percentage?: number;
   assist_percentage?: number;
@@ -147,10 +147,11 @@ interface Contract {
   currency: string;
 }
 
-export function PlayerCardContent({ player }: PlayerCardContentProps) {
+export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps) {
   const { isDark } = useTheme();
+  const router = useRouter();
   const { isProUser } = useRevenueCat();
-  const { setShowPaywall } = useListsContext();
+  const { openPaywall } = usePaywall();
   const [imageError, setImageError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddToListModal, setShowAddToListModal] = useState(false);
@@ -334,11 +335,12 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
   }, [activeTab, bdlPlayerId, contracts.length, isProUser, getPlayerContract]);
 
   const handleUnlockPress = useCallback(() => {
-    setShowPaywall(true);
-  }, [setShowPaywall]);
+    onDismiss?.();
+    setTimeout(() => openPaywall(), 300);
+  }, [onDismiss, openPaywall]);
 
   const handleAdvancedPress = useCallback(() => {
-    setShowAdvancedStats(true);
+    setShowAdvancedStats(prev => !prev);
   }, []);
 
   const handleAddPress = () => {
@@ -351,7 +353,7 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
           "You've reached the free limit of 3 links. Upgrade to Pro for unlimited links!",
           [
             { text: 'Maybe Later', style: 'cancel' },
-            { text: 'Upgrade', onPress: () => setShowPaywall(true) },
+            { text: 'Upgrade', onPress: () => openPaywall() },
           ]
         );
       }
@@ -494,6 +496,9 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
             isProUser={isProUser}
             onUnlockPress={handleUnlockPress}
             onAdvancedPress={handleAdvancedPress}
+            isAdvancedExpanded={showAdvancedStats}
+            fullAdvancedStats={advancedStats}
+            isAdvancedLoading={isLoadingStats && !advancedStats}
           />
         );
 
@@ -805,13 +810,6 @@ export function PlayerCardContent({ player }: PlayerCardContentProps) {
         player={player}
       />
 
-      <AdvancedStatsBottomSheet
-        isVisible={showAdvancedStats}
-        onDismiss={() => setShowAdvancedStats(false)}
-        stats={advancedStats}
-        playerName={player.name}
-        isLoading={isLoadingStats && !advancedStats}
-      />
     </View>
   );
 }

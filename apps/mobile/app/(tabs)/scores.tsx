@@ -14,10 +14,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { GradientHeader } from '@/components/GradientHeader';
 import { SportSelector } from '@/components/SportSelector';
 import { ScoreCard, GameSummaryBottomSheet } from '@/components/nba';
+import { PlayerCardBottomSheet } from '@/components/player-card/PlayerCardBottomSheet';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useSport } from '@/context/SportContext';
 import { api } from '@statcheck/convex';
+import type { Player } from '@/types';
 
 interface Game {
   id: number;
@@ -76,6 +78,7 @@ export default function ScoresScreen() {
   const [error, setError] = useState<string | null>(null);
   const [cachedAt, setCachedAt] = useState<number | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [fullPlayerCard, setFullPlayerCard] = useState<Player | null>(null);
 
   const getGames = useAction(api.nba.getGames);
 
@@ -124,6 +127,10 @@ export default function ScoresScreen() {
 
   const handleDismissGame = useCallback(() => {
     setSelectedGame(null);
+  }, []);
+
+  const handleOpenFullPlayerCard = useCallback((player: Player) => {
+    setFullPlayerCard(player);
   }, []);
 
   // Separate games by status
@@ -294,6 +301,14 @@ export default function ScoresScreen() {
         game={selectedGame}
         isVisible={selectedGame !== null}
         onDismiss={handleDismissGame}
+        onOpenFullPlayerCard={handleOpenFullPlayerCard}
+      />
+
+      {/* Full Player Card - rendered at page level to avoid nested Modals */}
+      <PlayerCardBottomSheet
+        player={fullPlayerCard}
+        isVisible={!!fullPlayerCard}
+        onDismiss={() => setFullPlayerCard(null)}
       />
     </View>
   );

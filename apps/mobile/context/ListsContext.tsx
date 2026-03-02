@@ -1,9 +1,10 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 
 import type { PlayerList, PlayerListItem, PlayerListLink } from '@/types';
 import { useAuth, useRequireAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
+import { usePaywall } from '@/context/PaywallContext';
 import { api } from '@statcheck/convex';
 import { captureException, addBreadcrumb } from '@/utils/sentry';
 
@@ -39,7 +40,11 @@ const ListsContext = createContext<ListsContextValue | undefined>(undefined);
 export function ListsProvider({ children }: { children: React.ReactNode }) {
   const { userId, isAuthenticated, isUserReady, setShowAuthPrompt } = useAuth();
   const { isProUser } = useRevenueCat();
-  const [showPaywall, setShowPaywall] = useState(false);
+  const { isPaywallVisible: showPaywall, openPaywall, closePaywall } = usePaywall();
+  const setShowPaywall = useCallback((show: boolean) => {
+    if (show) openPaywall();
+    else closePaywall();
+  }, [openPaywall, closePaywall]);
 
   // Query all user lists from Convex (real-time subscription)
   // Only query when user is fully ready to prevent race conditions

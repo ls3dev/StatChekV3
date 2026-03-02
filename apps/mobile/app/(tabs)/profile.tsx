@@ -12,6 +12,7 @@ import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
+import { usePaywall } from '@/context/PaywallContext';
 import { useLists } from '@/hooks/useLists';
 
 type SettingItemProps = {
@@ -72,6 +73,7 @@ export default function ProfileScreen() {
   const { isDark, toggleTheme } = useTheme();
   const { isAuthenticated, user, signOut, status } = useAuth();
   const { isProUser } = useRevenueCat();
+  const { openPaywall } = usePaywall();
   const { isSignedIn: clerkIsSignedIn, user: clerkUser } = useUser();
   const { lists } = useLists();
   const insets = useSafeAreaInsets();
@@ -188,7 +190,7 @@ export default function ProfileScreen() {
   };
 
   const handleUpgradeToPro = () => {
-    router.push('/(tabs)/paywall');
+    openPaywall();
   };
 
   return (
