@@ -708,7 +708,7 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
                 <Text style={styles.errorText}>Box score not available</Text>
               </View>
             ) : (
-              <View style={styles.boxScoreContent}>
+              <ScrollView style={styles.boxScoreContent} showsVerticalScrollIndicator={false}>
                 {/* Quarter Scores */}
                 {renderQuarterScores()}
 
@@ -741,7 +741,7 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
                 </View>
 
                 {/* Stats Table */}
-                <ScrollView style={styles.statsScroll} showsVerticalScrollIndicator={false}>
+                <View style={styles.statsTableContainer}>
                   {/* Header Row */}
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View>
@@ -766,8 +766,8 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
                       {sortedPlayers.map((player, index) => renderPlayerRow(player, index))}
                     </View>
                   </ScrollView>
-                </ScrollView>
-              </View>
+                </View>
+              </ScrollView>
             )}
           </Animated.View>
         </GestureDetector>
@@ -1013,10 +1013,9 @@ const styles = StyleSheet.create({
     color: COLORS.tabActive,
     fontWeight: '600',
   },
-  statsScroll: {
-    flex: 1,
+  statsTableContainer: {
     marginTop: 16,
-    paddingBottom: 16,
+    paddingBottom: 32,
   },
   statsHeader: {
     flexDirection: 'row',

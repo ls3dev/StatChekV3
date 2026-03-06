@@ -264,21 +264,25 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
 
   // Fetch stats when tab changes to 'stats' and we have playerId
   useEffect(() => {
-    if (activeTab !== 'stats' || !bdlPlayerId || basicStats) return;
+    if (activeTab !== 'stats' || !bdlPlayerId) return;
+    // Skip if basic stats already loaded and either not pro or advanced stats already loaded
+    if (basicStats && (!isProUser || advancedStats)) return;
 
     const fetchStats = async () => {
       setIsLoadingStats(true);
       setStatsError(null);
 
       try {
-        // Fetch basic stats
-        const basicResult = await getPlayerStats({ playerId: bdlPlayerId });
-        if (basicResult.stats) {
-          setBasicStats(basicResult.stats as unknown as BasicStats);
+        // Fetch basic stats if not already loaded
+        if (!basicStats) {
+          const basicResult = await getPlayerStats({ playerId: bdlPlayerId });
+          if (basicResult.stats) {
+            setBasicStats(basicResult.stats as unknown as BasicStats);
+          }
         }
 
         // Fetch advanced stats if Pro user (scraped from Basketball Reference)
-        if (isProUser) {
+        if (isProUser && !advancedStats) {
           try {
             const advancedResult = await getAdvancedStats({
               playerId: bdlPlayerId,
@@ -302,7 +306,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     };
 
     fetchStats();
-  }, [activeTab, bdlPlayerId, basicStats, isProUser, getPlayerStats, getAdvancedStats]);
+  }, [activeTab, bdlPlayerId, basicStats, advancedStats, isProUser, getPlayerStats, getAdvancedStats]);
 
   // Fetch contracts when tab changes to 'contract' and user is Pro
   useEffect(() => {

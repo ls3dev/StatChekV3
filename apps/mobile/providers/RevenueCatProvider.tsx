@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import Purchases, { LOG_LEVEL, CustomerInfo, PurchasesPackage } from 'react-native-purchases';
 import { useAuth } from '@clerk/clerk-expo';
+import { useMutation } from 'convex/react';
+import { api } from '@statcheck/convex';
 
 const REVENUECAT_ENABLED = true;
 
@@ -30,6 +32,27 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
 
   // Derive pro status from customer info
   const isProUser = customerInfo?.entitlements?.active?.['pro'] !== undefined;
+
+  const syncProStatus = useMutation(api.proWebhook.syncProStatus);
+  const lastSyncedProStatus = useRef<boolean | null>(null);
+
+  // Sync pro status to Convex whenever it changes
+  useEffect(() => {
+    if (!isConfigured || !isSignedIn) return;
+    if (lastSyncedProStatus.current === isProUser) return;
+
+    lastSyncedProStatus.current = isProUser;
+
+    const expiresAt = customerInfo?.entitlements?.active?.['pro']?.expirationDate
+      ? new Date(customerInfo.entitlements.active['pro'].expirationDate).getTime()
+      : undefined;
+
+    console.log('[RevenueCat] Syncing pro status to Convex:', { isProUser, expiresAt });
+    syncProStatus({ isProUser, expiresAt }).catch((err) => {
+      console.error('[RevenueCat] Failed to sync pro status:', err);
+      lastSyncedProStatus.current = null; // Reset so it retries
+    });
+  }, [isConfigured, isSignedIn, isProUser, customerInfo, syncProStatus]);
 
   // Configure RevenueCat SDK on mount
   useEffect(() => {

@@ -249,7 +249,7 @@ export default function TeamDetailScreen() {
     if (teamId) {
       fetchData();
     }
-  }, [teamId]);
+  }, [teamId, isProUser]);
 
   const handleRefresh = useCallback(() => {
     fetchData(true);
