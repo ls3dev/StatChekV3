@@ -150,7 +150,7 @@ interface Contract {
 export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps) {
   const { isDark } = useTheme();
   const router = useRouter();
-  const { isProUser } = useRevenueCat();
+  const { isProUser, proSyncVersion } = useRevenueCat();
   const { openPaywall } = usePaywall();
   const [imageError, setImageError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -306,7 +306,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     };
 
     fetchStats();
-  }, [activeTab, bdlPlayerId, basicStats, advancedStats, isProUser, getPlayerStats, getAdvancedStats]);
+  }, [activeTab, bdlPlayerId, basicStats, advancedStats, isProUser, proSyncVersion, getPlayerStats, getAdvancedStats]);
 
   // Fetch contracts when tab changes to 'contract' and user is Pro
   useEffect(() => {
@@ -336,7 +336,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     };
 
     fetchContracts();
-  }, [activeTab, bdlPlayerId, contracts.length, isProUser, getPlayerContract]);
+  }, [activeTab, bdlPlayerId, contracts.length, isProUser, proSyncVersion, getPlayerContract]);
 
   const handleUnlockPress = useCallback(() => {
     onDismiss?.();

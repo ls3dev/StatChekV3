@@ -11,6 +11,7 @@ const API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? '';
 interface RevenueCatContextType {
   customerInfo: CustomerInfo | null;
   isProUser: boolean;
+  proSyncVersion: number;
   packages: PurchasesPackage[];
   isLoading: boolean;
   purchasePackage: (pkg: PurchasesPackage) => Promise<boolean>;
@@ -35,6 +36,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
 
   const syncProStatus = useMutation(api.proWebhook.syncProStatus);
   const lastSyncedProStatus = useRef<boolean | null>(null);
+  const [proSyncVersion, setProSyncVersion] = useState(0);
 
   // Sync pro status to Convex whenever it changes
   useEffect(() => {
@@ -48,10 +50,15 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       : undefined;
 
     console.log('[RevenueCat] Syncing pro status to Convex:', { isProUser, expiresAt });
-    syncProStatus({ isProUser, expiresAt }).catch((err) => {
-      console.error('[RevenueCat] Failed to sync pro status:', err);
-      lastSyncedProStatus.current = null; // Reset so it retries
-    });
+    syncProStatus({ isProUser, expiresAt })
+      .then(() => {
+        console.log('[RevenueCat] Pro status synced to Convex successfully');
+        setProSyncVersion(v => v + 1);
+      })
+      .catch((err) => {
+        console.error('[RevenueCat] Failed to sync pro status:', err);
+        lastSyncedProStatus.current = null; // Reset so it retries
+      });
   }, [isConfigured, isSignedIn, isProUser, customerInfo, syncProStatus]);
 
   // Configure RevenueCat SDK on mount
@@ -194,6 +201,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     const stubValue: RevenueCatContextType = {
       customerInfo: null,
       isProUser: false,
+      proSyncVersion: 0,
       packages: [],
       isLoading: false,
       purchasePackage: async () => false,
@@ -210,6 +218,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const value: RevenueCatContextType = {
     customerInfo,
     isProUser,
+    proSyncVersion,
     packages,
     isLoading,
     purchasePackage,
