@@ -22,6 +22,11 @@ interface BasicStats {
   fg_pct: number;
   fg3_pct: number;
   ft_pct: number;
+  fgm?: number;
+  fga?: number;
+  fg3m?: number;
+  fg3a?: number;
+  fta?: number;
 }
 
 interface AdvancedStats {
@@ -177,6 +182,32 @@ export function PlayerStatsCard({
             <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FT%</Text>
           </View>
         </View>
+        {(basicStats.fgm !== undefined || basicStats.fg3m !== undefined || basicStats.fta !== undefined) && (
+          <View style={[styles.shootingRow, styles.shootingVolumeRow]}>
+            <View style={styles.shootingStat}>
+              <Text style={[styles.shootingVolumeValue, isDark && styles.textSecondary]}>
+                {basicStats.fgm !== undefined && basicStats.fga !== undefined
+                  ? `${formatStat(basicStats.fgm)} / ${formatStat(basicStats.fga)}`
+                  : '-'}
+              </Text>
+              <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FGM / FGA</Text>
+            </View>
+            <View style={styles.shootingStat}>
+              <Text style={[styles.shootingVolumeValue, isDark && styles.textSecondary]}>
+                {basicStats.fg3m !== undefined && basicStats.fg3a !== undefined
+                  ? `${formatStat(basicStats.fg3m)} / ${formatStat(basicStats.fg3a)}`
+                  : '-'}
+              </Text>
+              <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>3PM / 3PA</Text>
+            </View>
+            <View style={styles.shootingStat}>
+              <Text style={[styles.shootingVolumeValue, isDark && styles.textSecondary]}>
+                {basicStats.fta !== undefined ? formatStat(basicStats.fta) : '-'}
+              </Text>
+              <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FTA</Text>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Advanced Stats Section */}
@@ -355,6 +386,17 @@ const styles = StyleSheet.create({
     ...Typography.captionSmall,
     color: DesignTokens.textSecondary,
     marginTop: 2,
+  },
+  shootingVolumeRow: {
+    marginTop: DesignTokens.spacing.sm,
+    paddingTop: DesignTokens.spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: DesignTokens.border,
+  },
+  shootingVolumeValue: {
+    ...Typography.captionSmall,
+    color: DesignTokens.textSecondary,
+    fontVariant: ['tabular-nums'],
   },
   advancedSection: {
     padding: DesignTokens.spacing.md,

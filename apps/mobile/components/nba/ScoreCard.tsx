@@ -26,12 +26,19 @@ interface Game {
   visitor_team_score: number;
 }
 
+interface TeamRecord {
+  wins: number;
+  losses: number;
+}
+
 interface ScoreCardProps {
   game: Game;
   onPress?: () => void;
+  homeRecord?: TeamRecord;
+  visitorRecord?: TeamRecord;
 }
 
-export function ScoreCard({ game, onPress }: ScoreCardProps) {
+export function ScoreCard({ game, onPress, homeRecord, visitorRecord }: ScoreCardProps) {
   const { isDark } = useTheme();
 
   // Game status can be: "Final", "1st Qtr", "2nd Qtr", "3rd Qtr", "4th Qtr", "Halftime", or a datetime string
@@ -115,6 +122,11 @@ export function ScoreCard({ game, onPress }: ScoreCardProps) {
             <Text style={[styles.teamName, isDark && styles.textSecondary]}>
               {game.visitor_team.city}
             </Text>
+            {isScheduled && visitorRecord && (
+              <Text style={styles.teamRecord}>
+                {visitorRecord.wins}-{visitorRecord.losses}
+              </Text>
+            )}
           </View>
           {!isScheduled && (
             <Text
@@ -152,6 +164,11 @@ export function ScoreCard({ game, onPress }: ScoreCardProps) {
             <Text style={[styles.teamName, isDark && styles.textSecondary]}>
               {game.home_team.city}
             </Text>
+            {isScheduled && homeRecord && (
+              <Text style={styles.teamRecord}>
+                {homeRecord.wins}-{homeRecord.losses}
+              </Text>
+            )}
           </View>
           {!isScheduled && (
             <Text
@@ -254,6 +271,11 @@ const styles = StyleSheet.create({
   teamName: {
     ...Typography.captionSmall,
     color: DesignTokens.textSecondary,
+    marginTop: 1,
+  },
+  teamRecord: {
+    ...Typography.captionSmall,
+    color: DesignTokens.textMuted,
     marginTop: 1,
   },
   score: {

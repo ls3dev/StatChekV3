@@ -86,11 +86,31 @@ interface FuturePick {
   viaTradeWith?: string;
 }
 
+interface TeamStanding {
+  wins: number;
+  losses: number;
+  conference_rank: number;
+  conference_record: string;
+  division_rank: number;
+  division_record: string;
+  home_record: string;
+  road_record: string;
+}
+
+interface TeamBasicStats {
+  season: number;
+  gp: number;
+  pts: number;
+  reb: number;
+  ast: number;
+  fg_pct: number;
+}
+
 export default function TeamDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isDark } = useTheme();
-  const { isProUser, proSyncVersion } = useRevenueCat();
+  const { isProUser } = useRevenueCat();
   const { openPaywall } = usePaywall();
   const { isLoaded: playerDataLoaded } = usePlayerData();
 
@@ -100,6 +120,8 @@ export default function TeamDetailScreen() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [injuries, setInjuries] = useState<Injury[]>([]);
   const [games, setGames] = useState<Game[]>([]);
+  const [teamStanding, setTeamStanding] = useState<TeamStanding | null>(null);
+  const [teamBasicStats, setTeamBasicStats] = useState<TeamBasicStats | null>(null);
   const [isLoadingContracts, setIsLoadingContracts] = useState(true);
   const [isLoadingInjuries, setIsLoadingInjuries] = useState(true);
   const [isLoadingGames, setIsLoadingGames] = useState(true);
@@ -111,6 +133,8 @@ export default function TeamDetailScreen() {
   const getTeamContracts = useAction(api.nba.getTeamContracts);
   const getInjuries = useAction(api.nba.getInjuries);
   const getGames = useAction(api.nba.getGames);
+  const getStandings = useAction(api.nba.getStandings);
+  const getTeamBasicStats = useAction(api.nba.getTeamBasicStats);
   const futurePicks = useQuery(api.nba.getTeamFuturePicks, { teamId });
 
   // Store failed photo URLs to show initials fallback
@@ -209,6 +233,25 @@ export default function TeamDetailScreen() {
         setIsLoadingGames(false);
       }
 
+      // Fetch standings (fire-and-forget, non-blocking)
+      getStandings({}).then((result) => {
+        const standing = result.standings.find((s: any) => s.team.id === teamId);
+        if (standing) setTeamStanding(standing as TeamStanding);
+      }).catch((err: any) => {
+        console.error('Failed to fetch standings:', err);
+      });
+
+      // Fetch basic team season stats (fire-and-forget, non-blocking)
+      getTeamBasicStats({ teamId }).then((result) => {
+        if (result.stats) {
+          setTeamBasicStats(result.stats as TeamBasicStats);
+        } else {
+          setTeamBasicStats(null);
+        }
+      }).catch((err: any) => {
+        console.error('Failed to fetch team basic stats:', err);
+      });
+
       // Fetch contracts
       setIsLoadingContracts(true);
       try {
@@ -242,14 +285,14 @@ export default function TeamDetailScreen() {
         setIsRefreshing(false);
       }
     },
-    [getTeamContracts, getInjuries, getGames, teamId]
+    [getTeamContracts, getInjuries, getGames, getStandings, getTeamBasicStats, teamId]
   );
 
   React.useEffect(() => {
     if (teamId) {
       fetchData();
     }
-  }, [teamId, proSyncVersion]);
+  }, [teamId]);
 
   const handleRefresh = useCallback(() => {
     fetchData(true);
@@ -403,6 +446,91 @@ export default function TeamDetailScreen() {
             </View>
           )}
         </View>
+
+        {/* Season Stats Section */}
+        {teamStanding && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="trophy" size={20} color={DesignTokens.accentGreen} />
+              <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Season</Text>
+            </View>
+            <View style={[styles.seasonCard, isDark && styles.seasonCardDark]}>
+              {/* Record + Win % */}
+              <View style={styles.seasonRecordRow}>
+                <Text style={[styles.seasonRecord, isDark && styles.textDark]}>
+                  {teamStanding.wins}-{teamStanding.losses}
+                </Text>
+                <Text style={[styles.seasonWinPct, isDark && styles.textSecondary]}>
+                  {((teamStanding.wins / (teamStanding.wins + teamStanding.losses)) * 100).toFixed(1)}% Win
+                </Text>
+              </View>
+              {/* Stats Row */}
+              <View style={styles.seasonStatsRow}>
+                <View style={styles.seasonStat}>
+                  <Text style={[styles.seasonStatValue, isDark && styles.textDark]}>
+                    #{teamStanding.conference_rank}
+                  </Text>
+                  <Text style={[styles.seasonStatLabel, isDark && styles.textSecondary]}>Conf Rank</Text>
+                </View>
+                <View style={[styles.seasonStatDivider, isDark && styles.summaryDividerDark]} />
+                <View style={styles.seasonStat}>
+                  <Text style={[styles.seasonStatValue, isDark && styles.textDark]}>
+                    {teamStanding.conference_record}
+                  </Text>
+                  <Text style={[styles.seasonStatLabel, isDark && styles.textSecondary]}>Conf</Text>
+                </View>
+                <View style={[styles.seasonStatDivider, isDark && styles.summaryDividerDark]} />
+                <View style={styles.seasonStat}>
+                  <Text style={[styles.seasonStatValue, isDark && styles.textDark]}>
+                    {teamStanding.home_record}
+                  </Text>
+                  <Text style={[styles.seasonStatLabel, isDark && styles.textSecondary]}>Home</Text>
+                </View>
+                <View style={[styles.seasonStatDivider, isDark && styles.summaryDividerDark]} />
+                <View style={styles.seasonStat}>
+                  <Text style={[styles.seasonStatValue, isDark && styles.textDark]}>
+                    {teamStanding.road_record}
+                  </Text>
+                  <Text style={[styles.seasonStatLabel, isDark && styles.textSecondary]}>Away</Text>
+                </View>
+              </View>
+              {teamBasicStats && (
+                <>
+                  <View style={[styles.summaryDivider, isDark && styles.summaryDividerDark, styles.seasonDividerSpacing]} />
+                  <View style={styles.seasonStatsRow}>
+                    <View style={styles.seasonStat}>
+                      <Text style={[styles.seasonStatValue, isDark && styles.textDark]}>
+                        {teamBasicStats.pts.toFixed(1)}
+                      </Text>
+                      <Text style={[styles.seasonStatLabel, isDark && styles.textSecondary]}>PPG</Text>
+                    </View>
+                    <View style={[styles.seasonStatDivider, isDark && styles.summaryDividerDark]} />
+                    <View style={styles.seasonStat}>
+                      <Text style={[styles.seasonStatValue, isDark && styles.textDark]}>
+                        {teamBasicStats.reb.toFixed(1)}
+                      </Text>
+                      <Text style={[styles.seasonStatLabel, isDark && styles.textSecondary]}>RPG</Text>
+                    </View>
+                    <View style={[styles.seasonStatDivider, isDark && styles.summaryDividerDark]} />
+                    <View style={styles.seasonStat}>
+                      <Text style={[styles.seasonStatValue, isDark && styles.textDark]}>
+                        {teamBasicStats.ast.toFixed(1)}
+                      </Text>
+                      <Text style={[styles.seasonStatLabel, isDark && styles.textSecondary]}>APG</Text>
+                    </View>
+                    <View style={[styles.seasonStatDivider, isDark && styles.summaryDividerDark]} />
+                    <View style={styles.seasonStat}>
+                      <Text style={[styles.seasonStatValue, isDark && styles.textDark]}>
+                        {(teamBasicStats.fg_pct * 100).toFixed(1)}%
+                      </Text>
+                      <Text style={[styles.seasonStatLabel, isDark && styles.textSecondary]}>FG%</Text>
+                    </View>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Injuries Section */}
         <View style={styles.section}>
@@ -870,6 +998,55 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: DesignTokens.textMuted,
     marginTop: DesignTokens.spacing.md,
+  },
+  seasonCard: {
+    backgroundColor: DesignTokens.cardBackground,
+    borderRadius: DesignTokens.radius.lg,
+    padding: DesignTokens.spacing.md,
+  },
+  seasonCardDark: {
+    backgroundColor: DesignTokens.cardBackgroundDark,
+  },
+  seasonRecordRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: DesignTokens.spacing.sm,
+    marginBottom: DesignTokens.spacing.md,
+  },
+  seasonRecord: {
+    ...Typography.displayLarge,
+    color: DesignTokens.textPrimary,
+    fontWeight: '800',
+  },
+  seasonWinPct: {
+    ...Typography.body,
+    color: DesignTokens.textSecondary,
+  },
+  seasonStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seasonStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  seasonStatValue: {
+    ...Typography.headline,
+    color: DesignTokens.textPrimary,
+    fontWeight: '700',
+  },
+  seasonStatLabel: {
+    ...Typography.captionSmall,
+    color: DesignTokens.textSecondary,
+    marginTop: 2,
+  },
+  seasonStatDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 32,
+    backgroundColor: DesignTokens.border,
+  },
+  seasonDividerSpacing: {
+    marginVertical: DesignTokens.spacing.sm,
   },
   textDark: {
     color: DesignTokens.textPrimaryDark,

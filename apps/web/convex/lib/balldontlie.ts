@@ -91,6 +91,27 @@ export interface BDLSeasonAverages {
   dreb: number;
 }
 
+export interface BDLTeamBasicSeasonAverages {
+  team_id: number;
+  season: number;
+  gp: number;
+  min: string;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  tov: number;
+  fg_pct: number;
+  fg3_pct: number;
+  ft_pct: number;
+  oreb: number;
+  dreb: number;
+  w: number;
+  l: number;
+  w_pct: number;
+}
+
 export interface BDLAdvancedStats {
   player_id: number;
   season: number;
@@ -312,6 +333,39 @@ class BallDontLieClient {
     const response =
       await this.fetch<BDLPaginatedResponse<BDLTeam>>("/teams");
     return response.data;
+  }
+
+  /**
+   * Get team basic season averages (PPG/RPG/APG/etc)
+   */
+  async getTeamBasicSeasonAverages(
+    teamId: number,
+    season?: number
+  ): Promise<BDLTeamBasicSeasonAverages | null> {
+    const targetSeason = season ?? getCurrentNBASeason();
+    const params: Record<string, string | number | undefined> = {
+      type: "base",
+      season: targetSeason,
+      "team_ids[]": teamId,
+    };
+
+    // Docs use /team_season_averages/{category}; keep a fallback path for compatibility.
+    try {
+      const response = await this.fetch<BDLPaginatedResponse<BDLTeamBasicSeasonAverages>>(
+        "/team_season_averages/general",
+        params
+      );
+      return response.data[0] ?? null;
+    } catch (error) {
+      const fallback = await this.fetch<BDLPaginatedResponse<BDLTeamBasicSeasonAverages>>(
+        "/team_season_averages",
+        {
+          ...params,
+          category: "general",
+        }
+      );
+      return fallback.data[0] ?? null;
+    }
   }
 
   // ========================================

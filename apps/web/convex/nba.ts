@@ -10,6 +10,7 @@ import {
   type BDLStanding,
   type BDLGame,
   type BDLSeasonAverages,
+  type BDLTeamBasicSeasonAverages,
   type BDLAdvancedStats,
   type BDLContract,
   type BDLInjury,
@@ -338,6 +339,28 @@ export const getGames = action({
     });
 
     return { games: response.data, cachedAt: Date.now() };
+  },
+});
+
+/**
+ * Get team basic season averages (FREE)
+ */
+export const getTeamBasicStats = action({
+  args: { teamId: v.number(), season: v.optional(v.number()) },
+  handler: async (
+    _ctx,
+    args
+  ): Promise<{ stats: BDLTeamBasicSeasonAverages | null; season: number }> => {
+    const season = args.season ?? getCurrentNBASeason();
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
+    }
+
+    const client = createBallDontLieClient(apiKey);
+    const stats = await client.getTeamBasicSeasonAverages(args.teamId, season);
+
+    return { stats, season };
   },
 });
 

@@ -1,17 +1,36 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import Purchases, { LOG_LEVEL, CustomerInfo, PurchasesPackage } from 'react-native-purchases';
 import { useAuth } from '@clerk/clerk-expo';
-import { useMutation } from 'convex/react';
-import { api } from '@statcheck/convex';
 
 const REVENUECAT_ENABLED = true;
 
 const API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? '';
+const DEFAULT_PRO_ENTITLEMENT_IDS = ['pro', 'statcheck pro'];
+
+const parseConfiguredProEntitlementIds = (rawValue: string | undefined): string[] => {
+  if (!rawValue) return DEFAULT_PRO_ENTITLEMENT_IDS;
+
+  const parsed = rawValue
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  return parsed.length > 0 ? parsed : DEFAULT_PRO_ENTITLEMENT_IDS;
+};
+
+const hasConfiguredProEntitlement = (
+  activeEntitlements: Record<string, unknown> | undefined,
+  configuredProEntitlementIds: string[]
+): boolean => {
+  if (!activeEntitlements) return false;
+
+  const activeEntitlementIds = Object.keys(activeEntitlements).map((id) => id.toLowerCase());
+  return configuredProEntitlementIds.some((id) => activeEntitlementIds.includes(id));
+};
 
 interface RevenueCatContextType {
   customerInfo: CustomerInfo | null;
   isProUser: boolean;
-  proSyncVersion: number;
   packages: PurchasesPackage[];
   isLoading: boolean;
   purchasePackage: (pkg: PurchasesPackage) => Promise<boolean>;
@@ -30,36 +49,16 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(false);
+  const configuredProEntitlementIds = useMemo(
+    () => parseConfiguredProEntitlementIds(process.env.EXPO_PUBLIC_PRO_ENTITLEMENT_IDS),
+    []
+  );
 
   // Derive pro status from customer info
-  const isProUser = customerInfo?.entitlements?.active?.['pro'] !== undefined;
-
-  const syncProStatus = useMutation(api.proWebhook.syncProStatus);
-  const lastSyncedProStatus = useRef<boolean | null>(null);
-  const [proSyncVersion, setProSyncVersion] = useState(0);
-
-  // Sync pro status to Convex whenever it changes
-  useEffect(() => {
-    if (!isConfigured || !isSignedIn) return;
-    if (lastSyncedProStatus.current === isProUser) return;
-
-    lastSyncedProStatus.current = isProUser;
-
-    const expiresAt = customerInfo?.entitlements?.active?.['pro']?.expirationDate
-      ? new Date(customerInfo.entitlements.active['pro'].expirationDate).getTime()
-      : undefined;
-
-    console.log('[RevenueCat] Syncing pro status to Convex:', { isProUser, expiresAt });
-    syncProStatus({ isProUser, expiresAt })
-      .then(() => {
-        console.log('[RevenueCat] Pro status synced to Convex successfully');
-        setProSyncVersion(v => v + 1);
-      })
-      .catch((err) => {
-        console.error('[RevenueCat] Failed to sync pro status:', err);
-        lastSyncedProStatus.current = null; // Reset so it retries
-      });
-  }, [isConfigured, isSignedIn, isProUser, customerInfo, syncProStatus]);
+  const isProUser = hasConfiguredProEntitlement(
+    customerInfo?.entitlements?.active,
+    configuredProEntitlementIds
+  );
 
   // Configure RevenueCat SDK on mount
   useEffect(() => {
@@ -78,10 +77,14 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
 
         // Fetch initial customer info
         const info = await Purchases.getCustomerInfo();
+        const activeEntitlements = Object.keys(info.entitlements.active);
+        const hasPro = hasConfiguredProEntitlement(info.entitlements.active, configuredProEntitlementIds);
         console.log('[RevenueCat] Customer info:', {
-          activeEntitlements: Object.keys(info.entitlements.active),
+          activeEntitlements,
           allEntitlements: Object.keys(info.entitlements.all),
           originalAppUserId: info.originalAppUserId,
+          configuredProEntitlementIds,
+          isProUser: hasPro,
         });
         setCustomerInfo(info);
 
@@ -111,7 +114,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     };
 
     configure();
-  }, [isConfigured]);
+  }, [isConfigured, configuredProEntitlementIds]);
 
   // Identify user with Clerk ID when auth changes
   useEffect(() => {
@@ -121,10 +124,13 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       try {
         console.log('[RevenueCat] Identifying user:', userId);
         const { customerInfo: info } = await Purchases.logIn(userId);
+        const activeEntitlements = Object.keys(info.entitlements.active);
+        const hasPro = hasConfiguredProEntitlement(info.entitlements.active, configuredProEntitlementIds);
         console.log('[RevenueCat] User identified:', {
           appUserId: info.originalAppUserId,
-          activeEntitlements: Object.keys(info.entitlements.active),
-          isProUser: info.entitlements.active['pro'] !== undefined,
+          activeEntitlements,
+          configuredProEntitlementIds,
+          isProUser: hasPro,
         });
         setCustomerInfo(info);
       } catch (error) {
@@ -133,16 +139,19 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     };
 
     identify();
-  }, [isConfigured, isSignedIn, userId]);
+  }, [isConfigured, isSignedIn, userId, configuredProEntitlementIds]);
 
   // Listen for customer info updates
   useEffect(() => {
     if (!REVENUECAT_ENABLED || !isConfigured) return;
 
     const listener = (info: CustomerInfo) => {
+      const activeEntitlements = Object.keys(info.entitlements.active);
+      const hasPro = hasConfiguredProEntitlement(info.entitlements.active, configuredProEntitlementIds);
       console.log('[RevenueCat] Customer info updated:', {
-        activeEntitlements: Object.keys(info.entitlements.active),
-        isProUser: info.entitlements.active['pro'] !== undefined,
+        activeEntitlements,
+        configuredProEntitlementIds,
+        isProUser: hasPro,
       });
       setCustomerInfo(info);
     };
@@ -151,7 +160,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     return () => {
       Purchases.removeCustomerInfoUpdateListener(listener);
     };
-  }, [isConfigured]);
+  }, [isConfigured, configuredProEntitlementIds]);
 
   const purchasePackage = useCallback(async (pkg: PurchasesPackage): Promise<boolean> => {
     try {
@@ -161,10 +170,12 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         productId: pkg.product.identifier,
       });
       const { customerInfo: info } = await Purchases.purchasePackage(pkg);
-      const hasPro = info.entitlements.active['pro'] !== undefined;
+      const activeEntitlements = Object.keys(info.entitlements.active);
+      const hasPro = hasConfiguredProEntitlement(info.entitlements.active, configuredProEntitlementIds);
       console.log('[RevenueCat] Purchase complete:', {
         hasPro,
-        activeEntitlements: Object.keys(info.entitlements.active),
+        activeEntitlements,
+        configuredProEntitlementIds,
         latestExpirationDate: info.latestExpirationDate,
       });
       setCustomerInfo(info);
@@ -174,19 +185,30 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
         console.log('[RevenueCat] Purchase cancelled by user');
       } else {
         console.error('[RevenueCat] Purchase error:', error.code, error.message);
+        // Refresh — handles "already purchased" where Apple rejects but user IS subscribed
+        try {
+          const freshInfo = await Purchases.getCustomerInfo();
+          setCustomerInfo(freshInfo);
+          const hasPro = hasConfiguredProEntitlement(freshInfo.entitlements.active, configuredProEntitlementIds);
+          return hasPro;
+        } catch (refreshError) {
+          console.error('[RevenueCat] Failed to refresh:', refreshError);
+        }
       }
       return false;
     }
-  }, []);
+  }, [configuredProEntitlementIds]);
 
   const restorePurchases = useCallback(async (): Promise<boolean> => {
     try {
       console.log('[RevenueCat] Restoring purchases...');
       const info = await Purchases.restorePurchases();
-      const hasPro = info.entitlements.active['pro'] !== undefined;
+      const activeEntitlements = Object.keys(info.entitlements.active);
+      const hasPro = hasConfiguredProEntitlement(info.entitlements.active, configuredProEntitlementIds);
       console.log('[RevenueCat] Restore complete:', {
         hasPro,
-        activeEntitlements: Object.keys(info.entitlements.active),
+        activeEntitlements,
+        configuredProEntitlementIds,
       });
       setCustomerInfo(info);
       return hasPro;
@@ -194,14 +216,13 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       console.error('[RevenueCat] Restore error:', error);
       return false;
     }
-  }, []);
+  }, [configuredProEntitlementIds]);
 
   // Fallback stub when disabled or no API key
   if (!REVENUECAT_ENABLED || !API_KEY) {
     const stubValue: RevenueCatContextType = {
       customerInfo: null,
       isProUser: false,
-      proSyncVersion: 0,
       packages: [],
       isLoading: false,
       purchasePackage: async () => false,
@@ -218,7 +239,6 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const value: RevenueCatContextType = {
     customerInfo,
     isProUser,
-    proSyncVersion,
     packages,
     isLoading,
     purchasePackage,

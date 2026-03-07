@@ -10,12 +10,13 @@ import {
   type BDLStanding,
   type BDLGame,
   type BDLSeasonAverages,
+  type BDLTeamBasicSeasonAverages,
+  type BDLAdvancedStats,
   type BDLContract,
   type BDLInjury,
   type BDLLeader,
   type BDLBoxScore,
-  type BDLPlay,
-  type BDLTeamSeasonAverages,
+  type BDLPlayerBoxScore,
 } from "./lib/balldontlie";
 import {
   fetchBBRefAdvancedStats,
@@ -401,6 +402,28 @@ export const getGames = action({
 });
 
 /**
+ * Get team basic season averages (FREE)
+ */
+export const getTeamBasicStats = action({
+  args: { teamId: v.number(), season: v.optional(v.number()) },
+  handler: async (
+    _ctx,
+    args
+  ): Promise<{ stats: BDLTeamBasicSeasonAverages | null; season: number }> => {
+    const season = args.season ?? getCurrentNBASeason();
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
+    }
+
+    const client = createBallDontLieClient(apiKey);
+    const stats = await client.getTeamBasicSeasonAverages(args.teamId, season);
+
+    return { stats, season };
+  },
+});
+
+/**
  * Get basic player season averages (FREE)
  */
 export const getPlayerStats = action({
@@ -418,10 +441,17 @@ export const getPlayerStats = action({
     });
 
     if (cached && isCacheValid(cached.cachedAt, CACHE_TTL.SEASON_AVERAGES)) {
-      return {
-        stats: cached.data?.basic as BDLSeasonAverages | null,
-        cachedAt: cached.cachedAt,
-      };
+      const cachedStats = cached.data?.basic as BDLSeasonAverages | null;
+      // Validate cached data is for the correct season (guard against stale mis-keyed entries)
+      if (cachedStats && cachedStats.season !== season) {
+        console.warn(`[BDL] cache SEASON MISMATCH playerId=${args.playerId} requested=${season} cached=${cachedStats.season} — bypassing cache`);
+      } else {
+        console.log(`[BDL] cache HIT playerId=${args.playerId} season=${season} pts=${cachedStats?.pts}`);
+        return {
+          stats: cachedStats,
+          cachedAt: cached.cachedAt,
+        };
+      }
     }
 
     // Fetch from API
@@ -432,6 +462,7 @@ export const getPlayerStats = action({
 
     const client = createBallDontLieClient(apiKey);
     const stats = await client.getSeasonAverages(args.playerId, season);
+    console.log(`[BDL] getSeasonAverages playerId=${args.playerId} requestedSeason=${season} returnedSeason=${stats?.season} pts=${stats?.pts}`);
 
     // Update cache (store both basic and advanced together)
     const existingCache = cached?.data ?? {};
@@ -954,60 +985,6 @@ export const getBoxScore = action({
     );
 
     return { boxScore: matchingGame ?? null, isLive: false };
-  },
-});
-
-/**
- * Get season team averages for one or more teams.
- * Used by the scores sheet before a game starts.
- */
-export const getTeamSeasonAverages = action({
-  args: {
-    teamIds: v.array(v.number()),
-    season: v.optional(v.number()),
-    seasonType: v.optional(v.union(v.literal("regular"), v.literal("playoffs"))),
-  },
-  handler: async (
-    _ctx,
-    args
-  ): Promise<{ stats: BDLTeamSeasonAverages[]; cachedAt: number }> => {
-    const apiKey = process.env.BALLDONTLIE_API_KEY;
-    if (!apiKey) {
-      throw new Error("BALLDONTLIE_API_KEY not configured");
-    }
-
-    const client = createBallDontLieClient(apiKey);
-    const stats = await client.getTeamSeasonAverages({
-      teamIds: args.teamIds,
-      season: args.season,
-      seasonType: args.seasonType,
-    });
-
-    return { stats, cachedAt: Date.now() };
-  },
-});
-
-/**
- * Get play-by-play for a specific game.
- * Used to calculate live and final scoring runs.
- */
-export const getGamePlays = action({
-  args: {
-    gameId: v.number(),
-  },
-  handler: async (
-    _ctx,
-    args
-  ): Promise<{ plays: BDLPlay[]; cachedAt: number }> => {
-    const apiKey = process.env.BALLDONTLIE_API_KEY;
-    if (!apiKey) {
-      throw new Error("BALLDONTLIE_API_KEY not configured");
-    }
-
-    const client = createBallDontLieClient(apiKey);
-    const plays = await client.getGamePlays(args.gameId);
-
-    return { plays, cachedAt: Date.now() };
   },
 });
 

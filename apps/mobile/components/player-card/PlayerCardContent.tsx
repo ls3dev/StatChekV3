@@ -87,6 +87,7 @@ const generateBasketballReferenceUrl = (playerName: string): string => {
 };
 
 interface BasicStats {
+  season?: number;
   games_played: number;
   min: string;
   pts: number;
@@ -98,6 +99,11 @@ interface BasicStats {
   fg_pct: number;
   fg3_pct: number;
   ft_pct: number;
+  fgm?: number;
+  fga?: number;
+  fg3m?: number;
+  fg3a?: number;
+  fta?: number;
 }
 
 // Basketball Reference advanced stats
@@ -150,7 +156,7 @@ interface Contract {
 export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps) {
   const { isDark } = useTheme();
   const router = useRouter();
-  const { isProUser, proSyncVersion } = useRevenueCat();
+  const { isProUser } = useRevenueCat();
   const { openPaywall } = usePaywall();
   const [imageError, setImageError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -172,6 +178,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
   const [advancedStats, setAdvancedStats] = useState<AdvancedStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [statsLoaded, setStatsLoaded] = useState(false);
 
   // Contract state
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -189,6 +196,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     setContracts([]);
     setPlayerNotFound(false);
     setShowAdvancedStats(false);
+    setStatsLoaded(false);
   }, [player.id]);
 
   // Convex actions
@@ -264,25 +272,28 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
 
   // Fetch stats when tab changes to 'stats' and we have playerId
   useEffect(() => {
-    if (activeTab !== 'stats' || !bdlPlayerId) return;
-    // Skip if basic stats already loaded and either not pro or advanced stats already loaded
-    if (basicStats && (!isProUser || advancedStats)) return;
+    if (activeTab !== 'stats' || !bdlPlayerId || basicStats) return;
 
     const fetchStats = async () => {
       setIsLoadingStats(true);
       setStatsError(null);
 
       try {
-        // Fetch basic stats if not already loaded
-        if (!basicStats) {
-          const basicResult = await getPlayerStats({ playerId: bdlPlayerId });
-          if (basicResult.stats) {
-            setBasicStats(basicResult.stats as unknown as BasicStats);
-          }
+        // Fetch basic stats
+        const basicResult = await getPlayerStats({ playerId: bdlPlayerId });
+        console.log('[Stats] BDL response:', JSON.stringify({
+          requestedPlayerId: bdlPlayerId,
+          returnedSeason: basicResult.stats?.season,
+          pts: basicResult.stats?.pts,
+          ast: basicResult.stats?.ast,
+          reb: basicResult.stats?.reb,
+        }));
+        if (basicResult.stats) {
+          setBasicStats(basicResult.stats as unknown as BasicStats);
         }
 
         // Fetch advanced stats if Pro user (scraped from Basketball Reference)
-        if (isProUser && !advancedStats) {
+        if (isProUser) {
           try {
             const advancedResult = await getAdvancedStats({
               playerId: bdlPlayerId,
@@ -302,11 +313,12 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
         setStatsError('Failed to load stats');
       } finally {
         setIsLoadingStats(false);
+        setStatsLoaded(true);
       }
     };
 
     fetchStats();
-  }, [activeTab, bdlPlayerId, basicStats, advancedStats, isProUser, proSyncVersion, getPlayerStats, getAdvancedStats]);
+  }, [activeTab, bdlPlayerId, basicStats, isProUser, getPlayerStats, getAdvancedStats]);
 
   // Fetch contracts when tab changes to 'contract' and user is Pro
   useEffect(() => {
@@ -336,7 +348,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     };
 
     fetchContracts();
-  }, [activeTab, bdlPlayerId, contracts.length, isProUser, proSyncVersion, getPlayerContract]);
+  }, [activeTab, bdlPlayerId, contracts.length, isProUser, getPlayerContract]);
 
   const handleUnlockPress = useCallback(() => {
     onDismiss?.();
@@ -492,10 +504,30 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
           );
         }
 
+        if (!isLoadingStats && statsLoaded && !basicStats) {
+          const currentSeason = new Date().getMonth() >= 9
+            ? new Date().getFullYear()
+            : new Date().getFullYear() - 1;
+          const seasonStr = `${currentSeason}-${(currentSeason + 1).toString().slice(-2)}`;
+          return (
+            <View style={styles.emptyContainer}>
+              <Ionicons
+                name="stats-chart-outline"
+                size={32}
+                color={DesignTokens.textMuted}
+              />
+              <Text style={[styles.emptyText, isDark && styles.textSecondary]}>
+                No stats available for the {seasonStr} season.
+              </Text>
+            </View>
+          );
+        }
+
         return (
           <PlayerStatsCard
             basicStats={basicStats}
             advancedStats={advancedStats}
+            season={basicStats?.season}
             isLoading={isLoadingStats}
             isProUser={isProUser}
             onUnlockPress={handleUnlockPress}

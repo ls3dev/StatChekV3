@@ -81,6 +81,17 @@ export default function ScoresScreen() {
   const [fullPlayerCard, setFullPlayerCard] = useState<Player | null>(null);
 
   const getGames = useAction(api.nba.getGames);
+  const getStandings = useAction(api.nba.getStandings);
+
+  interface TeamStanding {
+    wins: number;
+    losses: number;
+    conference_rank: number;
+    conference_record: string;
+    home_record: string;
+    road_record: string;
+  }
+  const [standings, setStandings] = useState<Map<number, TeamStanding>>(new Map());
 
   const fetchGames = useCallback(
     async (showRefreshing = false) => {
@@ -98,9 +109,23 @@ export default function ScoresScreen() {
 
       try {
         const date = formatDate(selectedDate);
-        const result = await getGames({ date });
+        const [result, standingsResult] = await Promise.all([
+          getGames({ date }),
+          getStandings({}),
+        ]);
         setGames(result.games as Game[]);
         setCachedAt(result.cachedAt);
+        const map = new Map(
+          standingsResult.standings.map((s) => [s.team.id, {
+            wins: s.wins,
+            losses: s.losses,
+            conference_rank: s.conference_rank,
+            conference_record: s.conference_record,
+            home_record: s.home_record,
+            road_record: s.road_record,
+          }])
+        );
+        setStandings(map);
       } catch (err: any) {
         console.error('Failed to fetch games:', err);
         setError(err.message || 'Failed to load games');
@@ -109,7 +134,7 @@ export default function ScoresScreen() {
         setIsRefreshing(false);
       }
     },
-    [getGames, selectedDate, selectedSport]
+    [getGames, getStandings, selectedDate, selectedSport]
   );
 
   // Fetch games on mount and when date/sport changes
@@ -258,7 +283,13 @@ export default function ScoresScreen() {
                 </View>
               </View>
               {liveGames.map((game) => (
-                <ScoreCard key={game.id} game={game} onPress={() => handleGamePress(game)} />
+                <ScoreCard
+                  key={game.id}
+                  game={game}
+                  onPress={() => handleGamePress(game)}
+                  homeRecord={standings.get(game.home_team.id)}
+                  visitorRecord={standings.get(game.visitor_team.id)}
+                />
               ))}
             </View>
           )}
@@ -270,7 +301,13 @@ export default function ScoresScreen() {
                 Upcoming
               </Text>
               {scheduledGames.map((game) => (
-                <ScoreCard key={game.id} game={game} onPress={() => handleGamePress(game)} />
+                <ScoreCard
+                  key={game.id}
+                  game={game}
+                  onPress={() => handleGamePress(game)}
+                  homeRecord={standings.get(game.home_team.id)}
+                  visitorRecord={standings.get(game.visitor_team.id)}
+                />
               ))}
             </View>
           )}
@@ -282,7 +319,13 @@ export default function ScoresScreen() {
                 Final
               </Text>
               {completedGames.map((game) => (
-                <ScoreCard key={game.id} game={game} onPress={() => handleGamePress(game)} />
+                <ScoreCard
+                  key={game.id}
+                  game={game}
+                  onPress={() => handleGamePress(game)}
+                  homeRecord={standings.get(game.home_team.id)}
+                  visitorRecord={standings.get(game.visitor_team.id)}
+                />
               ))}
             </View>
           )}
@@ -302,6 +345,8 @@ export default function ScoresScreen() {
         isVisible={selectedGame !== null}
         onDismiss={handleDismissGame}
         onOpenFullPlayerCard={handleOpenFullPlayerCard}
+        homeStanding={selectedGame ? standings.get(selectedGame.home_team.id) : undefined}
+        visitorStanding={selectedGame ? standings.get(selectedGame.visitor_team.id) : undefined}
       />
 
       {/* Full Player Card - rendered at page level to avoid nested Modals */}

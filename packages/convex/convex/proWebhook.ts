@@ -56,6 +56,29 @@ interface RevenueCatEvent {
   };
 }
 
+const DEFAULT_PRO_ENTITLEMENT_IDS = ["pro", "statcheck pro"];
+
+function parseConfiguredProEntitlementIds(rawValue: string | undefined): string[] {
+  if (!rawValue) return DEFAULT_PRO_ENTITLEMENT_IDS;
+
+  const parsed = rawValue
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  return parsed.length > 0 ? parsed : DEFAULT_PRO_ENTITLEMENT_IDS;
+}
+
+function getMatchingProEntitlements(
+  entitlementIds: string[] | undefined,
+  configuredProEntitlementIds: string[]
+): string[] {
+  if (!entitlementIds || entitlementIds.length === 0) return [];
+
+  const normalized = entitlementIds.map((id) => id.toLowerCase());
+  return configuredProEntitlementIds.filter((id) => normalized.includes(id));
+}
+
 /**
  * Verify RevenueCat webhook signature (optional but recommended)
  */
@@ -79,6 +102,8 @@ function verifyWebhookSignature(
  * HTTP endpoint for RevenueCat webhooks
  */
 export const handleRevenueCatWebhook = httpAction(async (ctx, request) => {
+  const configuredProEntitlementIds = parseConfiguredProEntitlementIds(process.env.PRO_ENTITLEMENT_IDS);
+
   // Verify content type
   const contentType = request.headers.get("content-type");
   if (!contentType?.includes("application/json")) {
@@ -109,10 +134,16 @@ export const handleRevenueCatWebhook = httpAction(async (ctx, request) => {
     productId: event.event.product_id,
     entitlements: event.event.entitlement_ids,
     environment: event.event.environment,
+    configuredProEntitlementIds,
   });
 
-  // Only process events for the "pro" entitlement
-  if (!event.event.entitlement_ids?.includes("pro")) {
+  const matchedEntitlements = getMatchingProEntitlements(
+    event.event.entitlement_ids,
+    configuredProEntitlementIds
+  );
+
+  // Only process events for configured pro entitlements
+  if (matchedEntitlements.length === 0) {
     console.log("Ignoring non-pro entitlement event");
     return new Response("OK", { status: 200 });
   }
@@ -152,7 +183,11 @@ export const handleRevenueCatWebhook = httpAction(async (ctx, request) => {
 
     case "PRODUCT_CHANGE":
       // Product changed - check if new product includes pro
-      isProUser = event.event.entitlement_ids.includes("pro");
+      isProUser =
+        getMatchingProEntitlements(
+          event.event.entitlement_ids,
+          configuredProEntitlementIds
+        ).length > 0;
       proExpiresAt = isProUser ? event.event.expiration_at_ms : null;
       break;
 
@@ -178,6 +213,7 @@ export const handleRevenueCatWebhook = httpAction(async (ctx, request) => {
     console.log(`Updated pro status for user ${clerkUserId}:`, {
       isProUser,
       proExpiresAt: proExpiresAt ? new Date(proExpiresAt).toISOString() : null,
+      matchedEntitlements,
     });
 
     return new Response("OK", { status: 200 });
