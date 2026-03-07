@@ -23,7 +23,6 @@ import { useRouter } from 'expo-router';
 import { useAction } from 'convex/react';
 
 import { Ionicons } from '@expo/vector-icons';
-import { DesignTokens, Typography } from '@/constants/theme';
 import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
 import { api } from '@statcheck/convex';
 import { getAllPlayers } from '@/services/playerData';
@@ -112,7 +111,61 @@ interface TeamStanding {
   home_record: string;
   road_record: string;
 }
+interface GamePlay {
+  id: number;
+  description: string | null;
+  clock: string | null;
+  period: number;
+  home_score: number | null;
+  away_score: number | null;
+  score_value: number | null;
+  scoring_play: boolean;
+  order: number;
+  team: Team | null;
+}
 
+interface TeamSeasonStats {
+  team_id: number;
+  season: number;
+  season_type: string;
+  games: number;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  turnover: number;
+  pf: number;
+  fgm: number;
+  fga: number;
+  fg_pct: number;
+  fg3m: number;
+  fg3a: number;
+  fg3_pct: number;
+  ftm: number;
+  fta: number;
+  ft_pct: number;
+  oreb: number;
+  dreb: number;
+  min: string;
+  plus_minus: number;
+  win_pct: number;
+  losses: number;
+  wins: number;
+}
+
+type ComparisonTeamStats = {
+  pts: number | null;
+  reb: number | null;
+  ast: number | null;
+  stl: number | null;
+  blk: number | null;
+  turnovers: number | null;
+  fgPct: number | null;
+  fg3Pct: number | null;
+  ftPct: number | null;
+  record?: string | null;
+};
 type GameSummaryBottomSheetProps = {
   game: Game | null;
   isVisible: boolean;
@@ -141,6 +194,17 @@ const COLORS = {
   tabInactive: '#8E8E93',
 };
 
+function isScheduledGameStatus(game: Game) {
+  return game.status !== 'Final' && (game.status.includes('T') || game.period === 0);
+}
+
+function getSeasonForGameDate(dateString: string) {
+  const gameDate = new Date(dateString);
+  const year = gameDate.getFullYear();
+  const month = gameDate.getMonth() + 1;
+  return month >= 10 ? year : year - 1;
+}
+
 export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullPlayerCard, homeStanding, visitorStanding }: GameSummaryBottomSheetProps) {
   const router = useRouter();
   const translateY = useSharedValue(SHEET_HEIGHT);
@@ -149,14 +213,22 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
 
   const [selectedTeam, setSelectedTeam] = useState<'home' | 'visitor'>('visitor');
   const [boxScore, setBoxScore] = useState<BoxScore | null>(null);
+  const [gamePlays, setGamePlays] = useState<GamePlay[]>([]);
+  const [seasonTeamStats, setSeasonTeamStats] = useState<{
+    home: TeamSeasonStats | null;
+    visitor: TeamSeasonStats | null;
+  }>({ home: null, visitor: null });
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSeasonStats, setIsLoadingSeasonStats] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [seasonStatsError, setSeasonStatsError] = useState<string | null>(null);
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerBoxScore | null>(null);
-  const [fullPlayerCard, setFullPlayerCard] = useState<Player | null>(null);
 
   const getBoxScore = useAction(api.nba.getBoxScore);
+  const getGamePlays = useAction(api.nba.getGamePlays);
+  const getTeamSeasonAverages = useAction(api.nba.getTeamSeasonAverages);
 
   // Helper to normalize names for matching (remove accents, suffixes, etc.)
   const normalizeName = useCallback((name: string): string => {
@@ -235,34 +307,83 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
     setError(null);
 
     try {
-      const result = await getBoxScore({
-        date: game.date.split('T')[0],
-        homeTeamId: game.home_team.id,
-        visitorTeamId: game.visitor_team.id,
-      });
+      const canLoadPlays = getSeasonForGameDate(game.date) >= 2025;
+      const [boxScoreResult, playsResult] = await Promise.all([
+        getBoxScore({
+          date: game.date.split('T')[0],
+          homeTeamId: game.home_team.id,
+          visitorTeamId: game.visitor_team.id,
+        }),
+        canLoadPlays
+          ? getGamePlays({ gameId: game.id }).catch((playError) => {
+              console.error('Failed to fetch play-by-play:', playError);
+              return { plays: [] as GamePlay[] };
+            })
+          : Promise.resolve({ plays: [] as GamePlay[] }),
+      ]);
 
-      setBoxScore(result.boxScore as BoxScore | null);
-      setIsLive(result.isLive);
+      setBoxScore(boxScoreResult.boxScore as BoxScore | null);
+      setIsLive(boxScoreResult.isLive);
+      setGamePlays((playsResult.plays as GamePlay[]) ?? []);
     } catch (err: any) {
       console.error('Failed to fetch box score:', err);
       setError(err.message || 'Failed to load box score');
     } finally {
       setIsLoading(false);
     }
-  }, [game, getBoxScore]);
+  }, [game, getBoxScore, getGamePlays]);
+
+  const fetchSeasonTeamStats = useCallback(async () => {
+    if (!game) return;
+
+    setIsLoadingSeasonStats(true);
+    setSeasonStatsError(null);
+
+    try {
+      const result = await getTeamSeasonAverages({
+        teamIds: [game.home_team.id, game.visitor_team.id],
+        season: getSeasonForGameDate(game.date),
+        seasonType: game.postseason ? 'playoffs' : 'regular',
+      });
+
+      const stats = result.stats as TeamSeasonStats[];
+      setSeasonTeamStats({
+        home: stats.find((team) => team.team_id === game.home_team.id) ?? null,
+        visitor: stats.find((team) => team.team_id === game.visitor_team.id) ?? null,
+      });
+    } catch (err: any) {
+      console.error('Failed to fetch season team stats:', err);
+      setSeasonStatsError(err.message || 'Failed to load season team stats');
+    } finally {
+      setIsLoadingSeasonStats(false);
+    }
+  }, [game, getTeamSeasonAverages]);
 
   useEffect(() => {
     if (isVisible && game) {
       translateY.value = withTiming(0, { duration: 300 });
       backdropOpacity.value = withTiming(0.6, { duration: 300 });
-      fetchBoxScore();
+      if (isScheduledGameStatus(game)) {
+        setBoxScore(null);
+        setGamePlays([]);
+        setIsLive(false);
+        fetchSeasonTeamStats();
+      } else {
+        setSeasonTeamStats({ home: null, visitor: null });
+        setSeasonStatsError(null);
+        fetchBoxScore();
+      }
     } else {
       translateY.value = SHEET_HEIGHT;
       backdropOpacity.value = 0;
       setBoxScore(null);
+      setGamePlays([]);
+      setSeasonTeamStats({ home: null, visitor: null });
+      setIsLoadingSeasonStats(false);
+      setSeasonStatsError(null);
       setSelectedTeam('visitor');
     }
-  }, [isVisible, game, translateY, backdropOpacity, fetchBoxScore]);
+  }, [isVisible, game, translateY, backdropOpacity, fetchBoxScore, fetchSeasonTeamStats]);
 
   // Auto-refresh for live games
   useEffect(() => {
@@ -364,8 +485,81 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
     return bMin - aMin;
   });
 
+  const getTeamSide = (teamId: number | null | undefined): 'home' | 'visitor' | null => {
+    if (!teamId) return null;
+    if (teamId === game.home_team.id) return 'home';
+    if (teamId === game.visitor_team.id) return 'visitor';
+    return null;
+  };
+
+  const getPlayScoreValue = (play: GamePlay, previousPlay?: GamePlay): number => {
+    if (typeof play.score_value === 'number' && play.score_value > 0) {
+      return play.score_value;
+    }
+
+    const side = getTeamSide(play.team?.id);
+    if (!side) return 0;
+
+    if (side === 'home') {
+      const currentScore = play.home_score ?? 0;
+      const previousScore = previousPlay?.home_score ?? 0;
+      return Math.max(0, currentScore - previousScore);
+    }
+
+    const currentScore = play.away_score ?? 0;
+    const previousScore = previousPlay?.away_score ?? 0;
+    return Math.max(0, currentScore - previousScore);
+  };
+
+  const getCurrentRun = () => {
+    if (gamePlays.length === 0) return null;
+
+    let activeTeam: 'home' | 'visitor' | null = null;
+    let activePoints = 0;
+    let previousScoringPlay: GamePlay | undefined;
+
+    const scoringPlays = [...gamePlays]
+      .filter((play) => play.scoring_play)
+      .sort((a, b) => a.order - b.order);
+
+    for (const play of scoringPlays) {
+      const side = getTeamSide(play.team?.id);
+      if (!side) continue;
+
+      const points = getPlayScoreValue(play, previousScoringPlay);
+      previousScoringPlay = play;
+
+      if (points <= 0) continue;
+
+      if (activeTeam === side) {
+        activePoints += points;
+      } else {
+        activeTeam = side;
+        activePoints = points;
+      }
+    }
+
+    if (!activeTeam || activePoints <= 0) {
+      return null;
+    }
+
+    return { team: activeTeam, points: activePoints };
+  };
+
   const renderQuarterScores = () => {
     if (!boxScore) return null;
+
+    const currentRun = getCurrentRun();
+    const visitorRunText = currentRun
+      ? currentRun.team === 'visitor'
+        ? `🔥 ${currentRun.points}-0`
+        : `🥶 0-${currentRun.points}`
+      : '-';
+    const homeRunText = currentRun
+      ? currentRun.team === 'home'
+        ? `🔥 ${currentRun.points}-0`
+        : `🥶 0-${currentRun.points}`
+      : '-';
 
     const quarters = [
       { label: 'Q1', home: boxScore.home_q1, visitor: boxScore.visitor_q1 },
@@ -401,6 +595,20 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
               {boxScore.visitor_team_score}
             </Text>
           </View>
+          <View style={styles.quarterRun}>
+            <View
+              style={[
+                styles.runBadge,
+                currentRun
+                  ? currentRun.team === 'visitor'
+                    ? styles.runBadgeHot
+                    : styles.runBadgeCold
+                  : styles.runBadgeNeutral,
+              ]}
+            >
+              <Text style={styles.runBadgeText}>{visitorRunText}</Text>
+            </View>
+          </View>
         </View>
         <View style={styles.quarterRow}>
           <View style={styles.quarterTeam}>
@@ -416,6 +624,20 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
               {boxScore.home_team_score}
             </Text>
           </View>
+          <View style={styles.quarterRun}>
+            <View
+              style={[
+                styles.runBadge,
+                currentRun
+                  ? currentRun.team === 'home'
+                    ? styles.runBadgeHot
+                    : styles.runBadgeCold
+                  : styles.runBadgeNeutral,
+              ]}
+            >
+              <Text style={styles.runBadgeText}>{homeRunText}</Text>
+            </View>
+          </View>
         </View>
         <View style={styles.quarterLabels}>
           <View style={styles.quarterTeam} />
@@ -426,6 +648,9 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
           ))}
           <View style={styles.quarterTotal}>
             <Text style={styles.quarterLabel}>T</Text>
+          </View>
+          <View style={styles.quarterRun}>
+            <Text style={styles.quarterLabel}>RUN</Text>
           </View>
         </View>
       </View>
@@ -463,7 +688,7 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
     const homeTotals = computeTeamTotals(boxScore.home_team.players);
     const visitorTotals = computeTeamTotals(boxScore.visitor_team.players);
 
-    const rows: Array<{ label: string; home: string; visitor: string }> = [
+    const rows: { label: string; home: string; visitor: string }[] = [
       { label: 'PTS', home: String(homeTotals.pts), visitor: String(visitorTotals.pts) },
       { label: 'REB', home: String(homeTotals.reb), visitor: String(visitorTotals.reb) },
       { label: 'AST', home: String(homeTotals.ast), visitor: String(visitorTotals.ast) },
@@ -509,6 +734,165 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
     if (value === null || value === undefined) return '-';
     return value > 0 ? `+${value}` : value.toString();
   };
+
+  const formatTeamStatNumber = (value: number | null | undefined) => {
+    if (value === null || value === undefined || Number.isNaN(value)) return '-';
+    if (Math.abs(value - Math.round(value)) < 0.05) return Math.round(value).toString();
+    return value.toFixed(1);
+  };
+
+  const formatTeamStatPercent = (value: number | null | undefined) => {
+    if (value === null || value === undefined || Number.isNaN(value)) return '-';
+    return `${(value * 100).toFixed(1)}%`;
+  };
+
+  const getGameTeamStats = (team: BoxScoreTeam | undefined): ComparisonTeamStats | null => {
+    if (!team) return null;
+
+    const totals = team.players.reduce(
+      (acc, player) => ({
+        pts: acc.pts + (player.pts || 0),
+        reb: acc.reb + (player.reb || 0),
+        ast: acc.ast + (player.ast || 0),
+        stl: acc.stl + (player.stl || 0),
+        blk: acc.blk + (player.blk || 0),
+        turnovers: acc.turnovers + (player.turnover || 0),
+        fgm: acc.fgm + (player.fgm || 0),
+        fga: acc.fga + (player.fga || 0),
+        fg3m: acc.fg3m + (player.fg3m || 0),
+        fg3a: acc.fg3a + (player.fg3a || 0),
+        ftm: acc.ftm + (player.ftm || 0),
+        fta: acc.fta + (player.fta || 0),
+      }),
+      {
+        pts: 0,
+        reb: 0,
+        ast: 0,
+        stl: 0,
+        blk: 0,
+        turnovers: 0,
+        fgm: 0,
+        fga: 0,
+        fg3m: 0,
+        fg3a: 0,
+        ftm: 0,
+        fta: 0,
+      }
+    );
+
+    return {
+      pts: totals.pts,
+      reb: totals.reb,
+      ast: totals.ast,
+      stl: totals.stl,
+      blk: totals.blk,
+      turnovers: totals.turnovers,
+      fgPct: totals.fga > 0 ? totals.fgm / totals.fga : null,
+      fg3Pct: totals.fg3a > 0 ? totals.fg3m / totals.fg3a : null,
+      ftPct: totals.fta > 0 ? totals.ftm / totals.fta : null,
+    };
+  };
+
+  const getSeasonComparisonStats = (team: TeamSeasonStats | null): ComparisonTeamStats | null => {
+    if (!team) return null;
+
+    return {
+      record: `${team.wins}-${team.losses}`,
+      pts: team.pts,
+      reb: team.reb,
+      ast: team.ast,
+      stl: team.stl,
+      blk: team.blk,
+      turnovers: team.turnover,
+      fgPct: team.fg_pct,
+      fg3Pct: team.fg3_pct,
+      ftPct: team.ft_pct,
+    };
+  };
+
+  const renderTeamStatsSection = () => {
+    const selectedTeamInfo = selectedTeam === 'home' ? game.home_team : game.visitor_team;
+    const selectedStats = isScheduled
+      ? getSeasonComparisonStats(
+          selectedTeam === 'home' ? seasonTeamStats.home : seasonTeamStats.visitor
+        )
+      : getGameTeamStats(selectedTeam === 'home' ? boxScore?.home_team : boxScore?.visitor_team);
+
+    if (!selectedStats) return null;
+
+    const statCards = [
+      isScheduled ? { label: 'REC', value: selectedStats.record ?? '-' } : null,
+      { label: 'PTS', value: formatTeamStatNumber(selectedStats.pts) },
+      { label: 'REB', value: formatTeamStatNumber(selectedStats.reb) },
+      { label: 'AST', value: formatTeamStatNumber(selectedStats.ast) },
+      { label: 'FG%', value: formatTeamStatPercent(selectedStats.fgPct) },
+      { label: '3PT%', value: formatTeamStatPercent(selectedStats.fg3Pct) },
+      { label: 'FT%', value: formatTeamStatPercent(selectedStats.ftPct) },
+      { label: 'STL', value: formatTeamStatNumber(selectedStats.stl) },
+      { label: 'BLK', value: formatTeamStatNumber(selectedStats.blk) },
+      { label: 'TO', value: formatTeamStatNumber(selectedStats.turnovers) },
+    ].filter(Boolean) as { label: string; value: string }[];
+
+    return (
+      <View style={styles.teamStatsCard}>
+        <View style={styles.teamStatsHeaderRow}>
+          <View>
+            <Text style={styles.teamStatsTitle}>
+              {isScheduled ? 'Season Team Stats' : 'Game Team Stats'}
+            </Text>
+            <Text style={styles.teamStatsSubtitle}>
+              {isScheduled ? 'Per-game averages' : 'Totals from this matchup'}
+            </Text>
+          </View>
+          <View style={styles.teamStatsTeamPill}>
+            <Image
+              source={{ uri: getNBATeamLogoUrl(selectedTeamInfo.abbreviation) }}
+              style={styles.teamStatsTeamPillLogo}
+            />
+            <Text style={styles.teamStatsTeamPillText}>{selectedTeamInfo.abbreviation}</Text>
+          </View>
+        </View>
+
+        <View style={styles.teamStatsGrid}>
+          {statCards.map((stat) => (
+            <View key={`${selectedTeam}-${stat.label}`} style={styles.teamStatsTile}>
+              <Text style={styles.teamStatsTileValue}>{stat.value}</Text>
+              <Text style={styles.teamStatsTileLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const renderTeamTabs = () => (
+    <View style={styles.teamTabs}>
+      <Pressable
+        style={[styles.teamTab, selectedTeam === 'visitor' && styles.teamTabActive]}
+        onPress={() => setSelectedTeam('visitor')}
+      >
+        <Image
+          source={{ uri: getNBATeamLogoUrl(game.visitor_team.abbreviation) }}
+          style={styles.tabLogo}
+        />
+        <Text style={[styles.teamTabText, selectedTeam === 'visitor' && styles.teamTabTextActive]}>
+          {game.visitor_team.abbreviation}
+        </Text>
+      </Pressable>
+      <Pressable
+        style={[styles.teamTab, selectedTeam === 'home' && styles.teamTabActive]}
+        onPress={() => setSelectedTeam('home')}
+      >
+        <Image
+          source={{ uri: getNBATeamLogoUrl(game.home_team.abbreviation) }}
+          style={styles.tabLogo}
+        />
+        <Text style={[styles.teamTabText, selectedTeam === 'home' && styles.teamTabTextActive]}>
+          {game.home_team.abbreviation}
+        </Text>
+      </Pressable>
+    </View>
+  );
 
   const renderPlayerRow = (player: PlayerBoxScore, index: number) => {
     const photoUrl = getPlayerPhotoUrl(player.player.first_name, player.player.last_name);
@@ -760,17 +1144,48 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
 
             {/* Content */}
             {isScheduled ? (
-              <ScrollView style={styles.scheduledScroll} showsVerticalScrollIndicator={false}>
-                {(homeStanding || visitorStanding) ? (
+              <ScrollView
+                style={styles.boxScoreContent}
+                contentContainerStyle={styles.scheduledContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {renderTeamTabs()}
+
+                {isLoadingSeasonStats ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={COLORS.accent} />
+                    <Text style={styles.loadingText}>Loading season team stats...</Text>
+                  </View>
+                ) : seasonStatsError ? (
+                  <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{seasonStatsError}</Text>
+                    <Pressable style={styles.retryButton} onPress={fetchSeasonTeamStats}>
+                      <Text style={styles.retryButtonText}>Retry</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  renderTeamStatsSection()
+                )}
+
+                <View style={styles.scheduledNoticeCard}>
+                  <Text style={styles.scheduledText}>Game has not started yet</Text>
+                  <Text style={styles.scheduledSubtext}>
+                    Player box score will appear here once the game tips off.
+                  </Text>
+                </View>
+
+                {(homeStanding || visitorStanding) && (
                   <View style={styles.matchupContainer}>
-                    {/* Team header row */}
                     <View style={styles.matchupTeamHeader}>
-                      <Text style={styles.matchupTeamName} numberOfLines={1}>{game.visitor_team.city}</Text>
+                      <Text style={styles.matchupTeamName} numberOfLines={1}>
+                        {game.visitor_team.city}
+                      </Text>
                       <Text style={styles.matchupVs}>vs</Text>
-                      <Text style={styles.matchupTeamName} numberOfLines={1}>{game.home_team.city}</Text>
+                      <Text style={styles.matchupTeamName} numberOfLines={1}>
+                        {game.home_team.city}
+                      </Text>
                     </View>
 
-                    {/* Stat rows */}
                     {[
                       {
                         label: 'RECORD',
@@ -810,11 +1225,6 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
                       </View>
                     ))}
                   </View>
-                ) : (
-                  <View style={styles.scheduledContainer}>
-                    <Text style={styles.scheduledText}>Game has not started yet</Text>
-                    <Text style={styles.scheduledSubtext}>Box score will be available once the game begins</Text>
-                  </View>
                 )}
               </ScrollView>
             ) : isLoading ? (
@@ -842,32 +1252,10 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
                 {renderTeamStats()}
 
                 {/* Team Tabs */}
-                <View style={styles.teamTabs}>
-                  <Pressable
-                    style={[styles.teamTab, selectedTeam === 'visitor' && styles.teamTabActive]}
-                    onPress={() => setSelectedTeam('visitor')}
-                  >
-                    <Image
-                      source={{ uri: getNBATeamLogoUrl(game.visitor_team.abbreviation) }}
-                      style={styles.tabLogo}
-                    />
-                    <Text style={[styles.teamTabText, selectedTeam === 'visitor' && styles.teamTabTextActive]}>
-                      {game.visitor_team.abbreviation}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.teamTab, selectedTeam === 'home' && styles.teamTabActive]}
-                    onPress={() => setSelectedTeam('home')}
-                  >
-                    <Image
-                      source={{ uri: getNBATeamLogoUrl(game.home_team.abbreviation) }}
-                      style={styles.tabLogo}
-                    />
-                    <Text style={[styles.teamTabText, selectedTeam === 'home' && styles.teamTabTextActive]}>
-                      {game.home_team.abbreviation}
-                    </Text>
-                  </Pressable>
-                </View>
+                {renderTeamTabs()}
+
+                {/* Team Stats */}
+                {renderTeamStatsSection()}
 
                 {/* Stats Table */}
                 <ScrollView style={styles.statsScroll} showsVerticalScrollIndicator={false}>
@@ -1126,6 +1514,87 @@ const styles = StyleSheet.create({
   boxScoreContent: {
     flex: 1,
   },
+  scheduledContent: {
+    paddingBottom: 32,
+  },
+  scheduledNoticeCard: {
+    backgroundColor: COLORS.card,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    padding: 20,
+  },
+  teamStatsCard: {
+    backgroundColor: COLORS.card,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+  },
+  teamStatsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  teamStatsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  teamStatsSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  teamStatsTeamPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.cardAlt,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  teamStatsTeamPillLogo: {
+    width: 20,
+    height: 20,
+  },
+  teamStatsTeamPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.text,
+    letterSpacing: 0.3,
+  },
+  teamStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 14,
+    gap: 8,
+  },
+  teamStatsTile: {
+    width: '31%',
+    minHeight: 62,
+    borderRadius: 10,
+    backgroundColor: COLORS.cardAlt,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    justifyContent: 'center',
+  },
+  teamStatsTileValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+    fontVariant: ['tabular-nums'],
+  },
+  teamStatsTileLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    marginTop: 4,
+    letterSpacing: 0.4,
+  },
   quarterContainer: {
     backgroundColor: COLORS.card,
     marginHorizontal: 16,
@@ -1172,6 +1641,11 @@ const styles = StyleSheet.create({
     width: 36,
     alignItems: 'center',
     marginLeft: 4,
+  },
+  quarterRun: {
+    width: 84,
+    marginLeft: 8,
+    alignItems: 'center',
   },
   quarterTotalScore: {
     fontWeight: '700',
@@ -1220,6 +1694,33 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontVariant: ['tabular-nums'],
   },
+  runBadge: {
+    borderRadius: 10,
+    width: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  runBadgeHot: {
+    backgroundColor: 'rgba(255, 107, 0, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 149, 0, 0.35)',
+  },
+  runBadgeCold: {
+    backgroundColor: 'rgba(10, 132, 255, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(10, 132, 255, 0.28)',
+  },
+  runBadgeNeutral: {
+    backgroundColor: COLORS.cardAlt,
+  },
+  runBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.text,
+    fontVariant: ['tabular-nums'],
+  },
   teamTabs: {
     flexDirection: 'row',
     marginHorizontal: 16,
@@ -1257,6 +1758,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 16,
     paddingBottom: 16,
+  },
+  statsTableContainer: {
+    marginTop: 12,
+    paddingBottom: 32,
   },
   statsHeader: {
     flexDirection: 'row',

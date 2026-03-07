@@ -46,6 +46,7 @@ export function PaywallBottomSheet() {
   const { isPaywallVisible, closePaywall } = usePaywall();
   const syncProStatus = useMutation(api.proWebhook.syncProStatus);
 
+  const [isRendered, setIsRendered] = useState(isPaywallVisible);
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -60,13 +61,27 @@ export function PaywallBottomSheet() {
   // Animate in/out
   useEffect(() => {
     if (isPaywallVisible) {
+      if (!isRendered) {
+        setIsRendered(true);
+      }
       translateY.value = withTiming(0, { duration: 300 });
       backdropOpacity.value = withTiming(0.6, { duration: 300 });
-    } else {
-      translateY.value = SHEET_HEIGHT;
-      backdropOpacity.value = 0;
+      return;
     }
-  }, [isPaywallVisible, translateY, backdropOpacity]);
+
+    if (isRendered) {
+      translateY.value = withTiming(SHEET_HEIGHT, { duration: 200 }, (finished) => {
+        if (finished) {
+          runOnJS(setIsRendered)(false);
+        }
+      });
+      backdropOpacity.value = withTiming(0, { duration: 200 });
+      return;
+    }
+
+    translateY.value = SHEET_HEIGHT;
+    backdropOpacity.value = 0;
+  }, [isPaywallVisible, isRendered, translateY, backdropOpacity]);
 
   // Auto-dismiss after purchase success
   useEffect(() => {
@@ -102,8 +117,6 @@ export function PaywallBottomSheet() {
   }, [isProUser, customerInfo, syncProStatus]);
 
   const handleDismiss = () => {
-    translateY.value = withTiming(SHEET_HEIGHT, { duration: 200 });
-    backdropOpacity.value = withTiming(0, { duration: 200 });
     closePaywall();
   };
 
@@ -117,8 +130,6 @@ export function PaywallBottomSheet() {
     })
     .onEnd((event) => {
       if (translateY.value > DISMISS_THRESHOLD || event.velocityY > 500) {
-        translateY.value = withTiming(SHEET_HEIGHT, { duration: 200 });
-        backdropOpacity.value = withTiming(0, { duration: 200 });
         runOnJS(closePaywall)();
       } else {
         translateY.value = withSpring(0, { damping: 20, stiffness: 150 });
@@ -190,7 +201,7 @@ export function PaywallBottomSheet() {
     return null;
   };
 
-  if (!isPaywallVisible) return null;
+  if (!isPaywallVisible && !isRendered) return null;
 
   return (
     <View style={[StyleSheet.absoluteFill, { zIndex: 999 }]}>
@@ -213,7 +224,7 @@ export function PaywallBottomSheet() {
                 <View style={styles.successIcon}>
                   <Ionicons name="checkmark-circle" size={80} color="#10B981" />
                 </View>
-                <Text style={styles.successTitle}>You're a Pro!</Text>
+                <Text style={styles.successTitle}>You are a Pro!</Text>
                 <Text style={styles.successText}>
                   Thank you for supporting StatCheck. Enjoy all premium features.
                 </Text>
