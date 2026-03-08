@@ -965,25 +965,41 @@ export const getBoxScore = action({
 
     const client = createBallDontLieClient(apiKey);
 
-    // First try to get live box scores (for in-progress games)
-    const liveBoxScores = await client.getLiveBoxScores();
+    // Live box scores can occasionally lag or omit player rows for an active game.
+    // Fetch both snapshots and prefer whichever contains richer player data.
+    const [liveBoxScores, boxScores] = await Promise.all([
+      client.getLiveBoxScores(),
+      client.getBoxScores(args.date),
+    ]);
+
     const liveGame = liveBoxScores.find(
       (game) =>
         (game.home_team.id === args.homeTeamId && game.visitor_team.id === args.visitorTeamId) ||
         (game.home_team.id === args.visitorTeamId && game.visitor_team.id === args.homeTeamId)
     );
 
-    if (liveGame) {
-      return { boxScore: liveGame, isLive: true };
-    }
-
-    // Fetch historical box scores for the date
-    const boxScores = await client.getBoxScores(args.date);
     const matchingGame = boxScores.find(
       (game) =>
         (game.home_team.id === args.homeTeamId && game.visitor_team.id === args.visitorTeamId) ||
         (game.home_team.id === args.visitorTeamId && game.visitor_team.id === args.homeTeamId)
     );
+
+    const livePlayerCount =
+      (liveGame?.home_team.players?.length ?? 0) + (liveGame?.visitor_team.players?.length ?? 0);
+    const datedPlayerCount =
+      (matchingGame?.home_team.players?.length ?? 0) + (matchingGame?.visitor_team.players?.length ?? 0);
+
+    if (liveGame && livePlayerCount >= datedPlayerCount) {
+      return { boxScore: liveGame, isLive: true };
+    }
+
+    if (matchingGame) {
+      return { boxScore: matchingGame, isLive: !!liveGame };
+    }
+
+    if (liveGame) {
+      return { boxScore: liveGame, isLive: true };
+    }
 
     return { boxScore: matchingGame ?? null, isLive: false };
   },

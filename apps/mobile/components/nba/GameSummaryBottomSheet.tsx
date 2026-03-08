@@ -449,7 +449,11 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
 
   // Game status can be: "Final", "1st Qtr", "2nd Qtr", "3rd Qtr", "4th Qtr", "Halftime", "In Progress", or a datetime string for scheduled
   const isFinal = game.status === 'Final';
-  const isScheduled = !isFinal && (game.status.includes('T') || game.period === 0);
+  const isScheduledFromFeed = !isFinal && (game.status.includes('T') || game.period === 0);
+  const hasBoxScoreData =
+    !!boxScore &&
+    ((boxScore.home_team.players?.length ?? 0) > 0 || (boxScore.visitor_team.players?.length ?? 0) > 0);
+  const isScheduled = isScheduledFromFeed && !isLive && !hasBoxScoreData;
   const isLiveGame = !isFinal && !isScheduled;
 
   const homeWinning = game.home_team_score > game.visitor_team_score;
