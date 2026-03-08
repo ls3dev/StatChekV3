@@ -497,29 +497,42 @@ class BallDontLieClient {
     season?: number
   ): Promise<BDLTeamBasicSeasonAverages | null> {
     const targetSeason = season ?? getCurrentNBASeason();
-    const params: Record<string, string | number | undefined> = {
-      type: "base",
-      season: targetSeason,
-      "team_ids[]": teamId,
-    };
+    const response = await this.fetch<BDLPaginatedResponse<BDLTeamSeasonAverages>>(
+      "/team_season_averages/general",
+      {
+        season: targetSeason,
+        "team_ids[]": teamId,
+        season_type: "regular",
+        per_page: 1,
+      },
+      NBA_BASE_URL
+    );
 
-    // Docs use /team_season_averages/{category}; keep a fallback path for compatibility.
-    try {
-      const response = await this.fetch<BDLPaginatedResponse<BDLTeamBasicSeasonAverages>>(
-        "/team_season_averages/general",
-        params
-      );
-      return response.data[0] ?? null;
-    } catch (error) {
-      const fallback = await this.fetch<BDLPaginatedResponse<BDLTeamBasicSeasonAverages>>(
-        "/team_season_averages",
-        {
-          ...params,
-          category: "general",
-        }
-      );
-      return fallback.data[0] ?? null;
+    const stats = response.data[0];
+    if (!stats) {
+      return null;
     }
+
+    return {
+      team_id: stats.team_id,
+      season: stats.season,
+      gp: stats.games,
+      min: stats.min,
+      pts: stats.pts,
+      reb: stats.reb,
+      ast: stats.ast,
+      stl: stats.stl,
+      blk: stats.blk,
+      tov: stats.turnover,
+      fg_pct: stats.fg_pct,
+      fg3_pct: stats.fg3_pct,
+      ft_pct: stats.ft_pct,
+      oreb: stats.oreb,
+      dreb: stats.dreb,
+      w: stats.wins,
+      l: stats.losses,
+      w_pct: stats.win_pct,
+    };
   }
 
   // ========================================
