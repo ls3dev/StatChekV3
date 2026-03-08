@@ -1248,7 +1248,11 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
                 <Text style={styles.errorText}>Box score not available</Text>
               </View>
             ) : (
-              <View style={styles.boxScoreContent}>
+              <ScrollView
+                style={styles.boxScoreContent}
+                contentContainerStyle={styles.boxScoreScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
                 {/* Quarter Scores */}
                 {renderQuarterScores()}
 
@@ -1262,33 +1266,34 @@ export function GameSummaryBottomSheet({ game, isVisible, onDismiss, onOpenFullP
                 {renderTeamStatsSection()}
 
                 {/* Stats Table */}
-                <ScrollView style={styles.statsScroll} showsVerticalScrollIndicator={false}>
-                  {/* Header Row */}
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View>
-                      <View style={styles.statsHeader}>
-                        <View style={styles.statsHeaderNameCell}>
-                          <Text style={styles.statsHeaderText}>PLAYER</Text>
-                        </View>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>MIN</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>PTS</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>REB</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>AST</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>STL</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>BLK</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>FG</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>3PT</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>FT</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>TO</Text>
-                        <Text style={[styles.statCell, styles.statsHeaderText]}>+/-</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.statsTableContainer}
+                >
+                  <View>
+                    <View style={styles.statsHeader}>
+                      <View style={styles.statsHeaderNameCell}>
+                        <Text style={styles.statsHeaderText}>PLAYER</Text>
                       </View>
-
-                      {/* Player Rows */}
-                      {sortedPlayers.map((player, index) => renderPlayerRow(player, index))}
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>MIN</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>PTS</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>REB</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>AST</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>STL</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>BLK</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>FG</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>3PT</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>FT</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>TO</Text>
+                      <Text style={[styles.statCell, styles.statsHeaderText]}>+/-</Text>
                     </View>
-                  </ScrollView>
+
+                    {/* Player Rows */}
+                    {sortedPlayers.map((player, index) => renderPlayerRow(player, index))}
+                  </View>
                 </ScrollView>
-              </View>
+              </ScrollView>
             )}
           </Animated.View>
         </GestureDetector>
@@ -1517,6 +1522,9 @@ const styles = StyleSheet.create({
   },
   boxScoreContent: {
     flex: 1,
+  },
+  boxScoreScrollContent: {
+    paddingBottom: 32,
   },
   scheduledContent: {
     paddingBottom: 32,
