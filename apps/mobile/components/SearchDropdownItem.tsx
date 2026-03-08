@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
@@ -94,9 +93,8 @@ export function SearchDropdownItem({ player, onPress }: SearchDropdownItemProps)
         <Image
           source={{ uri: player.photoUrl }}
           style={styles.avatar}
-          contentFit="cover"
+          resizeMode="cover"
           onError={() => setImageError(true)}
-          transition={150}
         />
       ) : (
         <View style={[styles.avatarPlaceholder, { backgroundColor: positionColor + '15' }]}>

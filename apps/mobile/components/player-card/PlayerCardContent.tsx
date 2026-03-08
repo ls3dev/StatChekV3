@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState, useEffect, useCallback } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useMutation, useAction } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { api } from '@statcheck/convex';
@@ -758,9 +757,8 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
             <Image
               source={{ uri: player.photoUrl }}
               style={[styles.photo, accentColor && { borderWidth: 3, borderColor: accentColor }]}
-              contentFit="cover"
+              resizeMode="cover"
               onError={() => setImageError(true)}
-              transition={200}
             />
           ) : (
             <View
