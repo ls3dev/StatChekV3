@@ -422,18 +422,88 @@ class BallDontLieClient {
     teamIds: number[];
     seasonType?: "regular" | "playoffs";
   }): Promise<BDLTeamSeasonAverages[]> {
-    const response = await this.fetch<BDLPaginatedResponse<BDLTeamSeasonAverages>>(
+    const response = await this.fetch<
+      BDLPaginatedResponse<
+        | BDLTeamSeasonAverages
+        | {
+            team: { id: number };
+            season: number;
+            season_type: string;
+            stats: {
+              gp: number;
+              pts: number;
+              reb: number;
+              ast: number;
+              stl: number;
+              blk: number;
+              tov: number;
+              pf: number;
+              fgm: number;
+              fga: number;
+              fg_pct: number;
+              fg3m: number;
+              fg3a: number;
+              fg3_pct: number;
+              ftm: number;
+              fta: number;
+              ft_pct: number;
+              oreb: number;
+              dreb: number;
+              min: string;
+              plus_minus: number;
+              w_pct: number;
+              l: number;
+              w: number;
+            };
+          }
+      >
+    >(
       "/team_season_averages/general",
       {
         season: params.season,
         "team_ids[]": params.teamIds,
         season_type: params.seasonType ?? "regular",
+        type: "base",
         per_page: params.teamIds.length || 2,
       },
       NBA_BASE_URL
     );
 
-    return response.data;
+    return response.data.map((item) => {
+      if (!("stats" in item)) {
+        return item;
+      }
+
+      return {
+        team_id: item.team.id,
+        season: item.season,
+        season_type: item.season_type,
+        games: item.stats.gp,
+        pts: item.stats.pts,
+        reb: item.stats.reb,
+        ast: item.stats.ast,
+        stl: item.stats.stl,
+        blk: item.stats.blk,
+        turnover: item.stats.tov,
+        pf: item.stats.pf,
+        fgm: item.stats.fgm,
+        fga: item.stats.fga,
+        fg_pct: item.stats.fg_pct,
+        fg3m: item.stats.fg3m,
+        fg3a: item.stats.fg3a,
+        fg3_pct: item.stats.fg3_pct,
+        ftm: item.stats.ftm,
+        fta: item.stats.fta,
+        ft_pct: item.stats.ft_pct,
+        oreb: item.stats.oreb,
+        dreb: item.stats.dreb,
+        min: item.stats.min,
+        plus_minus: item.stats.plus_minus,
+        win_pct: item.stats.w_pct,
+        losses: item.stats.l,
+        wins: item.stats.w,
+      };
+    });
   }
 
   /**
@@ -496,19 +566,13 @@ class BallDontLieClient {
     teamId: number,
     season?: number
   ): Promise<BDLTeamBasicSeasonAverages | null> {
-    const targetSeason = season ?? getCurrentNBASeason();
-    const response = await this.fetch<BDLPaginatedResponse<BDLTeamSeasonAverages>>(
-      "/team_season_averages/general",
-      {
-        season: targetSeason,
-        "team_ids[]": teamId,
-        season_type: "regular",
-        per_page: 1,
-      },
-      NBA_BASE_URL
-    );
-
-    const stats = response.data[0];
+    const stats = (
+      await this.getTeamSeasonAverages({
+        season: season ?? getCurrentNBASeason(),
+        teamIds: [teamId],
+        seasonType: "regular",
+      })
+    )[0];
     if (!stats) {
       return null;
     }
