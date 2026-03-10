@@ -221,26 +221,80 @@ export function PlayerStatsCard({
             }}
           >
             <LinearGradient
-              colors={['#7C3AED', '#5B21B6']}
+              colors={
+                isAdvancedExpanded
+                  ? isDark
+                    ? ['#1F2937', '#111827']
+                    : ['#F8FAFC', '#EEF2FF']
+                  : ['#7C3AED', '#5B21B6']
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.advancedButton}
+              style={[
+                styles.advancedButton,
+                isAdvancedExpanded && styles.advancedButtonExpanded,
+              ]}
             >
               <View style={styles.advancedButtonContent}>
-                <View style={styles.advancedIconContainer}>
-                  <Ionicons name="stats-chart" size={24} color="#FFFFFF" />
+                <View
+                  style={[
+                    styles.advancedIconContainer,
+                    isAdvancedExpanded && styles.advancedIconContainerExpanded,
+                  ]}
+                >
+                  <Ionicons
+                    name="stats-chart"
+                    size={24}
+                    color={isAdvancedExpanded ? DesignTokens.accentGreen : '#FFFFFF'}
+                  />
                 </View>
                 <View style={styles.advancedTextContainer}>
-                  <Text style={styles.advancedButtonTitle}>Advanced Stats</Text>
-                  <Text style={styles.advancedButtonSubtitle}>PER, TS%, Win Shares & more</Text>
+                  <Text
+                    style={[
+                      styles.advancedButtonTitle,
+                      isAdvancedExpanded && styles.advancedButtonTitleExpanded,
+                    ]}
+                  >
+                    Advanced Stats
+                  </Text>
+                  <Text
+                    style={[
+                      styles.advancedButtonSubtitle,
+                      isAdvancedExpanded && styles.advancedButtonSubtitleExpanded,
+                    ]}
+                  >
+                    {isAdvancedExpanded
+                      ? isAdvancedLoading
+                        ? 'Loading advanced metrics...'
+                        : 'Season efficiency, impact, and rate stats'
+                      : 'PER, TS%, Win Shares & more'}
+                  </Text>
                 </View>
-                <View style={styles.advancedProBadge}>
-                  <Text style={styles.advancedProBadgeText}>PRO</Text>
+                <View
+                  style={[
+                    styles.advancedProBadge,
+                    isAdvancedExpanded && styles.advancedProBadgeExpanded,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.advancedProBadgeText,
+                      isAdvancedExpanded && styles.advancedProBadgeTextExpanded,
+                    ]}
+                  >
+                    PRO
+                  </Text>
                 </View>
                 <Ionicons
                   name={isAdvancedExpanded ? 'chevron-up' : 'chevron-down'}
                   size={24}
-                  color="rgba(255,255,255,0.8)"
+                  color={
+                    isAdvancedExpanded
+                      ? isDark
+                        ? 'rgba(255,255,255,0.8)'
+                        : 'rgba(17,24,39,0.65)'
+                      : 'rgba(255,255,255,0.8)'
+                  }
                 />
               </View>
             </LinearGradient>
@@ -438,6 +492,10 @@ const styles = StyleSheet.create({
     borderRadius: DesignTokens.radius.lg,
     padding: DesignTokens.spacing.lg,
   },
+  advancedButtonExpanded: {
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.18)',
+  },
   advancedButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -451,6 +509,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  advancedIconContainerExpanded: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+  },
   advancedTextContainer: {
     flex: 1,
   },
@@ -459,9 +520,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 2,
   },
+  advancedButtonTitleExpanded: {
+    color: DesignTokens.textPrimary,
+  },
   advancedButtonSubtitle: {
     ...Typography.caption,
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  advancedButtonSubtitleExpanded: {
+    color: DesignTokens.textSecondary,
   },
   advancedProBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
@@ -469,11 +536,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: DesignTokens.radius.sm,
   },
+  advancedProBadgeExpanded: {
+    backgroundColor: 'rgba(124, 58, 237, 0.12)',
+  },
   advancedProBadgeText: {
     ...Typography.captionSmall,
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 11,
+  },
+  advancedProBadgeTextExpanded: {
+    color: '#6D28D9',
   },
   lockedButtonWrapper: {
     marginTop: DesignTokens.spacing.md,

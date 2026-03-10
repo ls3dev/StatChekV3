@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, LayoutAnimation, Platform, UIManager } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, View, Text, StyleSheet, Platform, UIManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
@@ -105,32 +105,70 @@ export function AdvancedStatsSection({
   isLoading = false,
 }: AdvancedStatsSectionProps) {
   const { isDark } = useTheme();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(10)).current;
+
+  useEffect(() => {
+    if (!isExpanded) {
+      fadeAnim.setValue(0);
+      translateYAnim.setValue(10);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, isExpanded, translateYAnim]);
 
   if (!isExpanded) return null;
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <Animated.View
+        style={[
+          styles.loadingContainer,
+          { opacity: fadeAnim, transform: [{ translateY: translateYAnim }] },
+        ]}
+      >
         <Text style={[styles.loadingText, isDark && styles.loadingTextDark]}>
           Loading advanced stats...
         </Text>
-      </View>
+      </Animated.View>
     );
   }
 
   if (!stats) {
     return (
-      <View style={styles.emptyContainer}>
+      <Animated.View
+        style={[
+          styles.emptyContainer,
+          { opacity: fadeAnim, transform: [{ translateY: translateYAnim }] },
+        ]}
+      >
         <Ionicons name="stats-chart-outline" size={32} color={DesignTokens.textMuted} />
         <Text style={[styles.emptyText, isDark && styles.emptyTextDark]}>
           Advanced stats not available
         </Text>
-      </View>
+      </Animated.View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <Animated.View
+      style={[
+        styles.container,
+        { opacity: fadeAnim, transform: [{ translateY: translateYAnim }] },
+      ]}
+    >
       {/* Efficiency */}
       <SectionHeader title="Efficiency" isDark={isDark} />
       <View style={[styles.section, isDark && styles.sectionDark]}>
@@ -223,7 +261,7 @@ export function AdvancedStatsSection({
         <StatRow label="STL%" value={formatNumber(stats.stl_pct)} description="Steal %" isDark={isDark} />
         <StatRow label="BLK%" value={formatNumber(stats.blk_pct)} description="Block %" isDark={isDark} />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

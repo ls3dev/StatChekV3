@@ -85,14 +85,22 @@ export function PaywallBottomSheet() {
 
   // Auto-dismiss after purchase success
   useEffect(() => {
-    if (isProUser && !prevIsProUser.current && isPaywallVisible) {
+    if (!isPaywallVisible || !isProUser) {
+      prevIsProUser.current = isProUser;
+      return;
+    }
+
+    if (!prevIsProUser.current) {
       setShowSuccess(true);
       const timer = setTimeout(() => {
         setShowSuccess(false);
         closePaywall();
       }, 1500);
+      prevIsProUser.current = isProUser;
       return () => clearTimeout(timer);
     }
+
+    closePaywall();
     prevIsProUser.current = isProUser;
   }, [isProUser, isPaywallVisible, closePaywall]);
 
