@@ -77,16 +77,25 @@ function StatRow({
           </Text>
         )}
       </View>
-      <Text
+      <View
         style={[
-          styles.statValue,
-          isDark && styles.statValueDark,
-          isPositive && styles.positiveValue,
-          isNegative && styles.negativeValue,
+          styles.statValueChip,
+          isDark && styles.statValueChipDark,
+          isPositive && styles.positiveChip,
+          isNegative && styles.negativeChip,
         ]}
       >
-        {value}
-      </Text>
+        <Text
+          style={[
+            styles.statValue,
+            isDark && styles.statValueDark,
+            isPositive && styles.positiveValue,
+            isNegative && styles.negativeValue,
+          ]}
+        >
+          {value}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -296,63 +305,86 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     paddingTop: DesignTokens.spacing.md,
-    paddingBottom: DesignTokens.spacing.xs,
+    paddingBottom: DesignTokens.spacing.sm,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: DesignTokens.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    color: DesignTokens.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.9,
   },
   sectionTitleDark: {
-    color: DesignTokens.textMutedDark,
+    color: DesignTokens.textSecondaryDark,
   },
   section: {
     backgroundColor: DesignTokens.cardBackground,
     borderRadius: DesignTokens.radius.md,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 26, 46, 0.06)',
+    marginBottom: DesignTokens.spacing.sm,
   },
   sectionDark: {
     backgroundColor: DesignTokens.cardBackgroundDark,
+    borderColor: DesignTokens.borderDark,
   },
   statRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: DesignTokens.spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: DesignTokens.border,
+    gap: DesignTokens.spacing.md,
   },
   statInfo: {
     flex: 1,
   },
   statLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: DesignTokens.textPrimary,
   },
   statLabelDark: {
     color: DesignTokens.textPrimaryDark,
   },
   statDescription: {
-    fontSize: 12,
+    fontSize: 13,
     color: DesignTokens.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
+    lineHeight: 18,
   },
   statDescriptionDark: {
     color: DesignTokens.textSecondaryDark,
   },
+  statValueChip: {
+    minWidth: 72,
+    paddingHorizontal: DesignTokens.spacing.sm,
+    paddingVertical: 8,
+    borderRadius: DesignTokens.radius.full,
+    backgroundColor: 'rgba(26, 26, 46, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValueChipDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
   statValue: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: DesignTokens.textPrimary,
     fontVariant: ['tabular-nums'],
-    marginLeft: DesignTokens.spacing.md,
   },
   statValueDark: {
     color: DesignTokens.textPrimaryDark,
+  },
+  positiveChip: {
+    backgroundColor: 'rgba(48, 209, 88, 0.12)',
+  },
+  negativeChip: {
+    backgroundColor: 'rgba(255, 59, 48, 0.12)',
   },
   positiveValue: {
     color: DesignTokens.accentSuccess,
