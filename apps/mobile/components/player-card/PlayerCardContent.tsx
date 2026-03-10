@@ -56,6 +56,7 @@ const BASKETBALL_REFERENCE_OVERRIDES: Record<string, string> = {
   'gary trent jr.': 'trentga02',    // Gary Trent Sr is 01
   'kenyon martin jr.': 'martike04', // Earlier Kenyon Martins exist
   'scottie barnes': 'barnesc01',    // Correct - just verifying format
+  'victor wembanyama': 'wembavi01', // Explicitly pin Wemby since this link is user-visible
 };
 
 const generateBasketballReferenceUrl = (playerName: string): string => {
@@ -233,6 +234,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     order: -1,
     createdAt: 0,
   };
+  const hasSportsReferenceLink = Boolean(sportsReferenceLink.url);
 
   // Search for player in Ball Don't Lie API on mount (NBA only)
   useEffect(() => {
@@ -608,7 +610,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
               </Text>
 
               {/* Sports Reference Link (default) */}
-              {player.sportsReferenceUrl && (
+              {hasSportsReferenceLink && (
                 <View style={styles.linkItem}>
                   <LinkItem link={sportsReferenceLink} onEdit={() => {}} onDelete={() => {}} isDefault />
                 </View>
@@ -625,7 +627,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
               )}
 
               {/* Empty State */}
-              {playerLinks.length === 0 && !player.sportsReferenceUrl && (
+              {playerLinks.length === 0 && !hasSportsReferenceLink && (
                 <View style={styles.emptyState}>
                   <Ionicons
                     name="link-outline"
