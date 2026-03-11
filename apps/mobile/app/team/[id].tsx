@@ -110,7 +110,7 @@ export default function TeamDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isDark } = useTheme();
-  const { isProUser } = useRevenueCat();
+  const { isProUser, proSyncVersion } = useRevenueCat();
   const { openPaywall } = usePaywall();
   const { isLoaded: playerDataLoaded } = usePlayerData();
 
@@ -292,7 +292,7 @@ export default function TeamDetailScreen() {
     if (teamId) {
       fetchData();
     }
-  }, [teamId]);
+  }, [teamId, proSyncVersion]);
 
   const handleRefresh = useCallback(() => {
     fetchData(true);

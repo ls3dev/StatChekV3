@@ -156,7 +156,7 @@ interface Contract {
 export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps) {
   const { isDark } = useTheme();
   const router = useRouter();
-  const { isProUser } = useRevenueCat();
+  const { isProUser, proSyncVersion } = useRevenueCat();
   const { openPaywall } = usePaywall();
   const [imageError, setImageError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -178,7 +178,6 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
   const [advancedStats, setAdvancedStats] = useState<AdvancedStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [statsLoaded, setStatsLoaded] = useState(false);
 
   // Contract state
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -196,7 +195,6 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     setContracts([]);
     setPlayerNotFound(false);
     setShowAdvancedStats(false);
-    setStatsLoaded(false);
   }, [player.id]);
 
   // Convex actions
@@ -273,28 +271,30 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
 
   // Fetch stats when tab changes to 'stats' and we have playerId
   useEffect(() => {
-    if (activeTab !== 'stats' || !bdlPlayerId || basicStats) return;
+    if (activeTab !== 'stats' || !bdlPlayerId) return;
+    if (basicStats && (!isProUser || advancedStats)) return;
 
     const fetchStats = async () => {
       setIsLoadingStats(true);
       setStatsError(null);
 
       try {
-        // Fetch basic stats
-        const basicResult = await getPlayerStats({ playerId: bdlPlayerId });
-        console.log('[Stats] BDL response:', JSON.stringify({
-          requestedPlayerId: bdlPlayerId,
-          returnedSeason: basicResult.stats?.season,
-          pts: basicResult.stats?.pts,
-          ast: basicResult.stats?.ast,
-          reb: basicResult.stats?.reb,
-        }));
-        if (basicResult.stats) {
-          setBasicStats(basicResult.stats as unknown as BasicStats);
+        if (!basicStats) {
+          const basicResult = await getPlayerStats({ playerId: bdlPlayerId });
+          console.log('[Stats] BDL response:', JSON.stringify({
+            requestedPlayerId: bdlPlayerId,
+            returnedSeason: basicResult.stats?.season,
+            pts: basicResult.stats?.pts,
+            ast: basicResult.stats?.ast,
+            reb: basicResult.stats?.reb,
+          }));
+          if (basicResult.stats) {
+            setBasicStats(basicResult.stats as unknown as BasicStats);
+          }
         }
 
         // Fetch advanced stats if Pro user (scraped from Basketball Reference)
-        if (isProUser) {
+        if (isProUser && !advancedStats) {
           try {
             const advancedResult = await getAdvancedStats({
               playerId: bdlPlayerId,
@@ -314,12 +314,11 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
         setStatsError('Failed to load stats');
       } finally {
         setIsLoadingStats(false);
-        setStatsLoaded(true);
       }
     };
 
     fetchStats();
-  }, [activeTab, bdlPlayerId, basicStats, isProUser, getPlayerStats, getAdvancedStats]);
+  }, [activeTab, advancedStats, bdlPlayerId, basicStats, getAdvancedStats, getPlayerStats, isProUser, player.name, proSyncVersion]);
 
   // Fetch contracts when tab changes to 'contract' and user is Pro
   useEffect(() => {
@@ -349,7 +348,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     };
 
     fetchContracts();
-  }, [activeTab, bdlPlayerId, contracts.length, isProUser, getPlayerContract]);
+  }, [activeTab, bdlPlayerId, contracts.length, getPlayerContract, isProUser, proSyncVersion]);
 
   const handleUnlockPress = useCallback(() => {
     onDismiss?.();

@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, ReactNode } from 'react';
+import { useMutation } from 'convex/react';
 import Purchases, { LOG_LEVEL, CustomerInfo, PurchasesPackage } from 'react-native-purchases';
 import { useAuth } from '@clerk/clerk-expo';
+import { api } from '@statcheck/convex';
 
 const REVENUECAT_ENABLED = true;
 
@@ -28,9 +30,23 @@ const hasConfiguredProEntitlement = (
   return configuredProEntitlementIds.some((id) => activeEntitlementIds.includes(id));
 };
 
+const getConfiguredProExpiration = (
+  activeEntitlements: Record<string, any> | undefined,
+  configuredProEntitlementIds: string[]
+): number | undefined => {
+  if (!activeEntitlements) return undefined;
+
+  const matchedEntitlement = Object.entries(activeEntitlements).find(([id]) =>
+    configuredProEntitlementIds.includes(id.toLowerCase())
+  );
+  const expirationDate = matchedEntitlement?.[1]?.expirationDate;
+  return expirationDate ? new Date(expirationDate).getTime() : undefined;
+};
+
 interface RevenueCatContextType {
   customerInfo: CustomerInfo | null;
   isProUser: boolean;
+  proSyncVersion: number;
   packages: PurchasesPackage[];
   isLoading: boolean;
   purchasePackage: (pkg: PurchasesPackage) => Promise<boolean>;
@@ -49,16 +65,48 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(false);
+  const [proSyncVersion, setProSyncVersion] = useState(0);
+  const lastSyncedProStatus = useRef<boolean | null>(null);
   const configuredProEntitlementIds = useMemo(
     () => parseConfiguredProEntitlementIds(process.env.EXPO_PUBLIC_PRO_ENTITLEMENT_IDS),
     []
   );
+  const syncProStatus = useMutation(api.proWebhook.syncProStatus);
 
   // Derive pro status from customer info
   const isProUser = hasConfiguredProEntitlement(
     customerInfo?.entitlements?.active,
     configuredProEntitlementIds
   );
+
+  useEffect(() => {
+    if (!isConfigured || !isSignedIn) return;
+    if (lastSyncedProStatus.current === isProUser) return;
+
+    lastSyncedProStatus.current = isProUser;
+    const expiresAt = getConfiguredProExpiration(
+      customerInfo?.entitlements?.active as Record<string, any> | undefined,
+      configuredProEntitlementIds
+    );
+
+    console.log('[RevenueCat] Syncing pro status to Convex:', { isProUser, expiresAt });
+    syncProStatus({ isProUser, expiresAt })
+      .then(() => {
+        console.log('[RevenueCat] Pro status synced to Convex successfully');
+        setProSyncVersion((version) => version + 1);
+      })
+      .catch((error) => {
+        console.error('[RevenueCat] Failed to sync pro status:', error);
+        lastSyncedProStatus.current = null;
+      });
+  }, [
+    customerInfo,
+    configuredProEntitlementIds,
+    isConfigured,
+    isProUser,
+    isSignedIn,
+    syncProStatus,
+  ]);
 
   // Configure RevenueCat SDK on mount
   useEffect(() => {
@@ -223,6 +271,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
     const stubValue: RevenueCatContextType = {
       customerInfo: null,
       isProUser: false,
+      proSyncVersion: 0,
       packages: [],
       isLoading: false,
       purchasePackage: async () => false,
@@ -239,6 +288,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const value: RevenueCatContextType = {
     customerInfo,
     isProUser,
+    proSyncVersion,
     packages,
     isLoading,
     purchasePackage,
