@@ -338,6 +338,11 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8">
         <div className="max-w-5xl mx-auto px-6 text-center text-text-muted">
+          <div className="flex justify-center gap-6 text-sm mb-4">
+            <Link href="/support" className="hover:text-text-primary transition-colors">Support</Link>
+            <Link href="/privacy" className="hover:text-text-primary transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-text-primary transition-colors">Terms</Link>
+          </div>
           <p>&copy; 2025 StatCheck. Built for sports fans.</p>
         </div>
       </footer>
