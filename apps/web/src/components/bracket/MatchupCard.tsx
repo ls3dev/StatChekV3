@@ -145,7 +145,7 @@ export function MatchupCard({
     >
       {/* LIVE badge */}
       {isLive && (
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-red-500/10 px-2 py-0.5 rounded-full">
+        <div className="absolute top-3 right-3 hidden sm:flex items-center gap-1.5 bg-red-500/10 px-2 py-0.5 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
           <span className="text-[10px] font-bold text-red-500 uppercase">LIVE</span>
         </div>

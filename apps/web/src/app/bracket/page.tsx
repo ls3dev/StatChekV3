@@ -17,6 +17,36 @@ interface OrganizedBracket {
   regionNames: string[];
 }
 
+function getGamePriority(game: NCAABBracketGame): number {
+  const status = game.status ?? "";
+  const isFinal = status === "Final" || status === "final" || status === "post";
+  const isScheduled =
+    !isFinal &&
+    (status.includes("T") || status === "scheduled" || status === "pre" || status === "");
+  const isLive = !isFinal && !isScheduled;
+
+  if (isLive) return 0;
+  if (isScheduled) return 1;
+  return 2;
+}
+
+function sortBracketGames(games: NCAABBracketGame[]): NCAABBracketGame[] {
+  return [...games].sort((a, b) => {
+    const priorityDiff = getGamePriority(a) - getGamePriority(b);
+    if (priorityDiff !== 0) return priorityDiff;
+
+    const aLocation = a.bracket_location ?? Number.MAX_SAFE_INTEGER;
+    const bLocation = b.bracket_location ?? Number.MAX_SAFE_INTEGER;
+    if (aLocation !== bLocation) return aLocation - bLocation;
+
+    const aDate = a.date ? new Date(a.date).getTime() : Number.MAX_SAFE_INTEGER;
+    const bDate = b.date ? new Date(b.date).getTime() : Number.MAX_SAFE_INTEGER;
+    if (aDate !== bDate) return aDate - bDate;
+
+    return (a.game_id ?? Number.MAX_SAFE_INTEGER) - (b.game_id ?? Number.MAX_SAFE_INTEGER);
+  });
+}
+
 function organizeBracket(games: NCAABBracketGame[]): OrganizedBracket {
   const regions: Record<string, Record<number, NCAABBracketGame[]>> = {};
   const finalFour: NCAABBracketGame[] = [];
@@ -54,12 +84,30 @@ function organizeBracket(games: NCAABBracketGame[]): OrganizedBracket {
     regions[regionLabel][game.round].push(game);
   }
 
+  for (const regionName of Object.keys(regions)) {
+    for (const round of Object.keys(regions[regionName])) {
+      const roundNum = Number(round);
+      regions[regionName][roundNum] = sortBracketGames(regions[regionName][roundNum]);
+    }
+  }
+
+  const sortedFinalFour = sortBracketGames(finalFour);
+  const sortedChampionship = sortBracketGames(championship);
+  const sortedRegionNames = Array.from(regionNameSet).sort((a, b) => {
+    const aGames = Object.values(regions[a] ?? {}).flat();
+    const bGames = Object.values(regions[b] ?? {}).flat();
+    const aBest = aGames.length > 0 ? Math.min(...aGames.map(getGamePriority)) : Number.MAX_SAFE_INTEGER;
+    const bBest = bGames.length > 0 ? Math.min(...bGames.map(getGamePriority)) : Number.MAX_SAFE_INTEGER;
+    if (aBest !== bBest) return aBest - bBest;
+    return a.localeCompare(b);
+  });
+
   return {
     regions,
-    finalFour,
-    championship,
+    finalFour: sortedFinalFour,
+    championship: sortedChampionship,
     rounds: Array.from(roundSet).sort((a, b) => a - b),
-    regionNames: Array.from(regionNameSet),
+    regionNames: sortedRegionNames,
   };
 }
 
