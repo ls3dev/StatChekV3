@@ -1,23 +1,29 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useAction } from "convex/react";
+import { api } from "@convex/_generated/api";
 import { usePlayerSearch, Sport } from "@/hooks/usePlayerSearch";
 import type { Player } from "@/lib/types";
 
 type PlayerSearchProps = {
   onPlayerSelect: (player: Player) => void;
+  selectedSport?: Sport;
 };
 
-const SPORTS: Sport[] = ["NBA", "NFL", "MLB"];
+const SPORTS: Sport[] = ["NBA", "NCAAM", "NFL", "MLB"];
 
 const SPORT_CONFIG: Record<Sport, { icon: string; color: string }> = {
   NBA: { icon: "🏀", color: "#F97316" },
+  NCAAM: { icon: "🏀", color: "#30D158" },
   NFL: { icon: "🏈", color: "#3B82F6" },
   MLB: { icon: "⚾", color: "#22C55E" },
 };
 
-export function PlayerSearch({ onPlayerSelect }: PlayerSearchProps) {
-  const { query, setQuery, results, isLoading, selectedSport, setSelectedSport } = usePlayerSearch();
+export function PlayerSearch({ onPlayerSelect, selectedSport: selectedSportProp }: PlayerSearchProps) {
+  const searchNcaamPlayers = useAction(api.ncaab.searchPlayers);
+  const { query, setQuery, results, isLoading, selectedSport: hookSport, setSelectedSport } = usePlayerSearch({ ncaamSearchFn: searchNcaamPlayers });
+  const selectedSport = selectedSportProp ?? hookSport;
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +95,7 @@ export function PlayerSearch({ onPlayerSelect }: PlayerSearchProps) {
         className={`
           relative flex items-center gap-3 px-4 py-3
           bg-card rounded-xl border transition-all duration-200
-          ${isFocused ? "border-accent-purple shadow-lg shadow-accent-purple/20" : "border-transparent"}
+          ${isFocused ? "border-accent shadow-lg shadow-accent/20" : "border-transparent"}
         `}
       >
         {/* Search Icon */}
@@ -142,34 +148,8 @@ export function PlayerSearch({ onPlayerSelect }: PlayerSearchProps) {
 
         {/* Loading Spinner */}
         {isLoading && (
-          <div className="w-4 h-4 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         )}
-      </div>
-
-      {/* Sport Selector */}
-      <div className="flex justify-center gap-2 mt-4">
-        {SPORTS.map((sport) => {
-          const config = SPORT_CONFIG[sport];
-          const isSelected = selectedSport === sport;
-          return (
-            <button
-              key={sport}
-              onClick={() => setSelectedSport(sport)}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
-                transition-all duration-200
-                ${isSelected
-                  ? "text-white shadow-lg"
-                  : "bg-card text-text-secondary hover:bg-white/10"
-                }
-              `}
-              style={isSelected ? { backgroundColor: config.color } : undefined}
-            >
-              <span>{config.icon}</span>
-              <span>{sport}</span>
-            </button>
-          );
-        })}
       </div>
 
       {/* Dropdown Results */}
@@ -227,7 +207,7 @@ function SearchResult({
       className={`
         w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors
         border-b border-white/10 last:border-b-0
-        ${isSelected ? "bg-accent-purple/30 border-l-2 border-l-accent-purple" : "hover:bg-white/15"}
+        ${isSelected ? "bg-accent/30 border-l-2 border-l-accent" : "hover:bg-white/15"}
         ${isHallOfFame ? "border-l-4 border-l-gold bg-yellow-900/20" : ""}
       `}
     >
@@ -249,7 +229,7 @@ function SearchResult({
         <div
           className={`
             hidden w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold
-            ${isHallOfFame ? "bg-yellow-900/30 text-gold" : "bg-accent-purple/20 text-accent-purple"}
+            ${isHallOfFame ? "bg-yellow-900/30 text-gold" : "bg-accent/20 text-accent"}
           `}
         >
           {initials}
@@ -258,7 +238,7 @@ function SearchResult({
         <div
           className={`
             w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold
-            ${isHallOfFame ? "bg-yellow-900/30 text-gold" : "bg-accent-purple/20 text-accent-purple"}
+            ${isHallOfFame ? "bg-yellow-900/30 text-gold" : "bg-accent/20 text-accent"}
           `}
         >
           {initials}

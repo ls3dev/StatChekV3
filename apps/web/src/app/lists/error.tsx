@@ -42,7 +42,7 @@ export default function ListsError({
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => reset()}
-              className="px-6 py-2.5 bg-accent-purple hover:bg-purple-500 text-white font-medium rounded-xl transition-colors"
+              className="px-6 py-2.5 bg-accent hover:bg-green-500 text-white font-medium rounded-xl transition-colors"
             >
               Try again
             </button>

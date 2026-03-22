@@ -177,6 +177,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
   const [basicStats, setBasicStats] = useState<BasicStats | null>(null);
   const [advancedStats, setAdvancedStats] = useState<AdvancedStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [statsLoaded, setStatsLoaded] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
 
   // Contract state
@@ -192,6 +193,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     setBdlPlayerId(null);
     setBasicStats(null);
     setAdvancedStats(null);
+    setStatsLoaded(false);
     setContracts([]);
     setPlayerNotFound(false);
     setShowAdvancedStats(false);
@@ -314,6 +316,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
         setStatsError('Failed to load stats');
       } finally {
         setIsLoadingStats(false);
+        setStatsLoaded(true);
       }
     };
 

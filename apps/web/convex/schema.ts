@@ -236,6 +236,27 @@ export default defineSchema({
     cachedAt: v.number(),
   }).index("by_season_stat", ["season", "statType"]),
 
+  // NCAAB Standings cache
+  ncaabStandingsCache: defineTable({
+    season: v.number(),
+    data: v.any(),
+    cachedAt: v.number(),
+  }).index("by_season", ["season"]),
+
+  // NCAAB Rankings cache
+  ncaabRankingsCache: defineTable({
+    season: v.number(),
+    data: v.any(),
+    cachedAt: v.number(),
+  }).index("by_season", ["season"]),
+
+  // NCAAB Bracket cache
+  ncaabBracketCache: defineTable({
+    season: v.number(),
+    data: v.any(),
+    cachedAt: v.number(),
+  }).index("by_season", ["season"]),
+
   // Trade simulator scenarios - shareable simulation snapshots
   tradeScenarios: defineTable({
     shareId: v.string(),

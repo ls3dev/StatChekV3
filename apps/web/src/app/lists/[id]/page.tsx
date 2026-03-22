@@ -132,7 +132,7 @@ export default function ListDetailPage({
       <main className="min-h-screen bg-background-primary">
         <div className="max-w-4xl mx-auto px-6 py-12">
           <div className="flex items-center justify-center py-24">
-            <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         </div>
       </main>
@@ -156,7 +156,7 @@ export default function ListDetailPage({
             </p>
             <Link
               href="/lists"
-              className="text-accent-purple hover:underline font-medium"
+              className="text-accent hover:underline font-medium"
             >
               Back to My Lists
             </Link>
@@ -291,7 +291,7 @@ export default function ListDetailPage({
     if (loadingPlayers) {
       return (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
       );
     }
@@ -332,9 +332,9 @@ export default function ListDetailPage({
           ) : (
             <>
               <div className="text-center py-12">
-                <div className="w-16 h-16 bg-accent-purple/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <svg
-                    className="w-8 h-8 text-accent-purple"
+                    className="w-8 h-8 text-accent"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -356,7 +356,7 @@ export default function ListDetailPage({
               </div>
               <button
                 onClick={() => setShowAddPlayer(true)}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-accent-purple to-accent-purple/80 hover:from-purple-500 hover:to-purple-600 text-white rounded-xl font-semibold transition-all"
+                className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-accent to-accent/80 hover:from-green-500 hover:to-green-600 text-white rounded-xl font-semibold transition-all"
               >
                 <svg
                   className="w-6 h-6"
@@ -572,7 +572,7 @@ export default function ListDetailPage({
                 placeholder="List name"
                 maxLength={50}
                 autoFocus
-                className="w-full text-2xl font-bold bg-background-primary border border-white/10 rounded-xl px-4 py-2 text-text-primary focus:outline-none focus:border-accent-purple"
+                className="w-full text-2xl font-bold bg-background-primary border border-white/10 rounded-xl px-4 py-2 text-text-primary focus:outline-none focus:border-accent"
               />
               <textarea
                 value={editDescription}
@@ -580,7 +580,7 @@ export default function ListDetailPage({
                 placeholder="Add a description..."
                 maxLength={200}
                 rows={2}
-                className="w-full bg-background-primary border border-white/10 rounded-xl px-4 py-2 text-text-secondary focus:outline-none focus:border-accent-purple resize-none"
+                className="w-full bg-background-primary border border-white/10 rounded-xl px-4 py-2 text-text-secondary focus:outline-none focus:border-accent resize-none"
               />
               <div className="flex gap-3">
                 <button
@@ -595,7 +595,7 @@ export default function ListDetailPage({
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  className="px-4 py-2 bg-accent-purple hover:bg-purple-500 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-accent hover:bg-green-500 text-white rounded-lg transition-colors"
                 >
                   Save
                 </button>
@@ -637,7 +637,7 @@ export default function ListDetailPage({
                 <button
                   onClick={handleShare}
                   disabled={isSharing}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-purple to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white rounded-xl font-semibold transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent to-green-600 hover:from-green-500 hover:to-green-700 text-white rounded-xl font-semibold transition-all disabled:opacity-50"
                 >
                   {isSharing ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

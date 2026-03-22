@@ -45,7 +45,7 @@ export default function ListsPage() {
       <main className="min-h-screen bg-background-primary">
         <div className="max-w-5xl mx-auto px-6 py-12">
           <div className="flex items-center justify-center py-24">
-            <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         </div>
       </main>
@@ -58,7 +58,7 @@ export default function ListsPage() {
       <main className="min-h-screen bg-background-primary">
         <div className="max-w-5xl mx-auto px-6 py-12">
           <div className="flex items-center justify-center py-24">
-            <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         </div>
       </main>
@@ -101,7 +101,7 @@ export default function ListsPage() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-accent-purple hover:bg-purple-500 text-white font-medium rounded-xl transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-green-500 text-white font-medium rounded-xl transition-colors"
           >
             <svg
               className="w-5 h-5"
@@ -123,7 +123,7 @@ export default function ListsPage() {
         {/* Lists Grid */}
         {lists === undefined ? (
           <div className="flex items-center justify-center py-24">
-            <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : lists.length === 0 ? (
           <EmptyState onCreateList={() => setShowCreateModal(true)} />
@@ -161,9 +161,9 @@ export default function ListsPage() {
 function EmptyState({ onCreateList }: { onCreateList: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
-      <div className="w-20 h-20 bg-accent-purple/10 rounded-2xl flex items-center justify-center mb-6">
+      <div className="w-20 h-20 bg-accent/10 rounded-2xl flex items-center justify-center mb-6">
         <svg
-          className="w-10 h-10 text-accent-purple"
+          className="w-10 h-10 text-accent"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -185,7 +185,7 @@ function EmptyState({ onCreateList }: { onCreateList: () => void }) {
       </p>
       <button
         onClick={onCreateList}
-        className="flex items-center gap-2 px-5 py-2.5 bg-accent-purple hover:bg-purple-500 text-white font-medium rounded-xl transition-colors"
+        className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-green-500 text-white font-medium rounded-xl transition-colors"
       >
         <svg
           className="w-5 h-5"

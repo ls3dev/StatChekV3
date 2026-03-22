@@ -115,7 +115,7 @@ export default function TermsPage() {
               If you have any questions about these Terms of Service, contact us at{" "}
               <a
                 href="mailto:support@statcheckapp.com"
-                className="text-accent-purple hover:underline"
+                className="text-accent hover:underline"
               >
                 support@statcheckapp.com
               </a>

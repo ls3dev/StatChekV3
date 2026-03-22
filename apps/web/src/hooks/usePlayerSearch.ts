@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import type { Player } from "@/lib/types";
 
-export type Sport = "NBA" | "NFL" | "MLB";
+export type Sport = "NBA" | "NCAAM" | "NFL" | "MLB";
 
 const SPORT_STORAGE_KEY = "statcheck_selected_sport";
 
-export function usePlayerSearch() {
+type NcaamSearchFn = (args: { query: string }) => Promise<any[]>;
+
+export function usePlayerSearch(opts?: { ncaamSearchFn?: NcaamSearchFn }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +18,7 @@ export function usePlayerSearch() {
   // Load saved sport preference on mount
   useEffect(() => {
     const saved = localStorage.getItem(SPORT_STORAGE_KEY);
-    if (saved && (saved === "NBA" || saved === "NFL" || saved === "MLB")) {
+    if (saved && (saved === "NBA" || saved === "NCAAM" || saved === "NFL" || saved === "MLB")) {
       setSelectedSportState(saved as Sport);
     }
   }, []);
@@ -39,11 +41,16 @@ export function usePlayerSearch() {
     const timeoutId = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(
-          `/api/players/search?q=${encodeURIComponent(trimmed)}&sport=${selectedSport}`
-        );
-        const data = await res.json();
-        setResults(data);
+        if (selectedSport === "NCAAM" && opts?.ncaamSearchFn) {
+          const data = await opts.ncaamSearchFn({ query: trimmed });
+          setResults(data);
+        } else {
+          const res = await fetch(
+            `/api/players/search?q=${encodeURIComponent(trimmed)}&sport=${selectedSport}`
+          );
+          const data = await res.json();
+          setResults(data);
+        }
       } catch (error) {
         console.error("Search failed:", error);
         setResults([]);
@@ -53,7 +60,7 @@ export function usePlayerSearch() {
     }, 150);
 
     return () => clearTimeout(timeoutId);
-  }, [query, selectedSport]);
+  }, [query, selectedSport, opts?.ncaamSearchFn]);
 
   return { query, setQuery, results, isLoading, selectedSport, setSelectedSport };
 }

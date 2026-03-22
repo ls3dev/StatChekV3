@@ -107,10 +107,10 @@ function PlayerSearchBox({
               alt={selectedPlayer.name}
               width={80}
               height={80}
-              className="w-16 h-16 rounded-full object-cover ring-2 ring-accent-purple/50"
+              className="w-16 h-16 rounded-full object-cover ring-2 ring-accent/50"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-accent-purple/20 flex items-center justify-center text-xl font-bold text-accent-purple ring-2 ring-accent-purple/50">
+            <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center text-xl font-bold text-accent ring-2 ring-accent/50">
               {initials}
             </div>
           )}
@@ -139,7 +139,7 @@ function PlayerSearchBox({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setShowResults(true)}
           placeholder="Search NBA player..."
-          className="w-full px-3 py-2 bg-background-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-1 focus:ring-accent-purple"
+          className="w-full px-3 py-2 bg-background-secondary rounded-lg text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
@@ -165,7 +165,7 @@ function PlayerSearchBox({
                   className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-accent-purple/20 flex items-center justify-center text-xs font-bold text-accent-purple">
+                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-xs font-bold text-accent">
                   {player.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                 </div>
               )}
@@ -243,8 +243,8 @@ export default function VSPage() {
           />
 
           <div className="flex items-center justify-center pt-8">
-            <div className="w-10 h-10 rounded-full bg-accent-purple/20 flex items-center justify-center">
-              <span className="text-sm font-bold text-accent-purple">VS</span>
+            <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+              <span className="text-sm font-bold text-accent">VS</span>
             </div>
           </div>
 
@@ -259,7 +259,7 @@ export default function VSPage() {
         {/* Loading State */}
         {(player1?.isLoading || player2?.isLoading) && (
           <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
@@ -320,7 +320,7 @@ export default function VSPage() {
         {/* Empty State */}
         {!player1 && !player2 && (
           <div className="bg-card rounded-2xl p-8 text-center">
-            <svg className="w-12 h-12 text-accent-purple/30 mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="w-12 h-12 text-accent/30 mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L21 3m0 0h-3.75M21 3v3.75" />
             </svg>

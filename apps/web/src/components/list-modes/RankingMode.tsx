@@ -135,7 +135,7 @@ function RankPlayerRow({
             className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
               isHallOfFame
                 ? "bg-yellow-900/20 text-gold"
-                : "bg-accent-purple/20 text-accent-purple"
+                : "bg-accent/20 text-accent"
             }`}
           >
             {initials}
@@ -229,7 +229,7 @@ export function RankingMode({
         <h2 className="text-lg font-semibold text-text-primary">Rankings</h2>
         <button
           onClick={onAddPlayer}
-          className="text-accent-purple font-semibold hover:text-purple-400 transition-colors"
+          className="text-accent font-semibold hover:text-green-400 transition-colors"
         >
           + Add
         </button>
@@ -254,7 +254,7 @@ export function RankingMode({
       {/* Add More Players */}
       <button
         onClick={onAddPlayer}
-        className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-accent-purple to-accent-purple/80 hover:from-purple-500 hover:to-purple-600 text-white rounded-xl font-semibold transition-all"
+        className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-accent to-accent/80 hover:from-green-500 hover:to-green-600 text-white rounded-xl font-semibold transition-all"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -300,7 +300,7 @@ export function RankingMode({
                 }`}
               >
                 <svg
-                  className="w-4 h-4 text-accent-purple flex-shrink-0"
+                  className="w-4 h-4 text-accent flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -341,7 +341,7 @@ export function RankingMode({
 
         <button
           onClick={onAddLink}
-          className="w-full flex items-center justify-center gap-2 py-4 border border-dashed border-white/20 hover:border-accent-purple/50 rounded-xl text-accent-purple transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-4 border border-dashed border-white/20 hover:border-accent/50 rounded-xl text-accent transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

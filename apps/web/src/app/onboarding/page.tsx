@@ -190,7 +190,7 @@ export default function OnboardingPage() {
               onClick={() => setCurrentIndex(index)}
               className={`w-2 h-2 rounded-full transition-all duration-300 ${
                 index === currentIndex
-                  ? "w-8 bg-accent-purple"
+                  ? "w-8 bg-accent"
                   : "bg-white/20 hover:bg-white/40"
               }`}
               aria-label={`Go to slide ${index + 1}`}

@@ -89,7 +89,7 @@ function TeamScoreCard({ game }: { game: Game }) {
           {getStatusText()}
         </span>
         {game.postseason && (
-          <span className="bg-accent-purple px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
+          <span className="bg-accent px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
             PLAYOFFS
           </span>
         )}
@@ -332,7 +332,7 @@ export default function TeamDetailPage() {
             alt={`${teamInfo.city} ${teamInfo.name}`}
             className="w-20 h-20 object-contain mx-auto mb-3"
           />
-          <p className="text-4xl font-extrabold text-accent-purple">
+          <p className="text-4xl font-extrabold text-accent">
             {teamInfo.abbreviation}
           </p>
           <p className="text-text-secondary mt-1">
@@ -342,11 +342,11 @@ export default function TeamDetailPage() {
           <button
             type="button"
             onClick={() => router.push(`/trade-simulator?fromTeamId=${teamId}`)}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent-purple/20 border border-accent-purple/40 hover:bg-accent-purple/30 text-text-primary rounded-lg font-medium text-sm transition-colors"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent/20 border border-accent/40 hover:bg-accent/30 text-text-primary rounded-lg font-medium text-sm transition-colors"
           >
             <span>Trade Simulator</span>
             {!proAccess?.isProUser && (
-              <span className="bg-accent-purple px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
+              <span className="bg-accent px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
                 PRO
               </span>
             )}
@@ -357,7 +357,7 @@ export default function TeamDetailPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <svg
-              className="w-5 h-5 text-accent-purple"
+              className="w-5 h-5 text-accent"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -376,7 +376,7 @@ export default function TeamDetailPage() {
 
           {isLoadingGames ? (
             <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
           ) : games.length === 0 ? (
             <div className="bg-card rounded-xl p-4 flex items-center gap-3">
@@ -414,7 +414,7 @@ export default function TeamDetailPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <svg
-              className="w-5 h-5 text-accent-purple"
+              className="w-5 h-5 text-accent"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -429,14 +429,14 @@ export default function TeamDetailPage() {
             <h2 className="text-lg font-semibold text-text-primary flex-1">
               Injury Report
             </h2>
-            <span className="bg-accent-purple px-1.5 py-0.5 rounded text-[9px] font-bold text-white">
+            <span className="bg-accent px-1.5 py-0.5 rounded text-[9px] font-bold text-white">
               PRO
             </span>
           </div>
 
           {isLoadingInjuries ? (
             <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
           ) : injuriesRequiresPro ? (
             <div className="bg-card rounded-xl p-6 text-center">
@@ -456,7 +456,7 @@ export default function TeamDetailPage() {
               <p className="text-text-secondary text-sm mb-3">
                 Injury reports are a Pro feature
               </p>
-              <button className="px-4 py-2 bg-accent-purple text-white rounded-lg text-sm font-medium hover:bg-purple-500 transition-colors">
+              <button className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-green-500 transition-colors">
                 Unlock Pro
               </button>
             </div>
@@ -514,7 +514,7 @@ export default function TeamDetailPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <svg
-              className="w-5 h-5 text-accent-purple"
+              className="w-5 h-5 text-accent"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -529,14 +529,14 @@ export default function TeamDetailPage() {
             <h2 className="text-lg font-semibold text-text-primary flex-1">
               Team Payroll
             </h2>
-            <span className="bg-accent-purple px-1.5 py-0.5 rounded text-[9px] font-bold text-white">
+            <span className="bg-accent px-1.5 py-0.5 rounded text-[9px] font-bold text-white">
               PRO
             </span>
           </div>
 
           {isLoadingContracts ? (
             <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
           ) : contractsRequiresPro ? (
             <div className="bg-card rounded-xl p-6 text-center">
@@ -556,7 +556,7 @@ export default function TeamDetailPage() {
               <p className="text-text-secondary text-sm mb-3">
                 Team payroll is a Pro feature
               </p>
-              <button className="px-4 py-2 bg-accent-purple text-white rounded-lg text-sm font-medium hover:bg-purple-500 transition-colors">
+              <button className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-green-500 transition-colors">
                 Unlock Pro
               </button>
             </div>

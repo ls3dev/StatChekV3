@@ -16,7 +16,7 @@ export function AuthGate({ children, fallback, redirectTo }: AuthGateProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="w-6 h-6 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

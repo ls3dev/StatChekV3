@@ -18,7 +18,7 @@ export function Header() {
         {/* Logo */}
         <Link
           href="/"
-          className="text-xl font-bold bg-gradient-to-r from-accent-purple to-purple-400 bg-clip-text text-transparent"
+          className="text-xl font-bold bg-gradient-to-r from-accent to-green-400 bg-clip-text text-transparent"
         >
           StatCheck
         </Link>
@@ -26,7 +26,7 @@ export function Header() {
         {/* Right Section - Auth */}
         <div className="flex items-center gap-2 md:gap-4">
           {isLoading ? (
-            <div className="w-4 h-4 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           ) : isAuthenticated ? (
             <div className="flex items-center gap-2 md:gap-3">
               <span className="hidden md:inline text-sm text-text-secondary">
@@ -68,7 +68,7 @@ export function Header() {
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <button className="px-3 py-1.5 md:px-4 md:py-2 bg-accent-purple hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors">
+                <button className="px-3 py-1.5 md:px-4 md:py-2 bg-accent hover:bg-green-500 text-white text-sm font-medium rounded-lg transition-colors">
                   Sign Up
                 </button>
               </SignUpButton>

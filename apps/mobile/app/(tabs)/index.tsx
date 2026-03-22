@@ -26,8 +26,12 @@ export default function HomeScreen() {
   const isNBA = selectedSport === 'NBA';
 
   const handlePlayerSelect = async (player: Player) => {
-    await addRecentPlayer(player);
     setSelectedPlayer(player);
+    try {
+      await addRecentPlayer(player);
+    } catch (e) {
+      console.warn('Failed to save recent player:', e);
+    }
   };
 
   const handleClearRecentPlayers = async () => {

@@ -9,7 +9,7 @@ export default function SignInPage() {
         <div className="text-center mb-8">
           <Link
             href="/"
-            className="text-3xl font-bold bg-gradient-to-r from-accent-purple to-purple-400 bg-clip-text text-transparent"
+            className="text-3xl font-bold bg-gradient-to-r from-accent to-green-400 bg-clip-text text-transparent"
           >
             StatCheck
           </Link>
@@ -26,10 +26,10 @@ export default function SignInPage() {
                 headerSubtitle: "text-text-secondary",
                 formFieldLabel: "text-text-secondary",
                 formFieldInput:
-                  "bg-background-primary border-white/10 text-text-primary placeholder-text-muted focus:border-accent-purple",
+                  "bg-background-primary border-white/10 text-text-primary placeholder-text-muted focus:border-accent",
                 formButtonPrimary:
-                  "bg-accent-purple hover:bg-purple-500 text-white",
-                footerActionLink: "text-accent-purple hover:text-purple-400",
+                  "bg-accent hover:bg-green-500 text-white",
+                footerActionLink: "text-accent hover:text-green-400",
                 dividerLine: "bg-white/10",
                 dividerText: "text-text-muted",
                 socialButtonsBlockButton:

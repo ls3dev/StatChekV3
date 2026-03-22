@@ -179,7 +179,7 @@ export function AddLinkModal({ isOpen, onClose, onSave }: AddLinkModalProps) {
                 setError("");
               }}
               placeholder="https://example.com/article"
-              className="w-full px-4 py-3 bg-background-primary border border-white/10 rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-purple transition-colors"
+              className="w-full px-4 py-3 bg-background-primary border border-white/10 rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
               autoFocus
             />
           </div>
@@ -187,7 +187,7 @@ export function AddLinkModal({ isOpen, onClose, onSave }: AddLinkModalProps) {
           {/* Preview Card */}
           {isLoadingPreview && (
             <div className="flex items-center gap-3 p-4 bg-background-primary border border-white/10 rounded-xl">
-              <div className="animate-spin w-5 h-5 border-2 border-accent-purple border-t-transparent rounded-full" />
+              <div className="animate-spin w-5 h-5 border-2 border-accent border-t-transparent rounded-full" />
               <span className="text-text-muted text-sm">Fetching preview...</span>
             </div>
           )}
@@ -255,7 +255,7 @@ export function AddLinkModal({ isOpen, onClose, onSave }: AddLinkModalProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Article title or description"
-              className="w-full px-4 py-3 bg-background-primary border border-white/10 rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-purple transition-colors"
+              className="w-full px-4 py-3 bg-background-primary border border-white/10 rounded-xl text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
             />
           </div>
 
@@ -276,7 +276,7 @@ export function AddLinkModal({ isOpen, onClose, onSave }: AddLinkModalProps) {
           <button
             onClick={handleSave}
             disabled={isLoadingPreview}
-            className="flex-1 px-4 py-3 bg-accent-purple hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
+            className="flex-1 px-4 py-3 bg-accent hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
           >
             Save
           </button>

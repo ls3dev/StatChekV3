@@ -134,7 +134,7 @@ export default function PrivacyPage() {
               If you have any questions about this Privacy Policy, contact us at{" "}
               <a
                 href="mailto:support@statcheckapp.com"
-                className="text-accent-purple hover:underline"
+                className="text-accent hover:underline"
               >
                 support@statcheckapp.com
               </a>

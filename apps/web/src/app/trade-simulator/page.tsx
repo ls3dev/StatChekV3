@@ -243,7 +243,7 @@ export default function TradeSimulatorPage() {
                   onClick={() => setTeamBId(team.id)}
                   className={`px-3 py-1.5 rounded-md border text-xs font-semibold transition-colors ${
                     selected
-                      ? "bg-accent-purple border-accent-purple text-white"
+                      ? "bg-accent border-accent text-white"
                       : "border-white/15 text-text-secondary hover:text-text-primary"
                   }`}
                 >
@@ -271,7 +271,7 @@ export default function TradeSimulatorPage() {
                     onClick={() => toggleOutgoing("A", player.id)}
                     className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
                       selected
-                        ? "border-accent-purple bg-accent-purple/20"
+                        ? "border-accent bg-accent/20"
                         : "border-white/10 hover:border-white/20"
                     }`}
                   >
@@ -306,7 +306,7 @@ export default function TradeSimulatorPage() {
                     onClick={() => toggleOutgoing("B", player.id)}
                     className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
                       selected
-                        ? "border-accent-purple bg-accent-purple/20"
+                        ? "border-accent bg-accent/20"
                         : "border-white/10 hover:border-white/20"
                     }`}
                   >
@@ -331,7 +331,7 @@ export default function TradeSimulatorPage() {
             type="button"
             onClick={validateTrade}
             disabled={isLoading}
-            className="px-5 py-2.5 bg-accent-purple hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold text-white transition-colors"
+            className="px-5 py-2.5 bg-accent hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold text-white transition-colors"
           >
             {isLoading ? "Validating..." : "Validate Trade"}
           </button>

@@ -76,7 +76,7 @@ export default function SharedTradePage() {
         <div className="bg-card rounded-xl p-6 border border-white/5">
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="w-7 h-7 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+              <div className="w-7 h-7 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
           ) : !scenario ? (
             <>

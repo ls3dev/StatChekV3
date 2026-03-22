@@ -1,14 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { AdvancedStatsSection, type AdvancedStats as FullAdvancedStats } from './AdvancedStatsSection';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 interface BasicStats {
   games_played: number;
@@ -69,6 +65,59 @@ function StatItem({ label, value, isPrimary = false, isDark }: StatItemProps) {
   );
 }
 
+function StatsToggle({
+  isAdvanced,
+  isProUser,
+  onPress,
+  isDark,
+}: {
+  isAdvanced: boolean;
+  isProUser: boolean;
+  onPress: () => void;
+  isDark: boolean;
+}) {
+  return (
+    <View style={[styles.toggleContainer, isDark && styles.toggleContainerDark]}>
+      <Pressable
+        style={[styles.toggleSegment, !isAdvanced && styles.toggleSegmentActive]}
+        onPress={() => isAdvanced && onPress()}
+      >
+        <Text
+          style={[
+            styles.toggleText,
+            isDark && styles.textSecondary,
+            !isAdvanced && styles.toggleTextActive,
+          ]}
+        >
+          Basic
+        </Text>
+      </Pressable>
+      <Pressable
+        style={[styles.toggleSegment, isAdvanced && styles.toggleSegmentActive]}
+        onPress={() => !isAdvanced && onPress()}
+      >
+        <Text
+          style={[
+            styles.toggleText,
+            isDark && styles.textSecondary,
+            isAdvanced && styles.toggleTextActive,
+          ]}
+        >
+          Adv
+        </Text>
+        {!isProUser && (
+          <Ionicons
+            name="lock-closed"
+            size={10}
+            color={isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary}
+            style={{ marginLeft: 3 }}
+          />
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
 export function PlayerStatsCard({
   basicStats,
   advancedStats,
@@ -124,9 +173,16 @@ export function PlayerStatsCard({
 
   const formatMin = (min: string | undefined) => {
     if (!min) return '-';
-    // Handle "34:30" format - extract minutes
     const parts = min.split(':');
     return parts[0] || '-';
+  };
+
+  const handleTogglePress = () => {
+    if (!isProUser && !isAdvancedExpanded) {
+      onUnlockPress?.();
+    } else {
+      onAdvancedPress?.();
+    }
   };
 
   return (
@@ -142,192 +198,90 @@ export function PlayerStatsCard({
         <Text style={[styles.gamesPlayed, isDark && styles.textSecondary]}>
           {basicStats.games_played ?? 0} GP
         </Text>
+        <StatsToggle
+          isAdvanced={isAdvancedExpanded}
+          isProUser={isProUser}
+          onPress={handleTogglePress}
+          isDark={isDark}
+        />
       </View>
 
-      {/* Primary Stats */}
-      <View style={styles.primaryStatsRow}>
-        <StatItem label="PPG" value={formatStat(basicStats.pts)} isPrimary isDark={isDark} />
-        <StatItem label="RPG" value={formatStat(basicStats.reb)} isPrimary isDark={isDark} />
-        <StatItem label="APG" value={formatStat(basicStats.ast)} isPrimary isDark={isDark} />
-        <StatItem label="MPG" value={formatMin(basicStats.min)} isPrimary isDark={isDark} />
-      </View>
+      {/* Conditional: Basic OR Advanced */}
+      {!isAdvancedExpanded ? (
+        <Animated.View key="basic" entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
+          {/* Primary Stats */}
+          <View style={styles.primaryStatsRow}>
+            <StatItem label="PPG" value={formatStat(basicStats.pts)} isPrimary isDark={isDark} />
+            <StatItem label="RPG" value={formatStat(basicStats.reb)} isPrimary isDark={isDark} />
+            <StatItem label="APG" value={formatStat(basicStats.ast)} isPrimary isDark={isDark} />
+            <StatItem label="MPG" value={formatMin(basicStats.min)} isPrimary isDark={isDark} />
+          </View>
 
-      {/* Secondary Stats */}
-      <View style={styles.secondaryStatsRow}>
-        <StatItem label="STL" value={formatStat(basicStats.stl)} isDark={isDark} />
-        <StatItem label="BLK" value={formatStat(basicStats.blk)} isDark={isDark} />
-        <StatItem label="TOV" value={formatStat(basicStats.turnover)} isDark={isDark} />
-      </View>
+          {/* Secondary Stats */}
+          <View style={styles.secondaryStatsRow}>
+            <StatItem label="STL" value={formatStat(basicStats.stl)} isDark={isDark} />
+            <StatItem label="BLK" value={formatStat(basicStats.blk)} isDark={isDark} />
+            <StatItem label="TOV" value={formatStat(basicStats.turnover)} isDark={isDark} />
+          </View>
 
-      {/* Shooting Stats */}
-      <View style={[styles.shootingSection, isDark && styles.shootingSectionDark]}>
-        <Text style={[styles.sectionTitle, isDark && styles.textSecondary]}>Shooting</Text>
-        <View style={styles.shootingRow}>
-          <View style={styles.shootingStat}>
-            <Text style={[styles.shootingValue, isDark && styles.textDark]}>
-              {formatPct(basicStats.fg_pct)}
-            </Text>
-            <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FG%</Text>
-          </View>
-          <View style={styles.shootingStat}>
-            <Text style={[styles.shootingValue, isDark && styles.textDark]}>
-              {formatPct(basicStats.fg3_pct)}
-            </Text>
-            <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>3P%</Text>
-          </View>
-          <View style={styles.shootingStat}>
-            <Text style={[styles.shootingValue, isDark && styles.textDark]}>
-              {formatPct(basicStats.ft_pct)}
-            </Text>
-            <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FT%</Text>
-          </View>
-        </View>
-        {(basicStats.fgm !== undefined || basicStats.fg3m !== undefined || basicStats.fta !== undefined) && (
-          <View style={[styles.shootingRow, styles.shootingVolumeRow]}>
-            <View style={styles.shootingStat}>
-              <Text style={[styles.shootingVolumeValue, isDark && styles.textSecondary]}>
-                {basicStats.fgm !== undefined && basicStats.fga !== undefined
-                  ? `${formatStat(basicStats.fgm)} / ${formatStat(basicStats.fga)}`
-                  : '-'}
-              </Text>
-              <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FGM / FGA</Text>
-            </View>
-            <View style={styles.shootingStat}>
-              <Text style={[styles.shootingVolumeValue, isDark && styles.textSecondary]}>
-                {basicStats.fg3m !== undefined && basicStats.fg3a !== undefined
-                  ? `${formatStat(basicStats.fg3m)} / ${formatStat(basicStats.fg3a)}`
-                  : '-'}
-              </Text>
-              <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>3PM / 3PA</Text>
-            </View>
-            <View style={styles.shootingStat}>
-              <Text style={[styles.shootingVolumeValue, isDark && styles.textSecondary]}>
-                {basicStats.fta !== undefined ? formatStat(basicStats.fta) : '-'}
-              </Text>
-              <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FTA</Text>
-            </View>
-          </View>
-        )}
-      </View>
-
-      {/* Advanced Stats Section */}
-      {isProUser ? (
-        <>
-          <Pressable
-            style={styles.advancedButtonWrapper}
-            onPress={() => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              onAdvancedPress?.();
-            }}
-          >
-            <LinearGradient
-              colors={
-                isAdvancedExpanded
-                  ? isDark
-                    ? ['#1F2937', '#111827']
-                    : ['#F8FAFC', '#EEF2FF']
-                  : ['#7C3AED', '#5B21B6']
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[
-                styles.advancedButton,
-                isAdvancedExpanded && styles.advancedButtonExpanded,
-              ]}
-            >
-              <View style={styles.advancedButtonContent}>
-                <View
-                  style={[
-                    styles.advancedIconContainer,
-                    isAdvancedExpanded && styles.advancedIconContainerExpanded,
-                  ]}
-                >
-                  <Ionicons
-                    name="stats-chart"
-                    size={24}
-                    color={isAdvancedExpanded ? DesignTokens.accentGreen : '#FFFFFF'}
-                  />
-                </View>
-                <View style={styles.advancedTextContainer}>
-                  <Text
-                    style={[
-                      styles.advancedButtonTitle,
-                      isAdvancedExpanded && styles.advancedButtonTitleExpanded,
-                    ]}
-                  >
-                    Advanced Stats
-                  </Text>
-                  <Text
-                    style={[
-                      styles.advancedButtonSubtitle,
-                      isAdvancedExpanded && styles.advancedButtonSubtitleExpanded,
-                    ]}
-                  >
-                    {isAdvancedExpanded
-                      ? isAdvancedLoading
-                        ? 'Loading advanced metrics...'
-                        : 'Season efficiency, impact, and rate stats'
-                      : 'PER, TS%, Win Shares & more'}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.advancedProBadge,
-                    isAdvancedExpanded && styles.advancedProBadgeExpanded,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.advancedProBadgeText,
-                      isAdvancedExpanded && styles.advancedProBadgeTextExpanded,
-                    ]}
-                  >
-                    PRO
-                  </Text>
-                </View>
-                <Ionicons
-                  name={isAdvancedExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={24}
-                  color={
-                    isAdvancedExpanded
-                      ? isDark
-                        ? 'rgba(255,255,255,0.8)'
-                        : 'rgba(17,24,39,0.65)'
-                      : 'rgba(255,255,255,0.8)'
-                  }
-                />
+          {/* Shooting Stats */}
+          <View style={[styles.shootingSection, isDark && styles.shootingSectionDark]}>
+            <Text style={[styles.sectionTitle, isDark && styles.textSecondary]}>Shooting</Text>
+            <View style={styles.shootingRow}>
+              <View style={styles.shootingStat}>
+                <Text style={[styles.shootingValue, isDark && styles.textDark]}>
+                  {formatPct(basicStats.fg_pct)}
+                </Text>
+                <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FG%</Text>
               </View>
-            </LinearGradient>
-          </Pressable>
+              <View style={styles.shootingStat}>
+                <Text style={[styles.shootingValue, isDark && styles.textDark]}>
+                  {formatPct(basicStats.fg3_pct)}
+                </Text>
+                <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>3P%</Text>
+              </View>
+              <View style={styles.shootingStat}>
+                <Text style={[styles.shootingValue, isDark && styles.textDark]}>
+                  {formatPct(basicStats.ft_pct)}
+                </Text>
+                <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FT%</Text>
+              </View>
+            </View>
+            {(basicStats.fgm !== undefined || basicStats.fg3m !== undefined || basicStats.fta !== undefined) && (
+              <View style={[styles.shootingRow, styles.shootingVolumeRow]}>
+                <View style={styles.shootingStat}>
+                  <Text style={[styles.shootingVolumeValue, isDark && styles.textSecondary]}>
+                    {basicStats.fgm !== undefined && basicStats.fga !== undefined
+                      ? `${formatStat(basicStats.fgm)} / ${formatStat(basicStats.fga)}`
+                      : '-'}
+                  </Text>
+                  <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FGM / FGA</Text>
+                </View>
+                <View style={styles.shootingStat}>
+                  <Text style={[styles.shootingVolumeValue, isDark && styles.textSecondary]}>
+                    {basicStats.fg3m !== undefined && basicStats.fg3a !== undefined
+                      ? `${formatStat(basicStats.fg3m)} / ${formatStat(basicStats.fg3a)}`
+                      : '-'}
+                  </Text>
+                  <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>3PM / 3PA</Text>
+                </View>
+                <View style={styles.shootingStat}>
+                  <Text style={[styles.shootingVolumeValue, isDark && styles.textSecondary]}>
+                    {basicStats.fta !== undefined ? formatStat(basicStats.fta) : '-'}
+                  </Text>
+                  <Text style={[styles.shootingLabel, isDark && styles.textSecondary]}>FTA</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+      ) : (
+        <Animated.View key="advanced" entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
           <AdvancedStatsSection
-            isExpanded={isAdvancedExpanded}
             stats={fullAdvancedStats ?? null}
             isLoading={isAdvancedLoading}
           />
-        </>
-      ) : (
-        <Pressable style={styles.lockedButtonWrapper} onPress={onUnlockPress}>
-          <LinearGradient
-            colors={['#6B7280', '#4B5563']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.lockedButton}
-          >
-            <View style={styles.advancedButtonContent}>
-              <View style={styles.advancedIconContainer}>
-                <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.advancedTextContainer}>
-                <Text style={styles.advancedButtonTitle}>Advanced Stats</Text>
-                <Text style={styles.advancedButtonSubtitle}>Unlock with Pro</Text>
-              </View>
-              <View style={styles.advancedProBadge}>
-                <Text style={styles.advancedProBadgeText}>PRO</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
-            </View>
-          </LinearGradient>
-        </Pressable>
+        </Animated.View>
       )}
     </View>
   );
@@ -380,7 +334,37 @@ const styles = StyleSheet.create({
   gamesPlayed: {
     ...Typography.caption,
     color: DesignTokens.textSecondary,
+    marginRight: DesignTokens.spacing.sm,
   },
+  // Toggle
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(26, 26, 46, 0.06)',
+    borderRadius: DesignTokens.radius.sm,
+    padding: 2,
+  },
+  toggleContainerDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  toggleSegment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: DesignTokens.radius.sm - 1,
+  },
+  toggleSegmentActive: {
+    backgroundColor: '#7C3AED',
+  },
+  toggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: DesignTokens.textSecondary,
+  },
+  toggleTextActive: {
+    color: '#FFFFFF',
+  },
+  // Stats
   primaryStatsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -413,8 +397,6 @@ const styles = StyleSheet.create({
   },
   shootingSection: {
     padding: DesignTokens.spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: DesignTokens.border,
   },
   shootingSectionDark: {
     borderBottomColor: DesignTokens.borderDark,
@@ -451,123 +433,6 @@ const styles = StyleSheet.create({
     ...Typography.captionSmall,
     color: DesignTokens.textSecondary,
     fontVariant: ['tabular-nums'],
-  },
-  advancedSection: {
-    padding: DesignTokens.spacing.md,
-  },
-  advancedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: DesignTokens.spacing.sm,
-  },
-  advancedRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  advancedStat: {
-    alignItems: 'center',
-  },
-  advancedValue: {
-    ...Typography.headline,
-    color: DesignTokens.textPrimary,
-    fontVariant: ['tabular-nums'],
-  },
-  advancedLabel: {
-    ...Typography.captionSmall,
-    color: DesignTokens.textSecondary,
-    marginTop: 2,
-  },
-  positiveRating: {
-    color: DesignTokens.accentSuccess,
-  },
-  negativeRating: {
-    color: DesignTokens.accentError,
-  },
-  advancedButtonWrapper: {
-    marginTop: DesignTokens.spacing.md,
-    marginHorizontal: DesignTokens.spacing.sm,
-    marginBottom: DesignTokens.spacing.sm,
-  },
-  advancedButton: {
-    borderRadius: DesignTokens.radius.lg,
-    padding: DesignTokens.spacing.lg,
-  },
-  advancedButtonExpanded: {
-    borderWidth: 1,
-    borderColor: 'rgba(124, 58, 237, 0.18)',
-  },
-  advancedButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: DesignTokens.spacing.md,
-  },
-  advancedIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  advancedIconContainerExpanded: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-  },
-  advancedTextContainer: {
-    flex: 1,
-  },
-  advancedButtonTitle: {
-    ...Typography.headline,
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  advancedButtonTitleExpanded: {
-    color: DesignTokens.textPrimary,
-  },
-  advancedButtonSubtitle: {
-    ...Typography.caption,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  advancedButtonSubtitleExpanded: {
-    color: DesignTokens.textSecondary,
-  },
-  advancedProBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: DesignTokens.spacing.md,
-    paddingVertical: 4,
-    borderRadius: DesignTokens.radius.sm,
-  },
-  advancedProBadgeExpanded: {
-    backgroundColor: 'rgba(124, 58, 237, 0.12)',
-  },
-  advancedProBadgeText: {
-    ...Typography.captionSmall,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 11,
-  },
-  advancedProBadgeTextExpanded: {
-    color: '#6D28D9',
-  },
-  lockedButtonWrapper: {
-    marginTop: DesignTokens.spacing.md,
-    marginHorizontal: DesignTokens.spacing.sm,
-    marginBottom: DesignTokens.spacing.sm,
-  },
-  lockedButton: {
-    borderRadius: DesignTokens.radius.lg,
-    padding: DesignTokens.spacing.lg,
-  },
-  proBadge: {
-    backgroundColor: DesignTokens.accentGreen,
-    paddingHorizontal: DesignTokens.spacing.sm,
-    paddingVertical: 2,
-    borderRadius: DesignTokens.radius.sm,
-  },
-  proBadgeText: {
-    ...Typography.captionSmall,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 11,
   },
   textDark: {
     color: DesignTokens.textPrimaryDark,

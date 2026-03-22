@@ -92,7 +92,7 @@ export default function SetupUsernamePage() {
   if (isLoading || status === "loading") {
     return (
       <main className="min-h-screen bg-background-primary flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </main>
     );
   }
@@ -127,7 +127,7 @@ export default function SetupUsernamePage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="your_username"
-                className="w-full pl-8 pr-12 py-3 bg-background-secondary border border-white/10 rounded-xl text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-accent-purple transition-colors"
+                className="w-full pl-8 pr-12 py-3 bg-background-secondary border border-white/10 rounded-xl text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-accent transition-colors"
                 autoFocus
                 autoComplete="off"
                 autoCapitalize="off"
@@ -135,7 +135,7 @@ export default function SetupUsernamePage() {
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2">
                 {isChecking && (
-                  <div className="w-5 h-5 border-2 border-accent-purple border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                 )}
                 {!isChecking && isAvailable === true && !validationError && (
                   <svg
@@ -241,7 +241,7 @@ export default function SetupUsernamePage() {
           <button
             type="submit"
             disabled={!isValid || isSubmitting}
-            className="w-full py-3 bg-accent-purple hover:bg-purple-500 disabled:bg-accent-purple/50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 bg-accent hover:bg-green-500 disabled:bg-accent/50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>

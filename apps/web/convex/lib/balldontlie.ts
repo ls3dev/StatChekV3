@@ -149,6 +149,102 @@ export interface BDLInjury {
   return_date: string | null;
 }
 
+export interface BDLPlayerBoxScore {
+  player: BDLPlayer;
+  min: string;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  fgm: number;
+  fga: number;
+  fg_pct: number;
+  fg3m: number;
+  fg3a: number;
+  fg3_pct: number;
+  ftm: number;
+  fta: number;
+  ft_pct: number | null;
+  oreb: number;
+  dreb: number;
+  turnover: number;
+  pf: number;
+  plus_minus: number | null;
+}
+
+export interface BDLBoxScoreTeam extends BDLTeam {
+  players: BDLPlayerBoxScore[];
+}
+
+export interface BDLBoxScore {
+  date: string;
+  datetime: string;
+  home_team: BDLBoxScoreTeam;
+  home_team_score: number;
+  visitor_team: BDLBoxScoreTeam;
+  visitor_team_score: number;
+  home_q1: number;
+  home_q2: number;
+  home_q3: number;
+  home_q4: number;
+  home_ot1: number | null;
+  home_ot2: number | null;
+  home_ot3: number | null;
+  visitor_q1: number;
+  visitor_q2: number;
+  visitor_q3: number;
+  visitor_q4: number;
+  visitor_ot1: number | null;
+  visitor_ot2: number | null;
+  visitor_ot3: number | null;
+  home_in_bonus: boolean;
+  visitor_in_bonus: boolean;
+}
+
+export interface BDLTeamSeasonAverages {
+  team_id: number;
+  season: number;
+  season_type: string;
+  games: number;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  turnover: number;
+  pf: number;
+  fgm: number;
+  fga: number;
+  fg_pct: number;
+  fg3m: number;
+  fg3a: number;
+  fg3_pct: number;
+  ftm: number;
+  fta: number;
+  ft_pct: number;
+  oreb: number;
+  dreb: number;
+  min: string;
+  plus_minus: number;
+  win_pct: number;
+  losses: number;
+  wins: number;
+}
+
+export interface BDLPlay {
+  id: number;
+  description: string | null;
+  clock: string | null;
+  period: number;
+  home_score: number | null;
+  away_score: number | null;
+  score_value: number | null;
+  scoring_play: boolean;
+  order: number;
+  team: BDLTeam | null;
+}
+
 export interface BDLLeader {
   player: BDLPlayer;
   value: number;
@@ -440,6 +536,126 @@ class BallDontLieClient {
         player_id: params?.player_id,
         per_page: params?.per_page ?? 100,
       }
+    );
+    return response.data;
+  }
+
+  /**
+   * Get team season averages
+   */
+  async getTeamSeasonAverages(params: {
+    season?: number;
+    teamIds: number[];
+    seasonType?: "regular" | "playoffs";
+  }): Promise<BDLTeamSeasonAverages[]> {
+    const queryParams: Record<string, string | number | undefined> = {
+      season: params.season ?? getCurrentNBASeason(),
+      season_type: params.seasonType ?? "regular",
+    };
+    // Add team IDs
+    const teamIdsStr = params.teamIds.join(",");
+    queryParams["team_ids"] = teamIdsStr;
+
+    const url = new URL(`${BASE_URL}/team_season_averages/general`);
+    if (queryParams.season) url.searchParams.append("season", String(queryParams.season));
+    if (queryParams.season_type) url.searchParams.append("season_type", String(queryParams.season_type));
+    for (const id of params.teamIds) {
+      url.searchParams.append("team_ids[]", String(id));
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: this.apiKey },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+
+    const json = await response.json() as any;
+    const data = json.data ?? json;
+
+    // Normalize response format
+    return (Array.isArray(data) ? data : []).map((entry: any) => {
+      if (entry.team_id) return entry as BDLTeamSeasonAverages;
+      // Nested format: { team: { id }, season, stats: { ... } }
+      const stats = entry.stats ?? {};
+      return {
+        team_id: entry.team?.id ?? 0,
+        season: entry.season ?? 0,
+        season_type: entry.season_type ?? "regular",
+        games: stats.gp ?? 0,
+        pts: stats.pts ?? 0,
+        reb: stats.reb ?? 0,
+        ast: stats.ast ?? 0,
+        stl: stats.stl ?? 0,
+        blk: stats.blk ?? 0,
+        turnover: stats.tov ?? 0,
+        pf: stats.pf ?? 0,
+        fgm: stats.fgm ?? 0,
+        fga: stats.fga ?? 0,
+        fg_pct: stats.fg_pct ?? 0,
+        fg3m: stats.fg3m ?? 0,
+        fg3a: stats.fg3a ?? 0,
+        fg3_pct: stats.fg3_pct ?? 0,
+        ftm: stats.ftm ?? 0,
+        fta: stats.fta ?? 0,
+        ft_pct: stats.ft_pct ?? 0,
+        oreb: stats.oreb ?? 0,
+        dreb: stats.dreb ?? 0,
+        min: stats.min ?? "0",
+        plus_minus: stats.plus_minus ?? 0,
+        win_pct: stats.w_pct ?? 0,
+        losses: stats.l ?? 0,
+        wins: stats.w ?? 0,
+      } as BDLTeamSeasonAverages;
+    });
+  }
+
+  /**
+   * Get play-by-play for a game
+   */
+  async getGamePlays(gameId: number): Promise<BDLPlay[]> {
+    const plays: BDLPlay[] = [];
+    let cursor: number | undefined;
+
+    while (true) {
+      const response = await this.fetch<
+        BDLPaginatedResponse<BDLPlay>
+      >("/plays", {
+        game_id: gameId,
+        per_page: 100,
+        cursor,
+      });
+
+      const page = response.data ?? [];
+      plays.push(...page);
+
+      cursor = response.meta?.next_cursor ?? undefined;
+      if (cursor === undefined) break;
+    }
+
+    return plays.sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * Get box scores for a specific date
+   * Requires: Pro (GOAT tier)
+   */
+  async getBoxScores(date: string): Promise<BDLBoxScore[]> {
+    const response = await this.fetch<BDLPaginatedResponse<BDLBoxScore>>(
+      "/box_scores",
+      { date }
+    );
+    return response.data;
+  }
+
+  /**
+   * Get live box scores
+   * Requires: Pro (GOAT tier)
+   */
+  async getLiveBoxScores(): Promise<BDLBoxScore[]> {
+    const response = await this.fetch<BDLPaginatedResponse<BDLBoxScore>>(
+      "/box_scores/live"
     );
     return response.data;
   }

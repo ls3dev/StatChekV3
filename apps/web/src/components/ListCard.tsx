@@ -55,12 +55,12 @@ const SPORT_THEMES = {
   default: {
     icon: "📋",
     label: "List",
-    primaryColor: "text-accent-purple",
-    bgColor: "bg-accent-purple/10",
-    borderColor: "border-l-accent-purple",
-    glowColor: "hover:shadow-accent-purple/20",
-    gradientFrom: "from-accent-purple/8",
-    hoverBg: "hover:bg-accent-purple/5",
+    primaryColor: "text-accent",
+    bgColor: "bg-accent/10",
+    borderColor: "border-l-accent",
+    glowColor: "hover:shadow-accent/20",
+    gradientFrom: "from-accent/8",
+    hoverBg: "hover:bg-accent/5",
   },
 } as const;
 

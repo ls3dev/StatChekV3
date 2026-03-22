@@ -123,7 +123,7 @@ export function CreateListModal({
               placeholder="My favorite players"
               maxLength={50}
               autoFocus
-              className="w-full px-4 py-3 bg-background-primary border border-white/10 rounded-xl text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-purple transition-colors"
+              className="w-full px-4 py-3 bg-background-primary border border-white/10 rounded-xl text-text-primary placeholder-text-muted focus:outline-none focus:border-accent transition-colors"
             />
             <div className="mt-1 text-xs text-text-muted text-right">
               {name.length}/50
@@ -145,7 +145,7 @@ export function CreateListModal({
               placeholder="Add a description for your list..."
               rows={3}
               maxLength={200}
-              className="w-full px-4 py-3 bg-background-primary border border-white/10 rounded-xl text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-purple transition-colors resize-none"
+              className="w-full px-4 py-3 bg-background-primary border border-white/10 rounded-xl text-text-primary placeholder-text-muted focus:outline-none focus:border-accent transition-colors resize-none"
             />
             <div className="mt-1 text-xs text-text-muted text-right">
               {description.length}/200
@@ -163,7 +163,7 @@ export function CreateListModal({
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 bg-accent-purple hover:bg-purple-500 text-white font-semibold rounded-xl transition-colors"
+              className="flex-1 py-3 bg-accent hover:bg-green-500 text-white font-semibold rounded-xl transition-colors"
             >
               Create List
             </button>

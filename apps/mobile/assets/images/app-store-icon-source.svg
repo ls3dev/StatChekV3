@@ -1,0 +1,38 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="128" y1="64" x2="896" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#070B22"/>
+      <stop offset="1" stop-color="#0B1235"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="226" y1="761" x2="787" y2="249" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 768) rotate(90) scale(280 512)">
+      <stop stop-color="#8B5CF6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#8B5CF6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="186" y="220" width="652" height="571" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="24"/>
+      <feGaussianBlur stdDeviation="22"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0.0196078 0 0 0 0 0.0941176 0 0 0 0.42 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect y="916" width="1024" height="108" fill="#8B5CF6"/>
+  <rect y="944" width="1024" height="80" fill="#7C3AED"/>
+  <circle cx="512" cy="760" r="280" fill="url(#glow)"/>
+  <circle cx="512" cy="438" r="246" stroke="#A78BFA" stroke-opacity="0.18" stroke-width="26"/>
+  <g filter="url(#shadow)">
+    <rect x="250" y="490" width="110" height="230" rx="38" fill="#F8FAFC"/>
+    <rect x="457" y="376" width="110" height="344" rx="38" fill="#F8FAFC"/>
+    <rect x="664" y="262" width="110" height="458" rx="38" fill="#F8FAFC"/>
+  </g>
+  <path d="M286 595L455 465L738 280" stroke="url(#accent)" stroke-width="78" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M655 280H738V363" stroke="url(#accent)" stroke-width="78" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

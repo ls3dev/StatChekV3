@@ -15,6 +15,9 @@ import {
   type BDLContract,
   type BDLInjury,
   type BDLLeader,
+  type BDLBoxScore,
+  type BDLTeamSeasonAverages,
+  type BDLPlay,
 } from "./lib/balldontlie";
 
 // ========================================
@@ -459,7 +462,7 @@ export const getLeaders = action({
  * Get advanced player stats (PRO)
  */
 export const getAdvancedStats = action({
-  args: { playerId: v.number(), season: v.optional(v.number()) },
+  args: { playerId: v.number(), playerName: v.string(), season: v.optional(v.string()) },
   handler: async (
     ctx,
     args
@@ -474,7 +477,7 @@ export const getAdvancedStats = action({
       return { stats: null, cachedAt: 0, requiresPro: true };
     }
 
-    const season = args.season ?? getCurrentNBASeason();
+    const season = args.season ? parseInt(args.season) : getCurrentNBASeason();
 
     // Check cache
     const cached = await ctx.runQuery(internal.nba._getPlayerStatsCache, {
@@ -747,6 +750,125 @@ export const searchPlayerByName = action({
           }
         : null,
     };
+  },
+});
+
+// ========================================
+// Box Score Actions
+// ========================================
+
+/**
+ * Get box score for a specific game
+ * Returns player stats for both teams
+ */
+export const getBoxScore = action({
+  args: {
+    date: v.string(),
+    homeTeamId: v.number(),
+    visitorTeamId: v.number(),
+  },
+  handler: async (
+    _ctx,
+    args
+  ): Promise<{
+    boxScore: BDLBoxScore | null;
+    isLive: boolean;
+  }> => {
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
+    }
+
+    const client = createBallDontLieClient(apiKey);
+
+    const [liveBoxScores, boxScores] = await Promise.all([
+      client.getLiveBoxScores(),
+      client.getBoxScores(args.date),
+    ]);
+
+    const liveGame = liveBoxScores.find(
+      (game) =>
+        (game.home_team.id === args.homeTeamId && game.visitor_team.id === args.visitorTeamId) ||
+        (game.home_team.id === args.visitorTeamId && game.visitor_team.id === args.homeTeamId)
+    );
+
+    const matchingGame = boxScores.find(
+      (game) =>
+        (game.home_team.id === args.homeTeamId && game.visitor_team.id === args.visitorTeamId) ||
+        (game.home_team.id === args.visitorTeamId && game.visitor_team.id === args.homeTeamId)
+    );
+
+    const livePlayerCount =
+      (liveGame?.home_team.players?.length ?? 0) + (liveGame?.visitor_team.players?.length ?? 0);
+    const datedPlayerCount =
+      (matchingGame?.home_team.players?.length ?? 0) + (matchingGame?.visitor_team.players?.length ?? 0);
+
+    if (liveGame && livePlayerCount >= datedPlayerCount) {
+      return { boxScore: liveGame, isLive: true };
+    }
+
+    if (matchingGame) {
+      return { boxScore: matchingGame, isLive: !!liveGame };
+    }
+
+    if (liveGame) {
+      return { boxScore: liveGame, isLive: true };
+    }
+
+    return { boxScore: matchingGame ?? null, isLive: false };
+  },
+});
+
+/**
+ * Get season team averages for one or more teams.
+ */
+export const getTeamSeasonAverages = action({
+  args: {
+    teamIds: v.array(v.number()),
+    season: v.optional(v.number()),
+    seasonType: v.optional(v.union(v.literal("regular"), v.literal("playoffs"))),
+  },
+  handler: async (
+    _ctx,
+    args
+  ): Promise<{ stats: BDLTeamSeasonAverages[]; cachedAt: number }> => {
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
+    }
+
+    const client = createBallDontLieClient(apiKey);
+    const stats = await client.getTeamSeasonAverages({
+      teamIds: args.teamIds,
+      season: args.season,
+      seasonType: args.seasonType,
+    });
+
+    return { stats, cachedAt: Date.now() };
+  },
+});
+
+/**
+ * Get play-by-play for a specific game.
+ * Used to calculate scoring runs.
+ */
+export const getGamePlays = action({
+  args: {
+    gameId: v.number(),
+  },
+  handler: async (
+    _ctx,
+    args
+  ): Promise<{ plays: BDLPlay[]; cachedAt: number }> => {
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
+    }
+
+    const client = createBallDontLieClient(apiKey);
+    const plays = await client.getGamePlays(args.gameId);
+
+    return { plays, cachedAt: Date.now() };
   },
 });
 

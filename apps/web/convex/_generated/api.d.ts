@@ -8,9 +8,12 @@
  * @module
  */
 
+import type * as accountDeletion from "../accountDeletion.js";
 import type * as http from "../http.js";
 import type * as lib_balldontlie from "../lib/balldontlie.js";
+import type * as lib_ncaabBracket from "../lib/ncaabBracket.js";
 import type * as nba from "../nba.js";
+import type * as ncaab from "../ncaab.js";
 import type * as playerLinks from "../playerLinks.js";
 import type * as proWebhook from "../proWebhook.js";
 import type * as recentPlayers from "../recentPlayers.js";
@@ -28,9 +31,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  accountDeletion: typeof accountDeletion;
   http: typeof http;
   "lib/balldontlie": typeof lib_balldontlie;
+  "lib/ncaabBracket": typeof lib_ncaabBracket;
   nba: typeof nba;
+  ncaab: typeof ncaab;
   playerLinks: typeof playerLinks;
   proWebhook: typeof proWebhook;
   recentPlayers: typeof recentPlayers;
