@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { GradientHeader } from '@/components/GradientHeader';
 import { HeroSearchCard } from '@/components/HeroSearchCard';
@@ -22,6 +22,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { recentPlayers, addRecentPlayer, clearRecentPlayers } = useRecentPlayers();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [showCreateChooser, setShowCreateChooser] = useState(false);
 
   const isNBA = selectedSport === 'NBA';
 
@@ -63,18 +64,29 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}>
         {/* Create Your List CTA */}
         <View style={styles.ctaContainer}>
-          <Pressable
-            onPress={() => router.push('/(tabs)/lists')}
-            style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
-            <LinearGradient
-              colors={['#8B5CF6', '#7C3AED']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaButton}>
-              <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" />
-              <Text style={styles.ctaText}>Create Your List</Text>
-            </LinearGradient>
-          </Pressable>
+          <View style={styles.ctaRow}>
+            <Pressable
+              onPress={() => router.push('/(tabs)/lists')}
+              style={({ pressed }) => [
+                styles.secondaryCtaButton,
+                { opacity: pressed ? 0.9 : 1 },
+              ]}>
+              <Ionicons name="list-outline" size={20} color={isDark ? '#FFFFFF' : '#111827'} />
+              <Text style={[styles.secondaryCtaText, { color: isDark ? '#FFFFFF' : '#111827' }]}>Your Lists</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowCreateChooser(true)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
+              <LinearGradient
+                colors={['#8B5CF6', '#7C3AED']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ctaButton}>
+                <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" />
+                <Text style={styles.ctaText}>Create Something</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
         </View>
 
         {/* Recent players section */}
@@ -110,6 +122,44 @@ export default function HomeScreen() {
 
       {/* Bottom sheet for player details */}
       <PlayerCardBottomSheet player={selectedPlayer} isVisible={!!selectedPlayer} onDismiss={handleDismiss} />
+
+      <Modal visible={showCreateChooser} transparent animationType="fade" onRequestClose={() => setShowCreateChooser(false)}>
+        <View style={styles.chooserOverlay}>
+          <Pressable style={styles.chooserBackdrop} onPress={() => setShowCreateChooser(false)} />
+          <View style={[styles.chooserCard, { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground }]}>
+            <Text style={[styles.chooserTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}>
+              Create
+            </Text>
+            <Text style={[styles.chooserSectionLabel, { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted }]}>
+              LISTS
+            </Text>
+            {[
+              { label: 'Create Ranking', path: '/(tabs)/lists?createType=ranking' },
+              { label: 'Create Agenda', path: '/(tabs)/lists?createType=agenda' },
+              { label: 'Create VS', path: '/(tabs)/lists?createType=vs' },
+            ].map((item) => (
+              <Pressable key={item.path} onPress={() => router.push(item.path as any)} style={styles.chooserItem}>
+                <Text style={[styles.chooserItemText, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+            <Text style={[styles.chooserSectionLabel, { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted }]}>
+              PROFILE SAVES
+            </Text>
+            {[
+              { label: 'Add Receipt', path: '/(tabs)/profile?createSave=receipt' },
+              { label: 'Save Player Stats', path: '/(tabs)/profile?createSave=playerStatSnapshot' },
+            ].map((item) => (
+              <Pressable key={item.path} onPress={() => router.push(item.path as any)} style={styles.chooserItem}>
+                <Text style={[styles.chooserItemText, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -129,7 +179,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignTokens.spacing.lg,
     marginBottom: DesignTokens.spacing.lg,
   },
+  ctaRow: {
+    flexDirection: 'row',
+    gap: DesignTokens.spacing.sm,
+  },
+  secondaryCtaButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: DesignTokens.radius.lg,
+    paddingHorizontal: DesignTokens.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: DesignTokens.spacing.xs,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  secondaryCtaText: {
+    ...Typography.headline,
+    fontSize: 15,
+  },
   ctaButton: {
+    minWidth: 190,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -147,6 +219,41 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
   },
+  chooserOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: DesignTokens.spacing.lg,
+  },
+  chooserBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  chooserCard: {
+    width: '100%',
+    borderRadius: DesignTokens.radius.xl,
+    padding: DesignTokens.spacing.lg,
+    gap: DesignTokens.spacing.sm,
+  },
+  chooserTitle: {
+    ...Typography.displaySmall,
+    marginBottom: DesignTokens.spacing.sm,
+  },
+  chooserSectionLabel: {
+    ...Typography.captionSmall,
+    letterSpacing: 0.6,
+    marginTop: DesignTokens.spacing.sm,
+  },
+  chooserItem: {
+    borderRadius: DesignTokens.radius.md,
+    paddingVertical: DesignTokens.spacing.md,
+    paddingHorizontal: DesignTokens.spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  chooserItemText: {
+    ...Typography.body,
+    fontWeight: '600',
+  },
   comingSoonContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -158,7 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: DesignTokens.spacing.lg,
   },
   comingSoonTitle: {
-    ...Typography.title2,
+    ...Typography.headline,
     fontWeight: '700',
     marginBottom: DesignTokens.spacing.sm,
     textAlign: 'center',

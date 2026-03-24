@@ -11,6 +11,10 @@ export type Player = {
   hallOfFame?: boolean;
 };
 
+export type ListType = "ranking" | "agenda" | "vs";
+
+export type ProfileSaveType = "receipt" | "playerStatSnapshot";
+
 // Player list item - reference to a player in a list with order
 export type PlayerListItem = {
   playerId: string;
@@ -32,8 +36,23 @@ export type PlayerList = {
   id: string;
   name: string;
   description?: string;
+  listType: ListType;
   players: PlayerListItem[];
   links: PlayerListLink[];
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type ProfileSave = {
+  id: string;
+  type: ProfileSaveType;
+  title: string;
+  subtitle?: string;
+  note?: string;
+  url?: string;
+  linkedEntityType?: "list" | "player" | "game" | "manual";
+  linkedEntityId?: string;
+  payload?: Record<string, unknown>;
   createdAt: number;
   updatedAt: number;
 };

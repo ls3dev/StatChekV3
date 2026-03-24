@@ -22,6 +22,9 @@ export default defineSchema({
     userId: v.string(), // Can be anonymousId or authenticated user._id
     name: v.string(),
     description: v.optional(v.string()),
+    listType: v.optional(
+      v.union(v.literal("ranking"), v.literal("agenda"), v.literal("vs"))
+    ),
 
     // Players stored as references with order
     players: v.array(
@@ -93,6 +96,7 @@ export default defineSchema({
   userSettings: defineTable({
     userId: v.string(),
     theme: v.union(v.literal("light"), v.literal("dark")),
+    accentColor: v.optional(v.string()),
 
     // Future settings
     notifications: v.optional(v.boolean()),
@@ -106,11 +110,15 @@ export default defineSchema({
     shareId: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
+    listType: v.optional(
+      v.union(v.literal("ranking"), v.literal("agenda"), v.literal("vs"))
+    ),
 
     // Denormalized player data (snapshot at share time)
     players: v.array(
       v.object({
         playerId: v.string(),
+        sport: v.optional(v.string()),
         order: v.number(),
         name: v.string(),
         team: v.string(),
@@ -144,10 +152,45 @@ export default defineSchema({
     // Metadata
     isPublic: v.boolean(),
     viewCount: v.number(),
+    upvoteCount: v.optional(v.number()),
   })
     .index("by_share_id", ["shareId"])
     .index("by_user", ["userId"])
     .index("by_shared_at", ["sharedAt"]),
+
+  sharedListVotes: defineTable({
+    shareId: v.string(),
+    userId: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_share_user", ["shareId", "userId"])
+    .index("by_user_created", ["userId", "createdAt"]),
+
+  userProfileSaves: defineTable({
+    userId: v.string(),
+    type: v.union(
+      v.literal("receipt"),
+      v.literal("playerStatSnapshot")
+    ),
+    title: v.string(),
+    subtitle: v.optional(v.string()),
+    note: v.optional(v.string()),
+    url: v.optional(v.string()),
+    linkedEntityType: v.optional(
+      v.union(
+        v.literal("list"),
+        v.literal("player"),
+        v.literal("game"),
+        v.literal("manual")
+      )
+    ),
+    linkedEntityId: v.optional(v.string()),
+    payload: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_user_type_created", ["userId", "type", "createdAt"]),
 
   // Shared Players - public snapshots of individual players for sharing
   sharedPlayers: defineTable({

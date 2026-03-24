@@ -129,6 +129,7 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
   const addPlayerLink = useMutation(api.playerLinks.addPlayerLink);
   const deletePlayerLink = useMutation(api.playerLinks.deletePlayerLink);
   const createSharedPlayer = useMutation(api.sharedPlayers.createSharedPlayer);
+  const createProfileSave = useMutation(api.userProfileSaves.createProfileSave);
 
   // NBA API actions
   const searchPlayerByName = useAction(api.nba.searchPlayerByName);
@@ -384,6 +385,16 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
         url,
         title,
       });
+      await createProfileSave({
+        userId,
+        type: "receipt",
+        title,
+        url,
+        subtitle: player.name,
+        linkedEntityType: "player",
+        linkedEntityId: player.id,
+        payload: { source: "player_modal_web" },
+      });
     } catch (error) {
       console.error("Failed to add receipt:", error);
     }
@@ -433,6 +444,29 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
     } finally {
       setIsSharing(false);
     }
+  };
+
+  const handleSaveStatsSnapshot = async () => {
+    if (!userId || !player) return;
+
+    await createProfileSave({
+      userId,
+      type: "playerStatSnapshot",
+      title: player.name,
+      subtitle: player.team !== "N/A" ? player.team : player.sport,
+      note: seasonStats
+        ? `${seasonStats.pts.toFixed(1)} PTS · ${seasonStats.reb.toFixed(1)} REB · ${seasonStats.ast.toFixed(1)} AST`
+        : undefined,
+      linkedEntityType: "player",
+      linkedEntityId: player.id,
+      payload: {
+        source: "player_modal_web",
+        stats: seasonStats,
+        advancedStats,
+      },
+    });
+    setShowCopiedMessage(true);
+    setTimeout(() => setShowCopiedMessage(false), 2000);
   };
 
   const currentContract = contracts.find(
@@ -938,6 +972,15 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
             className="flex-1 py-3 bg-accent hover:bg-green-500 text-white font-semibold rounded-xl transition-colors"
           >
             Sign in to Add to List
+          </button>
+        )}
+
+        {isAuthenticated && hasStats && (
+          <button
+            onClick={handleSaveStatsSnapshot}
+            className="px-4 py-3 bg-card hover:bg-card-hover border border-white/10 text-text-primary font-semibold rounded-xl transition-colors"
+          >
+            Save Stats
           </button>
         )}
 

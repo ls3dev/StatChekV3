@@ -1,20 +1,34 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { ListType } from "@/lib/types";
 
 type CreateListModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, description: string) => void;
+  onCreate: (name: string, description: string, listType: ListType) => void;
+  initialListType?: ListType;
 };
+
+const LIST_TYPE_OPTIONS: {
+  value: ListType;
+  label: string;
+  description: string;
+}[] = [
+  { value: "ranking", label: "Ranking", description: "Ordered list for 1 or more players." },
+  { value: "agenda", label: "Agenda", description: "Single-player take with receipts." },
+  { value: "vs", label: "VS", description: "Head-to-head layout capped at 2 players." },
+];
 
 export function CreateListModal({
   isOpen,
   onClose,
   onCreate,
+  initialListType = "ranking",
 }: CreateListModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [listType, setListType] = useState<ListType>(initialListType);
   const [error, setError] = useState("");
 
   // Reset form when modal opens
@@ -22,9 +36,10 @@ export function CreateListModal({
     if (isOpen) {
       setName("");
       setDescription("");
+      setListType(initialListType);
       setError("");
     }
-  }, [isOpen]);
+  }, [isOpen, initialListType]);
 
   // Close on escape
   useEffect(() => {
@@ -60,7 +75,7 @@ export function CreateListModal({
       return;
     }
 
-    onCreate(trimmedName, description.trim());
+    onCreate(trimmedName, description.trim(), listType);
   };
 
   return (
@@ -107,6 +122,36 @@ export function CreateListModal({
             </div>
           )}
 
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              Type <span className="text-red-400">*</span>
+            </label>
+            <div className="grid gap-2">
+              {LIST_TYPE_OPTIONS.map((option) => {
+                const selected = option.value === listType;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setListType(option.value)}
+                    className={`text-left rounded-xl border px-4 py-3 transition-colors ${
+                      selected
+                        ? "border-accent bg-accent/10"
+                        : "border-white/10 bg-background-primary hover:border-white/20"
+                    }`}
+                  >
+                    <div className="text-sm font-semibold text-text-primary">
+                      {option.label}
+                    </div>
+                    <div className="text-xs text-text-muted mt-1">
+                      {option.description}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Name Input */}
           <div>
             <label
@@ -120,7 +165,13 @@ export function CreateListModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="My favorite players"
+              placeholder={
+                listType === "vs"
+                  ? "Best point guard debate"
+                  : listType === "agenda"
+                  ? "The agenda"
+                  : "Top 10 NBA centers"
+              }
               maxLength={50}
               autoFocus
               className="w-full px-4 py-3 bg-background-primary border border-white/10 rounded-xl text-text-primary placeholder-text-muted focus:outline-none focus:border-accent transition-colors"
@@ -165,7 +216,7 @@ export function CreateListModal({
               type="submit"
               className="flex-1 py-3 bg-accent hover:bg-green-500 text-white font-semibold rounded-xl transition-colors"
             >
-              Create List
+              Create {LIST_TYPE_OPTIONS.find((option) => option.value === listType)?.label}
             </button>
           </div>
         </form>

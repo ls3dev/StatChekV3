@@ -13,6 +13,7 @@ interface RankingModeProps {
   onRemovePlayer: (playerId: string) => void;
   onReorderPlayers: (data: PlayerWithData[]) => void;
   onAddLink: () => void;
+  onOpenLink: (url: string) => void;
   onRemoveLink: (linkId: string) => void;
 }
 
@@ -200,6 +201,7 @@ export function RankingMode({
   onRemovePlayer,
   onReorderPlayers,
   onAddLink,
+  onOpenLink,
   onRemoveLink,
 }: RankingModeProps) {
   const handleMoveUp = (index: number) => {
@@ -312,10 +314,14 @@ export function RankingMode({
                     d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
                   />
                 </svg>
-                <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => onOpenLink(link.url)}
+                  className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                >
                   <p className="text-text-primary font-medium truncate">{link.title}</p>
                   <p className="text-text-muted text-sm truncate">{link.url}</p>
-                </div>
+                </button>
                 <button
                   onClick={() => onRemoveLink(link.id)}
                   className="p-1 hover:bg-white/10 rounded-full transition-colors"

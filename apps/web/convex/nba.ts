@@ -317,13 +317,16 @@ export const getGames = action({
   handler: async (ctx, args): Promise<{ games: BDLGame[]; cachedAt: number }> => {
     const date = args.date ?? formatDateForAPI(new Date());
 
-    // Check cache - use shorter TTL for today's games
+    // Check cache - use short TTL whenever the cached slate still has active games
     const cached = await ctx.runQuery(internal.nba._getGamesCache, { date });
-    const isToday = date === formatDateForAPI(new Date());
-    const ttl = isToday ? CACHE_TTL.GAMES_LIVE : CACHE_TTL.GAMES_PAST;
+    if (cached) {
+      const games = cached.data as BDLGame[];
+      const hasActiveGames = games.some((g) => g.status !== "Final");
+      const ttl = hasActiveGames ? CACHE_TTL.GAMES_LIVE : CACHE_TTL.GAMES_PAST;
 
-    if (cached && isCacheValid(cached.cachedAt, ttl)) {
-      return { games: cached.data as BDLGame[], cachedAt: cached.cachedAt };
+      if (isCacheValid(cached.cachedAt, ttl)) {
+        return { games, cachedAt: cached.cachedAt };
+      }
     }
 
     // Fetch from API
@@ -715,17 +718,25 @@ export const searchPlayerByName = action({
     }
 
     const client = createBallDontLieClient(apiKey);
+    const normalizeName = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
 
     // BDL API works better with last name for unique matches
     const nameParts = args.name.trim().split(/\s+/);
-    const searchTerm = nameParts.length > 1 ? nameParts[nameParts.length - 1] : args.name;
+    const rawSearchTerm =
+      nameParts.length > 1 ? nameParts[nameParts.length - 1] : args.name;
+    const searchTerm = normalizeName(rawSearchTerm);
 
     const results = await client.searchPlayers(searchTerm, 10);
 
     // Find best match - prefer exact name match
-    const normalizedInput = args.name.toLowerCase().trim();
+    const normalizedInput = normalizeName(args.name);
     let player = results.data.find((p) => {
-      const fullName = `${p.first_name} ${p.last_name}`.toLowerCase();
+      const fullName = normalizeName(`${p.first_name} ${p.last_name}`);
       return fullName === normalizedInput;
     });
 

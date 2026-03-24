@@ -4,6 +4,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   ScrollView,
   Share,
@@ -27,19 +28,58 @@ import { useListsContext } from '@/context/ListsContext';
 import { useAuth } from '@/context/AuthContext';
 import { usePlayerData } from '@/context/PlayerDataContext';
 import { getPlayerById } from '@/services/playerData';
-import type { Player, PlayerListItem } from '@/types';
+import type { ListType, Player, PlayerListItem } from '@/types';
 
 const SHARE_BASE_URL = 'https://www.statcheckapp.com/list';
 
 // Type for player with full data
 type PlayerWithData = PlayerListItem & { player: Player };
 
+function getMaxPlayersForListType(listType: ListType): number {
+  switch (listType) {
+    case 'agenda':
+      return 1;
+    case 'vs':
+      return 2;
+    case 'ranking':
+    default:
+      return Number.POSITIVE_INFINITY;
+  }
+}
+
+function getListTypeCopy(listType: ListType) {
+  switch (listType) {
+    case 'agenda':
+      return {
+        label: 'Agenda',
+        emptyTitle: 'No player yet',
+        emptySubtitle: 'Add one player to start your agenda and attach receipts.',
+        addLabel: 'Add Player',
+      };
+    case 'vs':
+      return {
+        label: 'VS',
+        emptyTitle: 'Build your matchup',
+        emptySubtitle: 'Add two players for a head-to-head comparison.',
+        addLabel: 'Add Player',
+      };
+    case 'ranking':
+    default:
+      return {
+        label: 'Ranking',
+        emptyTitle: 'No players yet',
+        emptySubtitle: 'Add players to start building your ranking.',
+        addLabel: 'Add Player',
+      };
+  }
+}
+
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, userId } = useAuth();
   const {
     getListById,
     deleteList,
@@ -52,6 +92,7 @@ export default function ListDetailScreen() {
   const { isLoaded: isPlayerDataLoaded, isLoading: isPlayerDataLoading } = usePlayerData();
 
   const createSharedList = useMutation(api.sharedLists.createSharedList);
+  const createProfileSave = useMutation(api.userProfileSaves.createProfileSave);
 
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showAddLinkModal, setShowAddLinkModal] = useState(false);
@@ -76,14 +117,8 @@ export default function ListDetailScreen() {
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [list, isPlayerDataLoaded]);
 
-  // Determine the current mode based on player count
-  const currentMode = useMemo(() => {
-    const count = playersWithData.length;
-    if (count === 0) return 'empty';
-    if (count === 1) return 'agenda';
-    if (count === 2) return 'vs';
-    return 'ranking';
-  }, [playersWithData.length]);
+  const listType = (list?.listType ?? 'ranking') as ListType;
+  const listTypeCopy = getListTypeCopy(listType);
 
   // Handle drag end for reordering players (Ranking mode)
   const handleReorderPlayers = useCallback(
@@ -124,6 +159,11 @@ export default function ListDetailScreen() {
 
   const handleAddPlayer = async (playerId: string) => {
     if (!list) return;
+    const maxPlayers = getMaxPlayersForListType(listType);
+    if (playersWithData.length >= maxPlayers) {
+      Alert.alert('Limit reached', `${listTypeCopy.label} lists can only hold ${maxPlayers} player${maxPlayers === 1 ? '' : 's'}.`);
+      return;
+    }
     await addPlayerToList(list.id, playerId);
     setShowAddPlayerModal(false);
   };
@@ -131,12 +171,33 @@ export default function ListDetailScreen() {
   const handleAddLink = async (url: string, title: string) => {
     if (!list) return;
     await addLinkToList(list.id, url, title);
+    if (userId) {
+      await createProfileSave({
+        userId,
+        type: 'receipt',
+        title,
+        url,
+        subtitle: list.name,
+        linkedEntityType: 'list',
+        linkedEntityId: list.id,
+        payload: { source: 'list_detail_mobile' },
+      });
+    }
   };
 
   const handleRemoveLink = async (linkId: string) => {
     if (!list) return;
     await removeLinkFromList(list.id, linkId);
   };
+
+  const handleOpenLink = useCallback(async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error('Failed to open receipt link:', error);
+      Alert.alert('Error', 'Could not open this link.');
+    }
+  }, []);
 
   const handleShareList = async () => {
     if (!list) return;
@@ -148,8 +209,10 @@ export default function ListDetailScreen() {
       const { shareId } = await createSharedList({
         name: list.name,
         description: list.description,
+        listType,
         players: playersWithData.map((p, index) => ({
           playerId: p.playerId,
+          sport: p.player.sport,
           order: index,
           name: p.player.name,
           team: p.player.team,
@@ -269,10 +332,9 @@ export default function ListDetailScreen() {
     );
   }
 
-  // Render content based on current mode
+  // Render content based on explicit list type
   const renderContent = () => {
-    switch (currentMode) {
-      case 'empty':
+    if (playersWithData.length === 0) {
         return (
           <View style={styles.emptyContainer}>
             <View
@@ -292,7 +354,7 @@ export default function ListDetailScreen() {
                   { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
                 ]}
               >
-                No players yet
+                {listTypeCopy.emptyTitle}
               </Text>
               <Text
                 style={[
@@ -300,20 +362,21 @@ export default function ListDetailScreen() {
                   { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
                 ]}
               >
-                Add a player to start building your take
+                {listTypeCopy.emptySubtitle}
               </Text>
               <TouchableOpacity
                 style={[styles.emptyAddButton, { backgroundColor: DesignTokens.accentGreen }]}
                 onPress={() => setShowAddPlayerModal(true)}
               >
                 <Ionicons name="add" size={20} color="#FFFFFF" />
-                <Text style={styles.emptyAddButtonText}>Add Player</Text>
+                <Text style={styles.emptyAddButtonText}>{listTypeCopy.addLabel}</Text>
               </TouchableOpacity>
             </View>
           </View>
         );
+    }
 
-      case 'agenda':
+    if (listType === 'agenda') {
         return (
           <View>
             <AgendaMode
@@ -323,13 +386,56 @@ export default function ListDetailScreen() {
               onPlayerPress={() => setSelectedPlayer(playersWithData[0].player)}
               onAddPlayer={() => setShowAddPlayerModal(true)}
               onAddLink={() => setShowAddLinkModal(true)}
+              onOpenLink={handleOpenLink}
               onRemoveLink={handleRemoveLink}
               onRemovePlayer={() => handleRemovePlayer(playersWithData[0].playerId)}
             />
           </View>
         );
+    }
 
-      case 'vs':
+    if (listType === 'vs') {
+        if (playersWithData.length < 2) {
+          return (
+            <View style={styles.emptyContainer}>
+              <View
+                style={[
+                  styles.emptyCard,
+                  { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
+                ]}
+              >
+                <Ionicons
+                  name="git-compare-outline"
+                  size={48}
+                  color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+                />
+                <Text
+                  style={[
+                    styles.emptyTitle,
+                    { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+                  ]}
+                >
+                  Add one more player
+                </Text>
+                <Text
+                  style={[
+                    styles.emptySubtitle,
+                    { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+                  ]}
+                >
+                  VS lists require exactly two players.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.emptyAddButton, { backgroundColor: DesignTokens.accentGreen }]}
+                  onPress={() => setShowAddPlayerModal(true)}
+                >
+                  <Ionicons name="add" size={20} color="#FFFFFF" />
+                  <Text style={styles.emptyAddButtonText}>Add Opponent</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        }
         return (
           <View>
             <VSMode
@@ -341,29 +447,30 @@ export default function ListDetailScreen() {
               onPlayer2Press={() => setSelectedPlayer(playersWithData[1].player)}
               onAddPlayer={() => setShowAddPlayerModal(true)}
               onAddLink={() => setShowAddLinkModal(true)}
+              onOpenLink={handleOpenLink}
               onRemoveLink={handleRemoveLink}
               onRemovePlayer={handleRemovePlayer}
-            />
-          </View>
-        );
-
-      case 'ranking':
-        return (
-          <View>
-            <RankingMode
-              players={playersWithData}
-              links={list?.links ?? []}
-              isDark={isDark}
-              onPlayerPress={(player) => setSelectedPlayer(player)}
-              onAddPlayer={() => setShowAddPlayerModal(true)}
-              onRemovePlayer={handleRemovePlayer}
-              onReorderPlayers={handleReorderPlayers}
-              onAddLink={() => setShowAddLinkModal(true)}
-              onRemoveLink={handleRemoveLink}
             />
           </View>
         );
     }
+
+    return (
+      <View>
+        <RankingMode
+          players={playersWithData}
+          links={list?.links ?? []}
+          isDark={isDark}
+          onPlayerPress={(player) => setSelectedPlayer(player)}
+          onAddPlayer={() => setShowAddPlayerModal(true)}
+          onRemovePlayer={handleRemovePlayer}
+          onReorderPlayers={handleReorderPlayers}
+          onAddLink={() => setShowAddLinkModal(true)}
+          onOpenLink={handleOpenLink}
+          onRemoveLink={handleRemoveLink}
+        />
+      </View>
+    );
   };
 
   return (
@@ -392,6 +499,11 @@ export default function ListDetailScreen() {
           numberOfLines={1}>
           {list.name}
         </Text>
+        <View style={styles.headerMeta}>
+          <Text style={[styles.headerMetaText, { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted }]}>
+            {listTypeCopy.label}
+          </Text>
+        </View>
         <TouchableOpacity onPress={() => setShowOptions(!showOptions)} style={styles.optionsButton}>
           <Ionicons
             name="ellipsis-vertical"
@@ -514,6 +626,14 @@ const styles = StyleSheet.create({
     flex: 1,
     ...Typography.headline,
     fontSize: 18,
+  },
+  headerMeta: {
+    paddingHorizontal: DesignTokens.spacing.xs,
+  },
+  headerMetaText: {
+    ...Typography.caption,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   optionsButton: {
     padding: DesignTokens.spacing.xs,

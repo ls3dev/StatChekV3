@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 
-import type { PlayerList, PlayerListItem, PlayerListLink } from '@/types';
+import type { ListType, PlayerList, PlayerListItem, PlayerListLink } from '@/types';
 import { useAuth, useRequireAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { usePaywall } from '@/context/PaywallContext';
@@ -9,6 +9,12 @@ import { api } from '@statcheck/convex';
 import { captureException, addBreadcrumb } from '@/utils/sentry';
 
 const FREE_LIST_LIMIT = 1;
+
+function inferLegacyListType(playerCount: number): ListType {
+  if (playerCount <= 1) return 'agenda';
+  if (playerCount === 2) return 'vs';
+  return 'ranking';
+}
 
 type ListsContextValue = {
   lists: PlayerList[];
@@ -19,8 +25,8 @@ type ListsContextValue = {
   setShowPaywall: (show: boolean) => void;
   canCreateList: boolean;
   // List CRUD
-  createList: (name: string, description?: string) => Promise<PlayerList | null>;
-  updateList: (id: string, updates: { name?: string; description?: string }) => Promise<void>;
+  createList: (name: string, description: string | undefined, listType: ListType) => Promise<PlayerList | null>;
+  updateList: (id: string, updates: { name?: string; description?: string; listType?: ListType }) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   getListById: (id: string | string[] | undefined) => PlayerList | undefined;
   // Player management
@@ -69,10 +75,11 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
   const lists = useMemo<PlayerList[]>(() => {
     if (!convexLists) return [];
 
-    return convexLists.map((list) => ({
+    return convexLists.map((list: any) => ({
       id: list._id, // Use Convex document ID as our list ID
       name: list.name,
       description: list.description,
+      listType: list.listType ?? inferLegacyListType((list.players ?? []).length),
       players: list.players ?? [],
       links: list.links ?? [],
       createdAt: list.createdAt,
@@ -88,7 +95,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
 
   // Create a new list (requires authentication and checks limit)
   const createList = useCallback(
-    async (name: string, description?: string): Promise<PlayerList | null> => {
+    async (name: string, description: string | undefined, listType: ListType): Promise<PlayerList | null> => {
       try {
         addBreadcrumb('Creating list', 'lists', { name, isAuthenticated, isProUser, listsCount: lists.length });
 
@@ -121,6 +128,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
           userId,
           name,
           description,
+          listType,
         });
 
         addBreadcrumb('List created successfully', 'lists', { listId });
@@ -130,6 +138,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
           id: listId,
           name,
           description,
+          listType,
           players: [],
           links: [],
           createdAt: Date.now(),
@@ -152,7 +161,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
 
   // Update list name/description
   const updateList = useCallback(
-    async (id: string, updates: { name?: string; description?: string }) => {
+    async (id: string, updates: { name?: string; description?: string; listType?: ListType }) => {
       await updateListMutation({
         listId: id as any, // Convex ID
         updates,

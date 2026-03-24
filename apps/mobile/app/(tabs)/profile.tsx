@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect, useCallback } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View, Alert, Modal, TextInput, ActivityIndicator, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useUser } from '@clerk/clerk-expo';
 import { useQuery, useMutation } from 'convex/react';
@@ -14,6 +14,23 @@ import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { usePaywall } from '@/context/PaywallContext';
 import { useLists } from '@/hooks/useLists';
+import type { ProfileSaveType } from '@/types';
+
+const ACCENT_COLORS = [
+  { name: 'Green', hex: '#30D158' },
+  { name: 'Blue', hex: '#007AFF' },
+  { name: 'Indigo', hex: '#5856D6' },
+  { name: 'Purple', hex: '#AF52DE' },
+  { name: 'Pink', hex: '#FF2D55' },
+  { name: 'Orange', hex: '#FF9500' },
+  { name: 'Teal', hex: '#5AC8FA' },
+  { name: 'Red', hex: '#FF3B30' },
+];
+
+const PROFILE_SAVE_LABELS: Record<ProfileSaveType, string> = {
+  receipt: 'Receipts',
+  playerStatSnapshot: 'Stats',
+};
 
 type SettingItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -70,7 +87,7 @@ function SettingItem({ icon, iconColor, title, subtitle, onPress, rightElement, 
 }
 
 export default function ProfileScreen() {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, toggleTheme, accentColor, setAccentColor } = useTheme();
   const { isAuthenticated, user, signOut, status } = useAuth();
   const { isProUser } = useRevenueCat();
   const { openPaywall } = usePaywall();
@@ -78,16 +95,25 @@ export default function ProfileScreen() {
   const { lists } = useLists();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ createSave?: string }>();
 
   // Username state
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [isSavingUsername, setIsSavingUsername] = useState(false);
+  const [showCreateSaveModal, setShowCreateSaveModal] = useState(false);
+  const [activeSaveType, setActiveSaveType] = useState<ProfileSaveType>('receipt');
+  const [saveTitle, setSaveTitle] = useState('');
+  const [saveSubtitle, setSaveSubtitle] = useState('');
+  const [saveUrl, setSaveUrl] = useState('');
+  const [saveNote, setSaveNote] = useState('');
 
   // Convex queries/mutations for username
   const convexUser = useQuery(api.users.getCurrentUser);
   const setUsernameMutation = useMutation(api.users.setUsername);
+  const deleteAccountMutation = useMutation(api.accountDeletion.deleteAccount);
+  const createProfileSaveMutation = useMutation(api.userProfileSaves.createProfileSave);
   const checkUsernameQuery = useQuery(
     api.users.checkUsernameAvailable,
     usernameInput.length >= 3 ? { username: usernameInput } : 'skip'
@@ -106,9 +132,22 @@ export default function ProfileScreen() {
     name: clerkUser.fullName || clerkUser.firstName || 'User',
     email: clerkUser.primaryEmailAddress?.emailAddress,
   } : null);
+  const receiptSaves = useQuery(api.userProfileSaves.getUserProfileSaves, convexUser?._id ? { userId: convexUser._id, type: 'receipt' } : 'skip');
+  const statSaves = useQuery(api.userProfileSaves.getUserProfileSaves, convexUser?._id ? { userId: convexUser._id, type: 'playerStatSnapshot' } : 'skip');
+  const totalProfileSaves = (receiptSaves?.length ?? 0) + (statSaves?.length ?? 0);
 
   // Get username from Convex user
   const currentUsername = convexUser?.username;
+
+  useEffect(() => {
+    if (
+      params.createSave === 'receipt' ||
+      params.createSave === 'playerStatSnapshot'
+    ) {
+      setActiveSaveType(params.createSave);
+      setShowCreateSaveModal(true);
+    }
+  }, [params.createSave]);
 
   // Debounced username validation
   useEffect(() => {
@@ -189,9 +228,59 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This will permanently remove all your data and cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const userId = clerkUser?.id;
+              if (userId) {
+                await deleteAccountMutation({ userId });
+              }
+              await signOut();
+            } catch (error) {
+              console.error('[PROFILE] Delete account error:', error);
+              Alert.alert('Error', 'Failed to delete account. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleUpgradeToPro = () => {
     openPaywall();
   };
+
+  const handleCreateProfileSave = useCallback(async () => {
+    if (!convexUser?._id || !saveTitle.trim()) return;
+
+    await createProfileSaveMutation({
+      userId: convexUser._id,
+      type: activeSaveType,
+      title: saveTitle.trim(),
+      subtitle: saveSubtitle.trim() || undefined,
+      note: saveNote.trim() || undefined,
+      url: saveUrl.trim() || undefined,
+      linkedEntityType: 'manual',
+      payload: { source: 'profile_compose_mobile' },
+    });
+
+    setSaveTitle('');
+    setSaveSubtitle('');
+    setSaveUrl('');
+    setSaveNote('');
+    setShowCreateSaveModal(false);
+    if (params.createSave) {
+      router.replace('/(tabs)/profile');
+    }
+  }, [convexUser?._id, activeSaveType, saveTitle, saveSubtitle, saveNote, saveUrl, createProfileSaveMutation, params.createSave, router]);
 
   return (
     <View
@@ -225,8 +314,8 @@ export default function ProfileScreen() {
               isDark ? styles.cardShadowDark : styles.cardShadow,
             ]}>
             <View style={styles.avatarContainer}>
-              <View style={[styles.avatar, { backgroundColor: DesignTokens.accentGreen + '20' }]}>
-                <Ionicons name="person" size={32} color={DesignTokens.accentGreen} />
+              <View style={[styles.avatar, { backgroundColor: accentColor + '20' }]}>
+                <Ionicons name="person" size={32} color={accentColor} />
               </View>
             </View>
             {isLoggedIn && displayUser ? (
@@ -240,7 +329,7 @@ export default function ProfileScreen() {
                     <Text
                       style={[
                         styles.usernameText,
-                        { color: DesignTokens.accentGreen },
+                        { color: accentColor },
                       ]}>
                       @{currentUsername}
                     </Text>
@@ -256,7 +345,7 @@ export default function ProfileScreen() {
                   <Ionicons
                     name="pencil"
                     size={16}
-                    color={currentUsername ? DesignTokens.accentGreen : (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
+                    color={currentUsername ? accentColor : (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)}
                   />
                 </Pressable>
               </>
@@ -328,7 +417,7 @@ export default function ProfileScreen() {
                   { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
                   isDark ? styles.cardShadowDark : styles.cardShadow,
                 ]}>
-                <Text style={[styles.statNumber, { color: DesignTokens.accentGreen }]}>
+                <Text style={[styles.statNumber, { color: accentColor }]}>
                   {totalLists}
                 </Text>
                 <Text style={[styles.statLabel, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
@@ -341,14 +430,80 @@ export default function ProfileScreen() {
                   { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
                   isDark ? styles.cardShadowDark : styles.cardShadow,
                 ]}>
-                <Text style={[styles.statNumber, { color: DesignTokens.accentGreen }]}>
+                <Text style={[styles.statNumber, { color: accentColor }]}>
                   {totalReceipts}
                 </Text>
                 <Text style={[styles.statLabel, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
                   {totalReceipts === 1 ? 'Receipt' : 'Receipts'} Added
                 </Text>
               </View>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
+                  isDark ? styles.cardShadowDark : styles.cardShadow,
+                ]}>
+                <Text style={[styles.statNumber, { color: accentColor }]}>
+                  {totalProfileSaves}
+                </Text>
+                <Text style={[styles.statLabel, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
+                  Profile Saves
+                </Text>
+              </View>
             </View>
+          </View>
+        )}
+
+        {isLoggedIn && (
+          <View style={styles.section}>
+            <View style={styles.savedActivityHeader}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+                ]}>
+                SAVED ACTIVITY
+              </Text>
+              <Pressable onPress={() => setShowCreateSaveModal(true)}>
+                <Text style={styles.addSaveText}>Add Save</Text>
+              </Pressable>
+            </View>
+            {([
+              ['receipt', receiptSaves],
+              ['playerStatSnapshot', statSaves],
+            ] as const).map(([type, saves]) => (
+              <View
+                key={type}
+                style={[
+                  styles.settingsCard,
+                  {
+                    backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground,
+                  },
+                  isDark ? styles.cardShadowDark : styles.cardShadow,
+                ]}>
+                <Text style={[styles.savedActivityTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}>
+                  {PROFILE_SAVE_LABELS[type]}
+                </Text>
+                {saves && saves.length > 0 ? (
+                  saves.slice(0, 3).map((save: any) => (
+                    <View key={save._id} style={styles.savedActivityItem}>
+                      <Text style={[styles.savedActivityItemTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}>
+                        {save.title}
+                      </Text>
+                      {!!save.subtitle && (
+                        <Text style={[styles.savedActivityItemSubtitle, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
+                          {save.subtitle}
+                        </Text>
+                      )}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.savedActivityEmpty, { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted }]}>
+                    Nothing saved yet.
+                  </Text>
+                )}
+              </View>
+            ))}
           </View>
         )}
 
@@ -426,12 +581,47 @@ export default function ProfileScreen() {
                 <Switch
                   value={isDark}
                   onValueChange={handleToggleTheme}
-                  trackColor={{ false: '#E5E7EB', true: isDark ? '#FFFFFF40' : DesignTokens.accentGreen + '60' }}
+                  trackColor={{ false: '#E5E7EB', true: isDark ? '#FFFFFF40' : accentColor + '60' }}
                   thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
                   ios_backgroundColor="#E5E7EB"
                 />
               }
             />
+          </View>
+        </View>
+
+        {/* Accent Color Section */}
+        <View style={styles.section}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+            ]}>
+            ACCENT COLOR
+          </Text>
+          <View
+            style={[
+              styles.settingsCard,
+              {
+                backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground,
+              },
+              isDark ? styles.cardShadowDark : styles.cardShadow,
+            ]}>
+            <View style={styles.colorPickerRow}>
+              {ACCENT_COLORS.map((color) => (
+                <Pressable
+                  key={color.hex}
+                  onPress={() => setAccentColor(color.hex)}
+                  style={({ pressed }) => [
+                    styles.colorSwatch,
+                    { backgroundColor: color.hex, opacity: pressed ? 0.7 : 1 },
+                  ]}>
+                  {accentColor === color.hex && (
+                    <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                  )}
+                </Pressable>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -454,9 +644,9 @@ export default function ProfileScreen() {
             ]}>
             <SettingItem icon="information-circle" iconColor="#3B82F6" title="App Version" subtitle="1.0.0" isDark={isDark} />
             <View style={[styles.divider, { backgroundColor: isDark ? DesignTokens.dividerDark : DesignTokens.divider }]} />
-            <SettingItem icon="document-text" iconColor="#10B981" title="Terms of Service" isDark={isDark} />
+            <SettingItem icon="document-text" iconColor="#10B981" title="Terms of Service" isDark={isDark} onPress={() => Linking.openURL('https://www.statcheckapp.com/terms')} />
             <View style={[styles.divider, { backgroundColor: isDark ? DesignTokens.dividerDark : DesignTokens.divider }]} />
-            <SettingItem icon="shield-checkmark" iconColor="#6366F1" title="Privacy Policy" isDark={isDark} />
+            <SettingItem icon="shield-checkmark" iconColor="#6366F1" title="Privacy Policy" isDark={isDark} onPress={() => Linking.openURL('https://www.statcheckapp.com/privacy')} />
           </View>
         </View>
 
@@ -485,6 +675,14 @@ export default function ProfileScreen() {
                 isDark={isDark}
                 onPress={handleSignOut}
               />
+              <View style={[styles.divider, { backgroundColor: isDark ? DesignTokens.dividerDark : DesignTokens.divider }]} />
+              <SettingItem
+                icon="trash"
+                iconColor="#EF4444"
+                title="Delete Account"
+                isDark={isDark}
+                onPress={handleDeleteAccount}
+              />
             </View>
           </View>
         )}
@@ -497,6 +695,102 @@ export default function ProfileScreen() {
         </View>
 
       </ScrollView>
+
+      <Modal
+        visible={showCreateSaveModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCreateSaveModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+                ]}
+              >
+                Save To Profile
+              </Text>
+              <Pressable onPress={() => {
+                setShowCreateSaveModal(false);
+                if (params.createSave) router.replace('/(tabs)/profile');
+              }}>
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
+                />
+              </Pressable>
+            </View>
+
+            <View style={styles.profileSaveTypeRow}>
+              {(['receipt', 'playerStatSnapshot'] as ProfileSaveType[]).map((type) => (
+                <Pressable
+                  key={type}
+                  onPress={() => setActiveSaveType(type)}
+                  style={[
+                    styles.profileSaveTypePill,
+                    activeSaveType === type && styles.profileSaveTypePillActive,
+                  ]}>
+                  <Text style={[styles.profileSaveTypeText, activeSaveType === type && styles.profileSaveTypeTextActive]}>
+                    {PROFILE_SAVE_LABELS[type]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <TextInput
+              style={[styles.input, styles.profileSaveInput]}
+              placeholder={activeSaveType === 'receipt' ? 'Receipt title' : 'Player stat title'}
+              placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+              value={saveTitle}
+              onChangeText={setSaveTitle}
+            />
+            <TextInput
+              style={[styles.input, styles.profileSaveInput]}
+              placeholder='Optional subtitle'
+              placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+              value={saveSubtitle}
+              onChangeText={setSaveSubtitle}
+            />
+            {activeSaveType === 'receipt' && (
+              <TextInput
+                style={[styles.input, styles.profileSaveInput]}
+                placeholder="https://example.com"
+                placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+                value={saveUrl}
+                onChangeText={setSaveUrl}
+              />
+            )}
+            <TextInput
+              style={[styles.input, styles.textArea, styles.profileSaveInput]}
+              placeholder="Optional note"
+              placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+              value={saveNote}
+              onChangeText={setSaveNote}
+              multiline
+            />
+
+            <Pressable onPress={handleCreateProfileSave}>
+              <LinearGradient
+                colors={['#7C3AED', '#5B21B6']}
+                style={styles.saveButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Username Edit Modal */}
       <Modal
@@ -807,6 +1101,37 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     textAlign: 'center',
   },
+  savedActivityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  addSaveText: {
+    ...Typography.caption,
+    color: DesignTokens.accentGreen,
+    fontWeight: '700',
+  },
+  savedActivityTitle: {
+    ...Typography.headline,
+    fontSize: 16,
+    marginBottom: DesignTokens.spacing.sm,
+  },
+  savedActivityItem: {
+    paddingVertical: DesignTokens.spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  savedActivityItemTitle: {
+    ...Typography.body,
+    fontWeight: '600',
+  },
+  savedActivityItemSubtitle: {
+    ...Typography.caption,
+    marginTop: 2,
+  },
+  savedActivityEmpty: {
+    ...Typography.caption,
+  },
   usernameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -854,6 +1179,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: DesignTokens.spacing.md,
     paddingVertical: DesignTokens.spacing.md,
   },
+  input: {
+    ...Typography.body,
+    borderWidth: 1,
+    borderColor: '#374151',
+    borderRadius: DesignTokens.radius.md,
+    paddingHorizontal: DesignTokens.spacing.md,
+    paddingVertical: DesignTokens.spacing.md,
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  textArea: {
+    minHeight: 96,
+    textAlignVertical: 'top',
+  },
   errorText: {
     ...Typography.caption,
     color: '#EF4444',
@@ -869,6 +1208,32 @@ const styles = StyleSheet.create({
     marginTop: DesignTokens.spacing.sm,
     marginBottom: DesignTokens.spacing.lg,
   },
+  profileSaveTypeRow: {
+    flexDirection: 'row',
+    gap: DesignTokens.spacing.xs,
+    marginBottom: DesignTokens.spacing.md,
+  },
+  profileSaveTypePill: {
+    flex: 1,
+    paddingVertical: DesignTokens.spacing.sm,
+    borderRadius: DesignTokens.radius.md,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+  },
+  profileSaveTypePillActive: {
+    backgroundColor: '#7C3AED',
+  },
+  profileSaveTypeText: {
+    ...Typography.caption,
+    fontWeight: '700',
+    color: '#9CA3AF',
+  },
+  profileSaveTypeTextActive: {
+    color: '#FFFFFF',
+  },
+  profileSaveInput: {
+    marginBottom: DesignTokens.spacing.sm,
+  },
   saveButton: {
     borderRadius: DesignTokens.radius.lg,
     paddingVertical: DesignTokens.spacing.md,
@@ -878,5 +1243,18 @@ const styles = StyleSheet.create({
   saveButtonText: {
     ...Typography.headline,
     color: '#FFFFFF',
+  },
+  colorPickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: DesignTokens.spacing.md,
+    paddingVertical: DesignTokens.spacing.lg,
+  },
+  colorSwatch: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

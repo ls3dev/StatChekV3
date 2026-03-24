@@ -1,27 +1,50 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useListsContext } from "@/context/ListsContext";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
+import type { ProfileSaveType } from "@/lib/types";
+
+const PROFILE_SAVE_LABELS: Record<ProfileSaveType, string> = {
+  receipt: "Receipts",
+  playerStatSnapshot: "Stats",
+};
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, userId, isUserReady, isAuthenticated, status, signOut } = useAuth();
   const { lists, isLoaded } = useListsContext();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showCreateSaveModal, setShowCreateSaveModal] = useState(false);
+  const [activeSaveType, setActiveSaveType] = useState<ProfileSaveType>("receipt");
+  const [saveTitle, setSaveTitle] = useState("");
+  const [saveSubtitle, setSaveSubtitle] = useState("");
+  const [saveUrl, setSaveUrl] = useState("");
+  const [saveNote, setSaveNote] = useState("");
 
   // Theme settings
   const settings = useQuery(
     api.userSettings.getUserSettings,
     userId ? { userId } : "skip"
   );
+  const requestedCreateSave = searchParams.get("createSave");
+  const receiptSaves = useQuery(
+    api.userProfileSaves.getUserProfileSaves,
+    userId ? { userId, type: "receipt" } : "skip"
+  );
+  const statSaves = useQuery(
+    api.userProfileSaves.getUserProfileSaves,
+    userId ? { userId, type: "playerStatSnapshot" } : "skip"
+  );
   const setTheme = useMutation(api.userSettings.setTheme);
   const deleteAccount = useMutation(api.accountDeletion.deleteAccount);
+  const createProfileSave = useMutation(api.userProfileSaves.createProfileSave);
 
   // Redirect to onboarding if needed
   useEffect(() => {
@@ -37,12 +60,24 @@ export default function ProfilePage() {
     }
   }, [status, router]);
 
+  useEffect(() => {
+    if (
+      requestedCreateSave === "receipt" ||
+      requestedCreateSave === "playerStatSnapshot"
+    ) {
+      setActiveSaveType(requestedCreateSave);
+      setShowCreateSaveModal(true);
+    }
+  }, [requestedCreateSave]);
+
   // Calculate stats
   const totalLists = lists.length;
   const totalReceipts = lists.reduce(
     (sum, list) => sum + (list.links?.length || 0),
     0
   );
+  const totalProfileSaves =
+    (receiptSaves?.length ?? 0) + (statSaves?.length ?? 0);
 
   // Loading state
   if (!isUserReady || status === "loading" || status === "onboarding") {
@@ -91,6 +126,30 @@ export default function ProfilePage() {
   const handleThemeChange = async (theme: "light" | "dark") => {
     if (!userId || theme === "light") return;
     await setTheme({ userId, theme });
+  };
+
+  const handleCreateProfileSave = async () => {
+    if (!userId || !saveTitle.trim()) return;
+
+    await createProfileSave({
+      userId,
+      type: activeSaveType,
+      title: saveTitle.trim(),
+      subtitle: saveSubtitle.trim() || undefined,
+      note: saveNote.trim() || undefined,
+      url: saveUrl.trim() || undefined,
+      linkedEntityType: "manual",
+      payload: { source: "profile_compose" },
+    });
+
+    setSaveTitle("");
+    setSaveSubtitle("");
+    setSaveUrl("");
+    setSaveNote("");
+    setShowCreateSaveModal(false);
+    if (requestedCreateSave) {
+      router.replace("/profile");
+    }
   };
 
   return (
@@ -148,7 +207,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="bg-background-primary rounded-xl p-6 text-center">
               <div className="text-3xl font-bold text-accent mb-1">
                 {isLoaded ? totalLists : "-"}
@@ -164,6 +223,71 @@ export default function ProfilePage() {
               <div className="text-sm text-text-secondary">
                 {totalReceipts === 1 ? "Receipt" : "Receipts"} Added
               </div>
+            </div>
+            <div className="bg-background-primary rounded-xl p-6 text-center">
+              <div className="text-3xl font-bold text-accent mb-1">
+                {totalProfileSaves}
+              </div>
+              <div className="text-sm text-text-secondary">
+                Profile Saves
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wide">
+                Saved Activity
+              </h2>
+              <button
+                onClick={() => setShowCreateSaveModal(true)}
+                className="px-3 py-2 rounded-lg bg-accent text-white text-sm font-semibold"
+              >
+                Add Save
+              </button>
+            </div>
+            <div className="space-y-4">
+              {([
+                ["receipt", receiptSaves],
+                ["playerStatSnapshot", statSaves],
+              ] as const).map(([type, saves]) => (
+                <div key={type} className="bg-background-primary rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-text-primary">
+                      {PROFILE_SAVE_LABELS[type]}
+                    </h3>
+                    <span className="text-xs text-text-muted">{saves?.length ?? 0}</span>
+                  </div>
+                  {saves && saves.length > 0 ? (
+                    <div className="space-y-2">
+                      {saves.slice(0, 3).map((save: any) => (
+                        <div key={save._id} className="border border-white/5 rounded-lg p-3">
+                          <div className="text-sm font-medium text-text-primary">
+                            {save.title}
+                          </div>
+                          {save.subtitle && (
+                            <div className="text-xs text-text-secondary mt-1">
+                              {save.subtitle}
+                            </div>
+                          )}
+                          {save.url && (
+                            <div className="text-xs text-accent mt-1 truncate">
+                              {save.url}
+                            </div>
+                          )}
+                          {save.note && (
+                            <div className="text-xs text-text-muted mt-2">
+                              {save.note}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-text-muted">Nothing saved yet.</div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -272,6 +396,75 @@ export default function ProfilePage() {
                 className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
               >
                 {isDeleting ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateSaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-background-secondary rounded-2xl border border-white/10 p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-text-primary">Save To Profile</h2>
+              <button
+                onClick={() => {
+                  setShowCreateSaveModal(false);
+                  if (requestedCreateSave) router.replace("/profile");
+                }}
+                className="p-2 rounded-full hover:bg-white/10"
+              >
+                <svg className="w-5 h-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {(["receipt", "playerStatSnapshot"] as ProfileSaveType[]).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setActiveSaveType(type)}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                    activeSaveType === type ? "bg-accent text-white" : "bg-background-primary text-text-secondary"
+                  }`}
+                >
+                  {PROFILE_SAVE_LABELS[type]}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-3">
+              <input
+                value={saveTitle}
+                onChange={(e) => setSaveTitle(e.target.value)}
+                placeholder={activeSaveType === "receipt" ? "Receipt title" : "Player stat title"}
+                className="w-full bg-background-primary border border-white/10 rounded-xl px-4 py-3 text-text-primary"
+              />
+              <input
+                value={saveSubtitle}
+                onChange={(e) => setSaveSubtitle(e.target.value)}
+                placeholder="Optional subtitle"
+                className="w-full bg-background-primary border border-white/10 rounded-xl px-4 py-3 text-text-primary"
+              />
+              {activeSaveType === "receipt" && (
+                <input
+                  value={saveUrl}
+                  onChange={(e) => setSaveUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full bg-background-primary border border-white/10 rounded-xl px-4 py-3 text-text-primary"
+                />
+              )}
+              <textarea
+                value={saveNote}
+                onChange={(e) => setSaveNote(e.target.value)}
+                placeholder="Optional note"
+                rows={4}
+                className="w-full bg-background-primary border border-white/10 rounded-xl px-4 py-3 text-text-primary resize-none"
+              />
+              <button
+                onClick={handleCreateProfileSave}
+                className="w-full px-4 py-3 bg-accent hover:bg-green-500 text-white rounded-xl font-semibold"
+              >
+                Save
               </button>
             </div>
           </div>

@@ -7,7 +7,7 @@ import React, {
   useMemo,
 } from "react";
 import { useQuery, useMutation } from "convex/react";
-import type { PlayerList, PlayerListItem, PlayerListLink } from "@/lib/types";
+import type { ListType, PlayerList, PlayerListItem, PlayerListLink } from "@/lib/types";
 import { useAuthContext } from "@/context/AuthContext";
 import { api } from "@convex/_generated/api";
 
@@ -18,11 +18,12 @@ type ListsContextValue = {
   // List CRUD
   createList: (
     name: string,
-    description?: string
+    description: string | undefined,
+    listType: ListType
   ) => Promise<PlayerList | null>;
   updateList: (
     id: string,
-    updates: { name?: string; description?: string }
+    updates: { name?: string; description?: string; listType?: ListType }
   ) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   getListById: (id: string | string[] | undefined) => PlayerList | undefined;
@@ -47,6 +48,12 @@ type ListsContextValue = {
     newOrder: PlayerListLink[]
   ) => Promise<void>;
 };
+
+function inferLegacyListType(playerCount: number): ListType {
+  if (playerCount <= 1) return "agenda";
+  if (playerCount === 2) return "vs";
+  return "ranking";
+}
 
 const ListsContext = createContext<ListsContextValue | undefined>(undefined);
 
@@ -82,6 +89,7 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
       id: list._id,
       name: list.name,
       description: list.description,
+      listType: list.listType ?? inferLegacyListType((list.players ?? []).length),
       players: list.players ?? [],
       links: list.links ?? [],
       createdAt: list.createdAt,
@@ -94,7 +102,11 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
 
   // Create a new list
   const createList = useCallback(
-    async (name: string, description?: string): Promise<PlayerList | null> => {
+    async (
+      name: string,
+      description: string | undefined,
+      listType: ListType
+    ): Promise<PlayerList | null> => {
       try {
         if (!isAuthenticated) {
           return null;
@@ -109,12 +121,14 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
           userId,
           name,
           description,
+          listType,
         });
 
         return {
           id: listId,
           name,
           description,
+          listType,
           players: [],
           links: [],
           createdAt: Date.now(),
@@ -130,7 +144,10 @@ export function ListsProvider({ children }: { children: React.ReactNode }) {
 
   // Update list name/description
   const updateList = useCallback(
-    async (id: string, updates: { name?: string; description?: string }) => {
+    async (
+      id: string,
+      updates: { name?: string; description?: string; listType?: ListType }
+    ) => {
       await updateListMutation({
         listId: id as any,
         updates,

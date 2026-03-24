@@ -9,6 +9,7 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -1335,6 +1336,11 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: COLORS.textMuted,
   },
+  saveRow: {
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
   header: {
     paddingHorizontal: 16,
     paddingBottom: 16,
@@ -1986,5 +1992,110 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.accent,
+  },
+  listPickerOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  listPickerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+  },
+  listPickerCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.divider,
+    maxHeight: '70%',
+    padding: 20,
+  },
+  listPickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12,
+  },
+  listPickerHeaderText: {
+    flex: 1,
+  },
+  listPickerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  listPickerSubtitle: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  listPickerClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.cardAlt,
+  },
+  listPickerList: {
+    maxHeight: 360,
+  },
+  listPickerListContent: {
+    gap: 10,
+  },
+  listPickerItem: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  listPickerItemMain: {
+    flex: 1,
+  },
+  listPickerItemTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  listPickerItemMeta: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 4,
+  },
+  listPickerBadge: {
+    borderRadius: 999,
+    backgroundColor: COLORS.cardAlt,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  listPickerBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+  },
+  listPickerEmpty: {
+    gap: 14,
+  },
+  listPickerEmptyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.textSecondary,
+  },
+  listPickerCreateButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listPickerCreateButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#04130A',
   },
 });

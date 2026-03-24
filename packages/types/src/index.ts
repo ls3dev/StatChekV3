@@ -12,9 +12,14 @@ export type Player = {
   hallOfFame?: boolean;
 };
 
+export type ListType = "ranking" | "agenda" | "vs";
+
+export type ProfileSaveType = "receipt" | "playerStatSnapshot";
+
 // Player list item - reference to a player in a list with order
 export type PlayerListItem = {
   playerId: string;
+  sport?: string;
   order: number;
   addedAt: number;
 };
@@ -32,6 +37,7 @@ export type PlayerList = {
   id: string;
   name: string;
   description?: string;
+  listType: ListType;
   players: PlayerListItem[];
   links: PlayerListLink[];
   createdAt: number;
@@ -59,6 +65,7 @@ export type PlayerLinksMap = {
 // Denormalized player data for shared lists (snapshot)
 export type SharedPlayer = {
   playerId: string;
+  sport?: string;
   order: number;
   name: string;
   team: string;
@@ -73,13 +80,29 @@ export type SharedList = {
   shareId: string;
   name: string;
   description?: string;
+  listType: ListType;
   players: SharedPlayer[];
   links: PlayerListLink[];
   sharedBy?: string;
   sharedByName?: string;
   sharedAt: number;
   viewCount: number;
+  upvoteCount: number;
   isPublic: boolean;
   originalCreatedAt: number;
   originalUpdatedAt: number;
+};
+
+export type ProfileSave = {
+  id: string;
+  type: ProfileSaveType;
+  title: string;
+  subtitle?: string;
+  note?: string;
+  url?: string;
+  linkedEntityType?: "list" | "player" | "game" | "manual";
+  linkedEntityId?: string;
+  payload?: Record<string, unknown>;
+  createdAt: number;
+  updatedAt: number;
 };

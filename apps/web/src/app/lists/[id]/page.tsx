@@ -13,9 +13,27 @@ import { AddLinkModal } from "@/components/AddLinkModal";
 import { AgendaMode } from "@/components/list-modes/AgendaMode";
 import { VSMode } from "@/components/list-modes/VSMode";
 import { RankingMode } from "@/components/list-modes/RankingMode";
-import type { Player, PlayerListItem } from "@/lib/types";
+import type { ListType, Player, PlayerListItem } from "@/lib/types";
 
 type PlayerWithData = PlayerListItem & { player: Player };
+
+function getMaxPlayersForListType(listType: ListType): number {
+  switch (listType) {
+    case "agenda":
+      return 1;
+    case "vs":
+      return 2;
+    case "ranking":
+    default:
+      return Number.POSITIVE_INFINITY;
+  }
+}
+
+function inferLegacyListType(playerCount: number): ListType {
+  if (playerCount <= 1) return "agenda";
+  if (playerCount === 2) return "vs";
+  return "ranking";
+}
 
 export default function ListDetailPage({
   params,
@@ -25,9 +43,10 @@ export default function ListDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, isLoading: authLoading, user } = useAuthContext();
+  const { isAuthenticated, isLoading: authLoading, user, userId } = useAuthContext();
   const autoShareTriggered = useRef(false);
   const createSharedListMutation = useMutation(api.sharedLists.createSharedList);
+  const createProfileSave = useMutation(api.userProfileSaves.createProfileSave);
   const {
     getListById,
     isLoaded,
@@ -40,6 +59,8 @@ export default function ListDetailPage({
   } = useListsContext();
 
   const list = getListById(id);
+  const listType = (list?.listType ??
+    inferLegacyListType(list?.players?.length ?? 0)) as ListType;
 
   const [playersWithData, setPlayersWithData] = useState<PlayerWithData[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(true);
@@ -177,6 +198,14 @@ export default function ListDetailPage({
   };
 
   const handleAddPlayer = async (player: Player) => {
+    const maxPlayers = getMaxPlayersForListType(listType);
+    if (playersWithData.length >= maxPlayers) {
+      window.alert(
+        `${listType.toUpperCase()} lists can only hold ${maxPlayers} player${maxPlayers === 1 ? "" : "s"}.`
+      );
+      return;
+    }
+
     const success = await addPlayerToList(list.id, player.id, player.sport);
     if (success) {
       setShowAddPlayer(false);
@@ -203,10 +232,26 @@ export default function ListDetailPage({
 
   const handleAddLink = async (url: string, title: string) => {
     await addLinkToList(list.id, url, title);
+    if (userId) {
+      await createProfileSave({
+        userId,
+        type: "receipt",
+        title,
+        url,
+        subtitle: list.name,
+        linkedEntityType: "list",
+        linkedEntityId: list.id,
+        payload: { source: "list_detail_web" },
+      });
+    }
   };
 
   const handleRemoveLink = async (linkId: string) => {
     await removeLinkFromList(list.id, linkId);
+  };
+
+  const handleOpenLink = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleShare = async () => {
@@ -218,8 +263,10 @@ export default function ListDetailPage({
       const result = await createSharedListMutation({
         name: list.name,
         description: list.description,
+        listType,
         players: playersWithData.map((p, index) => ({
           playerId: p.playerId,
+          sport: p.player.sport,
           order: index,
           name: p.player.name,
           team: p.player.team,
@@ -284,7 +331,6 @@ export default function ListDetailPage({
     }
   };
 
-  // Determine which mode to show based on player count
   const playerCount = playersWithData.length;
 
   const renderListMode = () => {
@@ -348,10 +394,18 @@ export default function ListDetailPage({
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-text-primary mb-1">
-                  No players yet
+                  {listType === "vs"
+                    ? "Build your matchup"
+                    : listType === "agenda"
+                      ? "No player yet"
+                      : "No players yet"}
                 </h3>
                 <p className="text-text-secondary mb-6">
-                  Search and add players to your list
+                  {listType === "vs"
+                    ? "Add two players for a head-to-head comparison"
+                    : listType === "agenda"
+                      ? "Add one player to start your agenda"
+                      : "Search and add players to your list"}
                 </p>
               </div>
               <button
@@ -379,7 +433,7 @@ export default function ListDetailPage({
       );
     }
 
-    if (playerCount === 1) {
+    if (listType === "agenda") {
       // Agenda Mode - single player spotlight
       return (
         <>
@@ -421,6 +475,7 @@ export default function ListDetailPage({
               onPlayerPress={() => setSelectedPlayer(playersWithData[0].player)}
               onAddPlayer={() => setShowAddPlayer(true)}
               onAddLink={() => setShowAddLink(true)}
+              onOpenLink={handleOpenLink}
               onRemoveLink={handleRemoveLink}
               onRemovePlayer={() =>
                 handleRemovePlayer(playersWithData[0].playerId)
@@ -431,7 +486,43 @@ export default function ListDetailPage({
       );
     }
 
-    if (playerCount === 2) {
+    if (listType === "vs") {
+      if (playerCount < 2) {
+        return (
+          <div className="p-6">
+            <div className="text-center py-12 bg-card rounded-2xl">
+              <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-accent"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M7 7h10M7 12h10M7 17h10"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary mb-1">
+                Add one more player
+              </h3>
+              <p className="text-text-secondary mb-6">
+                VS lists require exactly two players.
+              </p>
+              <button
+                onClick={() => setShowAddPlayer(true)}
+                className="inline-flex items-center justify-center gap-2 px-5 py-4 bg-gradient-to-r from-accent to-accent/80 hover:from-green-500 hover:to-green-600 text-white rounded-xl font-semibold transition-all"
+              >
+                Add Opponent
+              </button>
+            </div>
+          </div>
+        );
+      }
+
       // VS Mode - head-to-head comparison
       return (
         <>
@@ -479,6 +570,7 @@ export default function ListDetailPage({
               }
               onAddPlayer={() => setShowAddPlayer(true)}
               onAddLink={() => setShowAddLink(true)}
+              onOpenLink={handleOpenLink}
               onRemoveLink={handleRemoveLink}
               onRemovePlayer={handleRemovePlayer}
             />
@@ -487,7 +579,7 @@ export default function ListDetailPage({
       );
     }
 
-    // Ranking Mode - 3+ players
+    // Ranking Mode - explicit ranking lists
     return (
       <>
         {showAddPlayer ? (
@@ -530,6 +622,7 @@ export default function ListDetailPage({
             onRemovePlayer={handleRemovePlayer}
             onReorderPlayers={handleReorderPlayers}
             onAddLink={() => setShowAddLink(true)}
+            onOpenLink={handleOpenLink}
             onRemoveLink={handleRemoveLink}
           />
         )}
@@ -611,7 +704,7 @@ export default function ListDetailPage({
                   <p className="text-text-secondary">{list.description}</p>
                 )}
                 <p className="text-sm text-text-muted mt-2">
-                  {playerCount} {playerCount === 1 ? "player" : "players"}
+                  {listType.toUpperCase()} · {playerCount} {playerCount === 1 ? "player" : "players"}
                 </p>
               </div>
               <div className="flex items-center gap-2">

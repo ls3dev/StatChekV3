@@ -15,6 +15,7 @@ interface VSModeProps {
   onPlayer2Press: () => void;
   onAddPlayer: () => void;
   onAddLink: () => void;
+  onOpenLink: (url: string) => void;
   onRemoveLink: (linkId: string) => void;
   onRemovePlayer: (playerId: string) => void;
 }
@@ -114,6 +115,7 @@ export function VSMode({
   onPlayer2Press,
   onAddPlayer,
   onAddLink,
+  onOpenLink,
   onRemoveLink,
   onRemovePlayer,
 }: VSModeProps) {
@@ -192,7 +194,7 @@ export function VSMode({
                 ]}
               >
                 <Ionicons name="link" size={16} color={DesignTokens.accentGreen} />
-                <View style={styles.linkContent}>
+                <TouchableOpacity style={styles.linkContent} activeOpacity={0.8} onPress={() => onOpenLink(link.url)}>
                   <Text
                     style={[styles.linkTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}
                     numberOfLines={1}
@@ -205,7 +207,7 @@ export function VSMode({
                   >
                     {link.url}
                   </Text>
-                </View>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => onRemoveLink(link.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                   <Ionicons name="close" size={18} color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted} />
                 </TouchableOpacity>

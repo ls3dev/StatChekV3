@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -15,29 +15,51 @@ import {
 
 import { BrandGradient, DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import type { ListType } from '@/types';
 
 type CreateListModalProps = {
   visible: boolean;
   onClose: () => void;
-  onSave: (name: string, description?: string) => void;
+  onSave: (name: string, description: string | undefined, listType: ListType) => void;
+  initialListType?: ListType;
 };
 
-export function CreateListModal({ visible, onClose, onSave }: CreateListModalProps) {
+const LIST_TYPE_OPTIONS: {
+  value: ListType;
+  label: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { value: 'ranking', label: 'Ranking', description: 'Ordered list for 1 or more players.', icon: 'list' },
+  { value: 'agenda', label: 'Agenda', description: 'Single-player take with receipts.', icon: 'megaphone' },
+  { value: 'vs', label: 'VS', description: 'Head-to-head layout capped at 2 players.', icon: 'people' },
+];
+
+export function CreateListModal({ visible, onClose, onSave, initialListType = 'ranking' }: CreateListModalProps) {
   const { isDark } = useTheme();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [listType, setListType] = useState<ListType>(initialListType);
+
+  useEffect(() => {
+    if (visible) {
+      setListType(initialListType);
+    }
+  }, [visible, initialListType]);
 
   const handleSave = () => {
     if (name.trim()) {
-      onSave(name.trim(), description.trim() || undefined);
+      onSave(name.trim(), description.trim() || undefined, listType);
       setName('');
       setDescription('');
+      setListType(initialListType);
     }
   };
 
   const handleClose = () => {
     setName('');
     setDescription('');
+    setListType(initialListType);
     onClose();
   };
 
@@ -77,6 +99,51 @@ export function CreateListModal({ visible, onClose, onSave }: CreateListModalPro
             </TouchableOpacity>
           </View>
 
+          <View style={styles.inputGroup}>
+            <Text
+              style={[
+                styles.label,
+                { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+              ]}>
+              Type
+            </Text>
+            <View style={styles.typeGrid}>
+              {LIST_TYPE_OPTIONS.map((option) => {
+                const selected = option.value === listType;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    onPress={() => setListType(option.value)}
+                    style={[
+                      styles.typeCard,
+                      {
+                        backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground,
+                        borderColor: selected ? BrandGradient.start : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                      },
+                    ]}>
+                    <View style={styles.typeHeader}>
+                      <Ionicons name={option.icon} size={18} color={selected ? BrandGradient.start : (isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted)} />
+                      <Text
+                        style={[
+                          styles.typeLabel,
+                          { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+                        ]}>
+                        {option.label}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.typeDescription,
+                        { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+                      ]}>
+                      {option.description}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
           {/* Name input */}
           <View style={styles.inputGroup}>
             <Text
@@ -95,7 +162,13 @@ export function CreateListModal({ visible, onClose, onSave }: CreateListModalPro
                   borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
                 },
               ]}
-              placeholder="e.g., Top 10 NBA Centers"
+              placeholder={
+                listType === 'vs'
+                  ? 'e.g., Kobe vs MJ'
+                  : listType === 'agenda'
+                    ? 'e.g., The Luka agenda'
+                    : 'e.g., Top 10 NBA Centers'
+              }
               placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
               value={name}
               onChangeText={setName}
@@ -143,7 +216,9 @@ export function CreateListModal({ visible, onClose, onSave }: CreateListModalPro
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.saveButtonGradient}>
-              <Text style={styles.saveButtonText}>Create List</Text>
+              <Text style={styles.saveButtonText}>
+                Create {LIST_TYPE_OPTIONS.find((option) => option.value === listType)?.label}
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -179,6 +254,28 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: DesignTokens.spacing.md,
+  },
+  typeGrid: {
+    gap: DesignTokens.spacing.sm,
+  },
+  typeCard: {
+    borderRadius: DesignTokens.radius.md,
+    borderWidth: 1,
+    padding: DesignTokens.spacing.md,
+    gap: DesignTokens.spacing.xs,
+  },
+  typeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: DesignTokens.spacing.xs,
+  },
+  typeLabel: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  typeDescription: {
+    ...Typography.caption,
+    lineHeight: 18,
   },
   label: {
     ...Typography.caption,

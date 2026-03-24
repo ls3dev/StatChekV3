@@ -1,6 +1,36 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+const listTypeValidator = v.union(
+  v.literal("ranking"),
+  v.literal("agenda"),
+  v.literal("vs")
+);
+
+type ListType = "ranking" | "agenda" | "vs";
+
+function inferLegacyListType(playerCount: number): ListType {
+  if (playerCount <= 1) return "agenda";
+  if (playerCount === 2) return "vs";
+  return "ranking";
+}
+
+function resolveListType(list: { listType?: ListType; players: { playerId: string }[] }): ListType {
+  return list.listType ?? inferLegacyListType(list.players.length);
+}
+
+function getMaxPlayersForListType(listType: ListType): number {
+  switch (listType) {
+    case "agenda":
+      return 1;
+    case "vs":
+      return 2;
+    case "ranking":
+    default:
+      return Number.POSITIVE_INFINITY;
+  }
+}
+
 /**
  * Get all lists for a user (excluding soft-deleted)
  */
@@ -34,6 +64,7 @@ export const createList = mutation({
     userId: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
+    listType: listTypeValidator,
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -42,6 +73,7 @@ export const createList = mutation({
       userId: args.userId,
       name: args.name,
       description: args.description,
+      listType: args.listType,
       players: [],
       links: [],
       createdAt: now,
@@ -61,6 +93,7 @@ export const updateList = mutation({
     updates: v.object({
       name: v.optional(v.string()),
       description: v.optional(v.string()),
+      listType: v.optional(listTypeValidator),
     }),
   },
   handler: async (ctx, args) => {
@@ -98,10 +131,22 @@ export const addPlayerToList = mutation({
       throw new Error("List not found");
     }
 
+    const listType = resolveListType(list);
+    const maxPlayers = getMaxPlayersForListType(listType);
+
     // Check if player already exists in the list
     const playerExists = list.players.some((p) => p.playerId === args.playerId);
     if (playerExists) {
       return { success: false, reason: "already_exists" };
+    }
+
+    if (list.players.length >= maxPlayers) {
+      return {
+        success: false,
+        reason: "list_type_limit",
+        listType,
+        maxPlayers,
+      };
     }
 
     // Add player to the end of the list
@@ -173,6 +218,45 @@ export const reorderPlayersInList = mutation({
     await ctx.db.patch(args.listId, {
       players: reorderedPlayers,
       updatedAt: Date.now(),
+    });
+  },
+});
+
+export const cloneSharedListToUser = mutation({
+  args: {
+    userId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    listType: listTypeValidator,
+    players: v.array(
+      v.object({
+        playerId: v.string(),
+        sport: v.optional(v.string()),
+        order: v.number(),
+        addedAt: v.number(),
+      })
+    ),
+    links: v.array(
+      v.object({
+        id: v.string(),
+        url: v.string(),
+        title: v.string(),
+        order: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    return await ctx.db.insert("userLists", {
+      userId: args.userId,
+      name: args.name,
+      description: args.description,
+      listType: args.listType,
+      players: args.players,
+      links: args.links,
+      createdAt: now,
+      updatedAt: now,
     });
   },
 });

@@ -19,6 +19,7 @@ import type * as seedDraftPicks from "../seedDraftPicks.js";
 import type * as sharedLists from "../sharedLists.js";
 import type * as sharedPlayers from "../sharedPlayers.js";
 import type * as tradeSimulator from "../tradeSimulator.js";
+import type * as userProfileSaves from "../userProfileSaves.js";
 import type * as userLists from "../userLists.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   sharedLists: typeof sharedLists;
   sharedPlayers: typeof sharedPlayers;
   tradeSimulator: typeof tradeSimulator;
+  userProfileSaves: typeof userProfileSaves;
   userLists: typeof userLists;
   userSettings: typeof userSettings;
   users: typeof users;

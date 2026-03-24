@@ -9,6 +9,12 @@ import { getPlayerById } from '@/services/playerData';
 import { getListSport, getSportTheme } from '@/utils/sportUtils';
 import type { PlayerList } from '@/types';
 
+const LIST_TYPE_LABELS = {
+  ranking: 'Ranking',
+  agenda: 'Agenda',
+  vs: 'VS',
+} as const;
+
 type ListCardProps = {
   list: PlayerList;
   onPress: () => void;
@@ -80,6 +86,9 @@ export function ListCard({ list, onPress }: ListCardProps) {
 
         {/* Meta Row */}
         <View style={styles.metaRow}>
+          <Text style={[styles.metaDate, { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted }]}>
+            {LIST_TYPE_LABELS[list.listType]}
+          </Text>
           <View style={styles.playerCount}>
             <Ionicons name="people-outline" size={14} color={theme.primary} />
             <Text style={[styles.playerCountText, { color: theme.primary }]}>

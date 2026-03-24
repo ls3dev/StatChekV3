@@ -10,6 +10,7 @@ import { BrandGradient, DesignTokens, PlayerStatusColors, Typography } from '@/c
 import { useTheme } from '@/context/ThemeContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { usePaywall } from '@/context/PaywallContext';
+import { useAuth } from '@/context/AuthContext';
 import { usePlayerLinks } from '@/hooks/usePlayerLinks';
 import type { Player, PlayerLink } from '@/types';
 
@@ -156,6 +157,7 @@ interface Contract {
 export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps) {
   const { isDark } = useTheme();
   const router = useRouter();
+  const { userId } = useAuth();
   const { isProUser, proSyncVersion } = useRevenueCat();
   const { openPaywall } = usePaywall();
   const [imageError, setImageError] = useState(false);
@@ -205,6 +207,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
   const getAdvancedStats = useAction(api.nba.getAdvancedStats);
   const getPlayerContract = useAction(api.nba.getPlayerContract);
   const createSharedPlayer = useMutation(api.sharedPlayers.createSharedPlayer);
+  const createProfileSave = useMutation(api.userProfileSaves.createProfileSave);
 
   const {
     getLinksForPlayer,
@@ -382,7 +385,20 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
   };
 
   const handleAddLink = async (url: string, title: string): Promise<boolean> => {
-    return await addLink(player.id, url, title);
+    const success = await addLink(player.id, url, title);
+    if (success && userId) {
+      await createProfileSave({
+        userId,
+        type: 'receipt',
+        title,
+        url,
+        subtitle: player.name,
+        linkedEntityType: 'player',
+        linkedEntityId: player.id,
+        payload: { source: 'player_modal_mobile' },
+      });
+    }
+    return success;
   };
 
   const handleSaveLink = async (url: string, title: string) => {
@@ -463,6 +479,28 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     }
   };
 
+  const handleSaveStatsSnapshot = async () => {
+    if (!userId) return;
+
+    await createProfileSave({
+      userId,
+      type: 'playerStatSnapshot',
+      title: player.name,
+      subtitle: player.team !== 'N/A' ? player.team : player.sport,
+      note: basicStats
+        ? `${basicStats.pts.toFixed(1)} PTS · ${basicStats.reb.toFixed(1)} REB · ${basicStats.ast.toFixed(1)} AST`
+        : undefined,
+      linkedEntityType: 'player',
+      linkedEntityId: player.id,
+      payload: {
+        source: 'player_modal_mobile',
+        stats: basicStats,
+        advancedStats,
+      },
+    });
+    Alert.alert('Saved', 'Player stats added to your profile.');
+  };
+
   // Determine player status styling
   const isHallOfFame = player.hallOfFame === true;
   const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : null;
@@ -529,7 +567,7 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
         return (
           <PlayerStatsCard
             basicStats={basicStats}
-            advancedStats={advancedStats}
+            advancedStats={advancedStats as any}
             season={basicStats?.season}
             isLoading={isLoadingStats}
             isProUser={isProUser}
@@ -704,6 +742,27 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
               </TouchableOpacity>
 
               {/* Share Player Button */}
+              <TouchableOpacity
+                style={[
+                  styles.addToListButton,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+                ]}
+                onPress={handleSaveStatsSnapshot}
+                activeOpacity={0.8}>
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={20}
+                  color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
+                />
+                <Text
+                  style={[
+                    styles.addToListButtonText,
+                    { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+                  ]}>
+                  Save Stats
+                </Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={[
                   styles.addToListButton,

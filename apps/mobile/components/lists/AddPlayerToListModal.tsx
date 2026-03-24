@@ -41,9 +41,11 @@ export function AddPlayerToListModal({ visible, onClose, player }: AddPlayerToLi
 
   const handleCreateAndAdd = async () => {
     if (newListName.trim()) {
-      const newList = await createList(newListName.trim());
-      await addPlayerToList(newList.id, player.id);
-      handleClose();
+      const newList = await createList(newListName.trim(), undefined, 'agenda');
+      if (newList) {
+        await addPlayerToList(newList.id, player.id);
+        handleClose();
+      }
     }
   };
 

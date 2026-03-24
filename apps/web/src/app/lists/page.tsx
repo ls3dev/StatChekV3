@@ -1,17 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useAuth } from "@/hooks/useAuth";
 import { ListCard } from "@/components/ListCard";
 import { CreateListModal } from "@/components/CreateListModal";
+import type { ListType } from "@/lib/types";
 
 export default function ListsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { userId, isUserReady, status, isAuthenticated, isLoading } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const requestedCreateType = searchParams.get("createType");
+  const initialListType =
+    requestedCreateType === "agenda" || requestedCreateType === "vs"
+      ? requestedCreateType
+      : "ranking";
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // Query lists from Convex (skip if no userId yet)
@@ -37,6 +44,12 @@ export default function ListsPage() {
       router.push("/onboarding");
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (requestedCreateType && isAuthenticated) {
+      setShowCreateModal(true);
+    }
+  }, [requestedCreateType, isAuthenticated]);
 
 
   // Don't render anything while checking auth or if not authenticated
@@ -65,7 +78,11 @@ export default function ListsPage() {
     );
   }
 
-  const handleCreateList = async (name: string, description: string) => {
+  const handleCreateList = async (
+    name: string,
+    description: string,
+    listType: ListType
+  ) => {
     if (!userId) return;
 
     try {
@@ -73,6 +90,7 @@ export default function ListsPage() {
         userId,
         name,
         description: description || undefined,
+        listType,
       });
       setShowCreateModal(false);
     } catch (error) {
@@ -136,6 +154,7 @@ export default function ListsPage() {
                   id: list._id,
                   name: list.name,
                   description: list.description,
+                  listType: list.listType ?? (list.players.length <= 1 ? "agenda" : list.players.length === 2 ? "vs" : "ranking"),
                   playerCount: list.players.length,
                   createdAt: new Date(list.createdAt),
                   updatedAt: new Date(list.updatedAt),
@@ -151,8 +170,14 @@ export default function ListsPage() {
       {/* Create List Modal */}
       <CreateListModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          if (requestedCreateType) {
+            router.replace("/lists");
+          }
+        }}
         onCreate={handleCreateList}
+        initialListType={initialListType}
       />
     </main>
   );

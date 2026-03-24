@@ -8,6 +8,7 @@ type PlayerList = {
   id: string;
   name: string;
   description?: string;
+  listType: "ranking" | "agenda" | "vs";
   playerCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -63,6 +64,12 @@ const SPORT_THEMES = {
     hoverBg: "hover:bg-accent/5",
   },
 } as const;
+
+const LIST_TYPE_LABELS: Record<PlayerList["listType"], string> = {
+  ranking: "Ranking",
+  agenda: "Agenda",
+  vs: "VS",
+};
 
 // Determine dominant sport from players
 function getListSport(players?: { sport?: string }[]): "NBA" | "NFL" | "MLB" | null {
@@ -186,6 +193,9 @@ export function ListCard({ list, onDelete }: ListCardProps) {
 
           {/* Meta row */}
           <div className="flex items-center gap-4 text-sm mt-auto">
+            <span className="text-text-muted font-medium">
+              {LIST_TYPE_LABELS[list.listType]}
+            </span>
             <span
               className={`
                 flex items-center gap-1.5 font-medium

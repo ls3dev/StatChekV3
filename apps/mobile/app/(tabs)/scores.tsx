@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -68,6 +68,14 @@ function formatDisplayDate(offset: DateOffset): string {
   });
 }
 
+function isFinalGame(game: Game): boolean {
+  return game.status === 'Final';
+}
+
+function isScheduledGame(game: Game): boolean {
+  return !isFinalGame(game) && (game.status.includes('T') || game.period === 0);
+}
+
 export default function ScoresScreen() {
   const { isDark } = useTheme();
   const { selectedSport } = useSport();
@@ -115,8 +123,8 @@ export default function ScoresScreen() {
         ]);
         setGames(result.games as Game[]);
         setCachedAt(result.cachedAt);
-        const map = new Map(
-          standingsResult.standings.map((s) => [s.team.id, {
+        const map = new Map<number, TeamStanding>(
+          (standingsResult.standings as any[]).map((s) => [s.team.id, {
             wins: s.wins,
             losses: s.losses,
             conference_rank: s.conference_rank,
@@ -165,12 +173,12 @@ export default function ScoresScreen() {
     const scheduled: Game[] = [];
 
     games.forEach((game) => {
-      if (game.status === 'In Progress') {
-        live.push(game);
-      } else if (game.status === 'Final') {
+      if (isFinalGame(game)) {
         completed.push(game);
-      } else {
+      } else if (isScheduledGame(game)) {
         scheduled.push(game);
+      } else {
+        live.push(game);
       }
     });
 
@@ -178,6 +186,16 @@ export default function ScoresScreen() {
   }, [games]);
 
   const hasLiveGames = liveGames.length > 0;
+
+  useEffect(() => {
+    if (selectedSport !== 'NBA' || !hasLiveGames) return;
+
+    const interval = setInterval(() => {
+      fetchGames();
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [selectedSport, hasLiveGames, fetchGames]);
 
   // Check if current sport is supported
   const isNBA = selectedSport === 'NBA';

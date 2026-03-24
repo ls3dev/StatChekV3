@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,14 +10,24 @@ import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLists } from '@/hooks/useLists';
+import type { ListType } from '@/types';
 
 export default function ListsScreen() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ createType?: string }>();
   const { isAuthenticated, setShowAuthPrompt } = useAuth();
   const { lists, createList } = useLists();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const initialListType =
+    params.createType === 'agenda' || params.createType === 'vs' ? params.createType : 'ranking';
+
+  React.useEffect(() => {
+    if (params.createType && isAuthenticated) {
+      setShowCreateModal(true);
+    }
+  }, [params.createType, isAuthenticated]);
 
   // Check auth before showing create modal
   const handleCreateButtonPress = () => {
@@ -28,10 +38,10 @@ export default function ListsScreen() {
     setShowCreateModal(true);
   };
 
-  const handleCreateList = async (name: string, description?: string) => {
+  const handleCreateList = async (name: string, description: string | undefined, listType: ListType) => {
     try {
       setShowCreateModal(false);
-      await createList(name, description);
+      await createList(name, description, listType);
     } catch (error) {
       console.error('Error creating list:', error);
     }
@@ -120,8 +130,14 @@ export default function ListsScreen() {
 
       <CreateListModal
         visible={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          if (params.createType) {
+            router.replace('/(tabs)/lists');
+          }
+        }}
         onSave={handleCreateList}
+        initialListType={initialListType}
       />
     </View>
   );

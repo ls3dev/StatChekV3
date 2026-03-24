@@ -21,6 +21,7 @@ import type * as sharedLists from "../sharedLists.js";
 import type * as sharedPlayers from "../sharedPlayers.js";
 import type * as tradeSimulator from "../tradeSimulator.js";
 import type * as userLists from "../userLists.js";
+import type * as userProfileSaves from "../userProfileSaves.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   sharedPlayers: typeof sharedPlayers;
   tradeSimulator: typeof tradeSimulator;
   userLists: typeof userLists;
+  userProfileSaves: typeof userProfileSaves;
   userSettings: typeof userSettings;
   users: typeof users;
 }>;
