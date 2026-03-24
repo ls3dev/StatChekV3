@@ -11,6 +11,8 @@ type ThemeContextType = {
   isDark: boolean;
   toggleTheme: () => void;
   setTheme: (theme: ThemeMode) => void;
+  accentColor: string;
+  setAccentColor: (color: string) => void;
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -28,16 +30,21 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     userId ? { userId } : 'skip'
   );
 
-  // Mutation to update theme
+  // Mutations
   const updateSettingsMutation = useMutation(api.userSettings.setTheme);
+  const updateAccentColorMutation = useMutation(api.userSettings.setAccentColor);
 
-  // Local state for theme (synced with Convex)
+  // Local state (synced with Convex)
   const [theme, setThemeState] = useState<ThemeMode>('dark');
+  const [accentColor, setAccentColorState] = useState('#30D158');
 
-  // Sync local theme with Convex data
+  // Sync local state with Convex data
   useEffect(() => {
     if (userSettings?.theme) {
       setThemeState(userSettings.theme);
+    }
+    if (userSettings?.accentColor) {
+      setAccentColorState(userSettings.accentColor);
     }
   }, [userSettings]);
 
@@ -78,11 +85,31 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   }, [theme, setTheme]);
 
+  const setAccentColor = useCallback(
+    async (color: string) => {
+      if (!userId) return;
+
+      setAccentColorState(color);
+
+      try {
+        await updateAccentColorMutation({ userId, accentColor: color });
+      } catch (error) {
+        console.error('Failed to save accent color:', error);
+        if (userSettings?.accentColor) {
+          setAccentColorState(userSettings.accentColor);
+        }
+      }
+    },
+    [userId, userSettings, updateAccentColorMutation]
+  );
+
   const value: ThemeContextType = {
     theme,
     isDark: theme === 'dark',
     toggleTheme,
     setTheme,
+    accentColor,
+    setAccentColor,
   };
 
   // Don't render children until theme is loaded to prevent flash

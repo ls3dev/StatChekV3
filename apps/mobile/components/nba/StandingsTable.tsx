@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { DesignTokens, Typography } from '@/constants/theme';
 import { getNBATeamLogoUrl } from '@/constants/nbaTeamLogos';
@@ -71,7 +71,7 @@ export function StandingsTable({ standings, conference, onTeamPress }: Standings
       </View>
 
       {/* Rows */}
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <View>
         {conferenceStandings.map((standing, index) => {
           const isPlayoffSpot = index < 10;
           const isPlayIn = index >= 6 && index < 10;
@@ -133,14 +133,13 @@ export function StandingsTable({ standings, conference, onTeamPress }: Standings
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
   },
   headerRow: {
     flexDirection: 'row',

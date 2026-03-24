@@ -8,14 +8,14 @@ import { DesignTokens } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 
 export default function TabLayout() {
-  const { isDark } = useTheme();
+  const { isDark, accentColor } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: isDark ? DesignTokens.tabBarActive : DesignTokens.accentGreen,
+        tabBarActiveTintColor: accentColor,
         tabBarInactiveTintColor: isDark ? DesignTokens.tabBarInactive : DesignTokens.textMuted,
         tabBarStyle: {
           backgroundColor: isDark ? DesignTokens.tabBarBackgroundDark : DesignTokens.tabBarBackground,
