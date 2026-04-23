@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -260,6 +261,21 @@ export function OnboardingPaywallSlide({ index, scrollX }: OnboardingPaywallSlid
           <Text style={styles.terms}>
             Payment will be charged to your App Store account. Subscription automatically renews unless canceled at least 24 hours before the end of the current period.
           </Text>
+          <View style={styles.legalLinks}>
+            <Text
+              style={styles.legalLink}
+              onPress={() => Linking.openURL('https://www.statcheckapp.com/terms')}
+            >
+              Terms of Use
+            </Text>
+            <Text style={styles.legalSeparator}>|</Text>
+            <Text
+              style={styles.legalLink}
+              onPress={() => Linking.openURL('https://www.statcheckapp.com/privacy')}
+            >
+              Privacy Policy
+            </Text>
+          </View>
         </ScrollView>
       </Animated.View>
     </View>
@@ -450,6 +466,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: DesignTokens.spacing.sm,
     lineHeight: 16,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: DesignTokens.spacing.sm,
+    gap: DesignTokens.spacing.sm,
+  },
+  legalLink: {
+    ...Typography.caption,
+    color: '#A78BFA',
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    ...Typography.caption,
+    color: DesignTokens.textMutedDark,
   },
   successIcon: {
     marginBottom: DesignTokens.spacing.lg,
