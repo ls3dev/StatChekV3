@@ -40,8 +40,11 @@ export default function ListsScreen() {
 
   const handleCreateList = async (name: string, description: string | undefined, listType: ListType) => {
     try {
+      const newList = await createList(name, description, listType);
+      if (!newList) return;
+
       setShowCreateModal(false);
-      await createList(name, description, listType);
+      router.push(`/list/${newList.id}`);
     } catch (error) {
       console.error('Error creating list:', error);
     }

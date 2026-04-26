@@ -86,13 +86,14 @@ export default function ListsPage() {
     if (!userId) return;
 
     try {
-      await createListMutation({
+      const listId = await createListMutation({
         userId,
         name,
         description: description || undefined,
         listType,
       });
       setShowCreateModal(false);
+      router.push(`/lists/${listId}`);
     } catch (error) {
       console.error("Failed to create list:", error);
     }

@@ -17,8 +17,9 @@ export default function ListsScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleCreateList = (name: string, description?: string) => {
-    createList(name, description);
+    const newList = createList(name, description);
     setShowCreateModal(false);
+    router.push(`/list/${newList.id}`);
   };
 
   const handleListPress = (listId: string) => {
