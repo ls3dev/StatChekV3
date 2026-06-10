@@ -24,6 +24,7 @@ import Animated, {
 
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { usePaywall } from '@/context/PaywallContext';
 import { usePlayerSearch, Sport } from '@/hooks/usePlayerSearch';
 import type { Player } from '@/types';
 
@@ -123,9 +124,17 @@ function SportTab({
 
 export function HeroSearchCard({ onPlayerSelect }: HeroSearchCardProps) {
   const { isDark } = useTheme();
-  const { query, results, setQuery, selectedSport, setSelectedSport } = usePlayerSearch();
+  const { query, results, setQuery, selectedSport, setSelectedSport, searchLimitReached } = usePlayerSearch();
+  const { openPaywall } = usePaywall();
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
+
+  // Show paywall when search limit is reached
+  useEffect(() => {
+    if (searchLimitReached) {
+      openPaywall();
+    }
+  }, [searchLimitReached, openPaywall]);
 
   // Animation values
   const focusAnimation = useSharedValue(0);
@@ -330,7 +339,7 @@ export function HeroSearchCard({ onPlayerSelect }: HeroSearchCardProps) {
         </Animated.View>
       )}
 
-      {/* No results message */}
+      {/* No results / search limit message */}
       {query.length > 0 && results.length === 0 && (
         <Animated.View
           entering={FadeIn.duration(200)}
@@ -343,9 +352,15 @@ export function HeroSearchCard({ onPlayerSelect }: HeroSearchCardProps) {
             },
             isDark ? styles.dropdownShadowDark : styles.dropdownShadow,
           ]}>
-          <Ionicons name="search-outline" size={24} color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted} />
+          <Ionicons
+            name={searchLimitReached ? 'lock-closed-outline' : 'search-outline'}
+            size={24}
+            color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
+          />
           <Text style={[styles.noResultsText, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
-            No players found for "{query}"
+            {searchLimitReached
+              ? 'Upgrade to Pro for unlimited searches'
+              : `No players found for "${query}"`}
           </Text>
         </Animated.View>
       )}

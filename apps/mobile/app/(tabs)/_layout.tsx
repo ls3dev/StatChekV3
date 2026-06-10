@@ -51,21 +51,11 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="scores"
-        options={{
-          title: 'Scores',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'basketball' : 'basketball-outline'} size={24} color={color} />
-          ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="standings"
-        options={{
-          title: 'Standings',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'trophy' : 'trophy-outline'} size={24} color={color} />
-          ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="profile"

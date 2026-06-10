@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View, Alert, Modal, TextInput, ActivityIndicator, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useUser } from '@clerk/clerk-expo';
 import { useQuery, useMutation } from 'convex/react';
@@ -14,8 +14,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { usePaywall } from '@/context/PaywallContext';
 import { useLists } from '@/hooks/useLists';
-import type { ProfileSaveType } from '@/types';
-
 const ACCENT_COLORS = [
   { name: 'Green', hex: '#30D158' },
   { name: 'Blue', hex: '#007AFF' },
@@ -26,11 +24,6 @@ const ACCENT_COLORS = [
   { name: 'Teal', hex: '#5AC8FA' },
   { name: 'Red', hex: '#FF3B30' },
 ];
-
-const PROFILE_SAVE_LABELS: Record<ProfileSaveType, string> = {
-  receipt: 'Receipts',
-  playerStatSnapshot: 'Stats',
-};
 
 type SettingItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -95,25 +88,15 @@ export default function ProfileScreen() {
   const { lists } = useLists();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ createSave?: string }>();
-
   // Username state
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [isSavingUsername, setIsSavingUsername] = useState(false);
-  const [showCreateSaveModal, setShowCreateSaveModal] = useState(false);
-  const [activeSaveType, setActiveSaveType] = useState<ProfileSaveType>('receipt');
-  const [saveTitle, setSaveTitle] = useState('');
-  const [saveSubtitle, setSaveSubtitle] = useState('');
-  const [saveUrl, setSaveUrl] = useState('');
-  const [saveNote, setSaveNote] = useState('');
-
   // Convex queries/mutations for username
   const convexUser = useQuery(api.users.getCurrentUser);
   const setUsernameMutation = useMutation(api.users.setUsername);
   const deleteAccountMutation = useMutation(api.accountDeletion.deleteAccount);
-  const createProfileSaveMutation = useMutation(api.userProfileSaves.createProfileSave);
   const checkUsernameQuery = useQuery(
     api.users.checkUsernameAvailable,
     usernameInput.length >= 3 ? { username: usernameInput } : 'skip'
@@ -132,22 +115,8 @@ export default function ProfileScreen() {
     name: clerkUser.fullName || clerkUser.firstName || 'User',
     email: clerkUser.primaryEmailAddress?.emailAddress,
   } : null);
-  const receiptSaves = useQuery(api.userProfileSaves.getUserProfileSaves, convexUser?._id ? { userId: convexUser._id, type: 'receipt' } : 'skip');
-  const statSaves = useQuery(api.userProfileSaves.getUserProfileSaves, convexUser?._id ? { userId: convexUser._id, type: 'playerStatSnapshot' } : 'skip');
-  const totalProfileSaves = (receiptSaves?.length ?? 0) + (statSaves?.length ?? 0);
-
   // Get username from Convex user
   const currentUsername = convexUser?.username;
-
-  useEffect(() => {
-    if (
-      params.createSave === 'receipt' ||
-      params.createSave === 'playerStatSnapshot'
-    ) {
-      setActiveSaveType(params.createSave);
-      setShowCreateSaveModal(true);
-    }
-  }, [params.createSave]);
 
   // Debounced username validation
   useEffect(() => {
@@ -257,30 +226,6 @@ export default function ProfileScreen() {
   const handleUpgradeToPro = () => {
     openPaywall();
   };
-
-  const handleCreateProfileSave = useCallback(async () => {
-    if (!convexUser?._id || !saveTitle.trim()) return;
-
-    await createProfileSaveMutation({
-      userId: convexUser._id,
-      type: activeSaveType,
-      title: saveTitle.trim(),
-      subtitle: saveSubtitle.trim() || undefined,
-      note: saveNote.trim() || undefined,
-      url: saveUrl.trim() || undefined,
-      linkedEntityType: 'manual',
-      payload: { source: 'profile_compose_mobile' },
-    });
-
-    setSaveTitle('');
-    setSaveSubtitle('');
-    setSaveUrl('');
-    setSaveNote('');
-    setShowCreateSaveModal(false);
-    if (params.createSave) {
-      router.replace('/(tabs)/profile');
-    }
-  }, [convexUser?._id, activeSaveType, saveTitle, saveSubtitle, saveNote, saveUrl, createProfileSaveMutation, params.createSave, router]);
 
   return (
     <View
@@ -437,75 +382,10 @@ export default function ProfileScreen() {
                   {totalReceipts === 1 ? 'Receipt' : 'Receipts'} Added
                 </Text>
               </View>
-              <View
-                style={[
-                  styles.statCard,
-                  { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
-                  isDark ? styles.cardShadowDark : styles.cardShadow,
-                ]}>
-                <Text style={[styles.statNumber, { color: accentColor }]}>
-                  {totalProfileSaves}
-                </Text>
-                <Text style={[styles.statLabel, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
-                  Profile Saves
-                </Text>
-              </View>
             </View>
           </View>
         )}
 
-        {isLoggedIn && (
-          <View style={styles.section}>
-            <View style={styles.savedActivityHeader}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
-                ]}>
-                SAVED ACTIVITY
-              </Text>
-              <Pressable onPress={() => setShowCreateSaveModal(true)}>
-                <Text style={styles.addSaveText}>Add Save</Text>
-              </Pressable>
-            </View>
-            {([
-              ['receipt', receiptSaves],
-              ['playerStatSnapshot', statSaves],
-            ] as const).map(([type, saves]) => (
-              <View
-                key={type}
-                style={[
-                  styles.settingsCard,
-                  {
-                    backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground,
-                  },
-                  isDark ? styles.cardShadowDark : styles.cardShadow,
-                ]}>
-                <Text style={[styles.savedActivityTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}>
-                  {PROFILE_SAVE_LABELS[type]}
-                </Text>
-                {saves && saves.length > 0 ? (
-                  saves.slice(0, 3).map((save: any) => (
-                    <View key={save._id} style={styles.savedActivityItem}>
-                      <Text style={[styles.savedActivityItemTitle, { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary }]}>
-                        {save.title}
-                      </Text>
-                      {!!save.subtitle && (
-                        <Text style={[styles.savedActivityItemSubtitle, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
-                          {save.subtitle}
-                        </Text>
-                      )}
-                    </View>
-                  ))
-                ) : (
-                  <Text style={[styles.savedActivityEmpty, { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted }]}>
-                    Nothing saved yet.
-                  </Text>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
 
         {/* Pro Upgrade Section */}
         {!isProUser && (
@@ -695,102 +575,6 @@ export default function ProfileScreen() {
         </View>
 
       </ScrollView>
-
-      <Modal
-        visible={showCreateSaveModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowCreateSaveModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: isDark ? DesignTokens.cardBackgroundDark : DesignTokens.cardBackground },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <Text
-                style={[
-                  styles.modalTitle,
-                  { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
-                ]}
-              >
-                Save To Profile
-              </Text>
-              <Pressable onPress={() => {
-                setShowCreateSaveModal(false);
-                if (params.createSave) router.replace('/(tabs)/profile');
-              }}>
-                <Ionicons
-                  name="close"
-                  size={24}
-                  color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
-                />
-              </Pressable>
-            </View>
-
-            <View style={styles.profileSaveTypeRow}>
-              {(['receipt', 'playerStatSnapshot'] as ProfileSaveType[]).map((type) => (
-                <Pressable
-                  key={type}
-                  onPress={() => setActiveSaveType(type)}
-                  style={[
-                    styles.profileSaveTypePill,
-                    activeSaveType === type && styles.profileSaveTypePillActive,
-                  ]}>
-                  <Text style={[styles.profileSaveTypeText, activeSaveType === type && styles.profileSaveTypeTextActive]}>
-                    {PROFILE_SAVE_LABELS[type]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <TextInput
-              style={[styles.input, styles.profileSaveInput]}
-              placeholder={activeSaveType === 'receipt' ? 'Receipt title' : 'Player stat title'}
-              placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
-              value={saveTitle}
-              onChangeText={setSaveTitle}
-            />
-            <TextInput
-              style={[styles.input, styles.profileSaveInput]}
-              placeholder='Optional subtitle'
-              placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
-              value={saveSubtitle}
-              onChangeText={setSaveSubtitle}
-            />
-            {activeSaveType === 'receipt' && (
-              <TextInput
-                style={[styles.input, styles.profileSaveInput]}
-                placeholder="https://example.com"
-                placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
-                value={saveUrl}
-                onChangeText={setSaveUrl}
-              />
-            )}
-            <TextInput
-              style={[styles.input, styles.textArea, styles.profileSaveInput]}
-              placeholder="Optional note"
-              placeholderTextColor={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
-              value={saveNote}
-              onChangeText={setSaveNote}
-              multiline
-            />
-
-            <Pressable onPress={handleCreateProfileSave}>
-              <LinearGradient
-                colors={['#7C3AED', '#5B21B6']}
-                style={styles.saveButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </LinearGradient>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
 
       {/* Username Edit Modal */}
       <Modal

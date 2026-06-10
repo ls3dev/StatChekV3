@@ -2,9 +2,11 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { useMutation } from 'convex/react';
 import Purchases, { LOG_LEVEL, CustomerInfo, PurchasesPackage } from 'react-native-purchases';
 import { useAuth } from '@clerk/clerk-expo';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { api } from '@statcheck/convex';
 
-const REVENUECAT_ENABLED = true;
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+const REVENUECAT_ENABLED = !isExpoGo;
 
 const API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? '';
 const DEFAULT_PRO_ENTITLEMENT_IDS = ['pro', 'statcheck pro'];
@@ -211,6 +213,10 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   }, [isConfigured, configuredProEntitlementIds]);
 
   const purchasePackage = useCallback(async (pkg: PurchasesPackage): Promise<boolean> => {
+    if (!isConfigured) {
+      console.warn('[RevenueCat] Cannot purchase: SDK not configured');
+      return false;
+    }
     try {
       console.log('[RevenueCat] Purchasing package:', {
         id: pkg.identifier,
@@ -245,9 +251,13 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       }
       return false;
     }
-  }, [configuredProEntitlementIds]);
+  }, [configuredProEntitlementIds, isConfigured]);
 
   const restorePurchases = useCallback(async (): Promise<boolean> => {
+    if (!isConfigured) {
+      console.warn('[RevenueCat] Cannot restore: SDK not configured');
+      return false;
+    }
     try {
       console.log('[RevenueCat] Restoring purchases...');
       const info = await Purchases.restorePurchases();
@@ -264,7 +274,7 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
       console.error('[RevenueCat] Restore error:', error);
       return false;
     }
-  }, [configuredProEntitlementIds]);
+  }, [configuredProEntitlementIds, isConfigured]);
 
   // Fallback stub when disabled or no API key
   if (!REVENUECAT_ENABLED || !API_KEY) {
