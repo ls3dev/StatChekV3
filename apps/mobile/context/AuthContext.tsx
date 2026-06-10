@@ -154,16 +154,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     // Wait for onboarding check to complete first
     if (!onboardingChecked) return;
-    // Don't override onboarding or guest status
+    // Don't override onboarding status
     if (status === 'onboarding') return;
-    if (status === 'guest') return;
     // Wait for Convex auth to be ready (don't reset to 'loading' - causes flicker)
     if (convexIsLoading) return;
 
     // Update to authenticated or unauthenticated based on Convex auth
+    // This also promotes 'guest' to 'authenticated' if they sign in
     if (convexIsAuthenticated) {
       setStatus('authenticated');
-    } else {
+    } else if (status !== 'guest') {
       setStatus('unauthenticated');
     }
   }, [convexIsAuthenticated, convexIsLoading, onboardingChecked, status]);

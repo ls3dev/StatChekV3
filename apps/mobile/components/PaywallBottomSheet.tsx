@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     backgroundColor: DesignTokens.cardBackgroundDark,
     borderRadius: DesignTokens.radius.lg,
     padding: DesignTokens.spacing.lg,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: 'transparent',
   },
   packageCardSelected: {

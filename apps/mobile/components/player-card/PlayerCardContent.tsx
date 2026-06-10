@@ -1,14 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState, useEffect, useCallback } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useMutation, useAction } from 'convex/react';
+import React, { useState, useEffect } from 'react';
+import { Alert, Image, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMutation } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { api } from '@statcheck/convex';
 
 import { BrandGradient, DesignTokens, PlayerStatusColors, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { useRevenueCat } from '@/providers/RevenueCatProvider';
 import { usePaywall } from '@/context/PaywallContext';
 import { useAuth } from '@/context/AuthContext';
 import { usePlayerLinks } from '@/hooks/usePlayerLinks';
@@ -18,9 +17,6 @@ import { AddLinkModal } from '../AddLinkModal';
 import { DraggableLinkList } from '../DraggableLinkList';
 import { LinkItem } from '../LinkItem';
 import { AddPlayerToListModal } from '../lists';
-import { PlayerStatsCard } from '../nba/PlayerStatsCard';
-import { ContractCard } from '../nba/ContractCard';
-import { PlayerCardTabs, type PlayerCardTab } from './PlayerCardTabs';
 
 type PlayerCardContentProps = {
   player: Player;
@@ -87,78 +83,10 @@ const generateBasketballReferenceUrl = (playerName: string): string => {
   return `https://www.basketball-reference.com/players/${firstLetter}/${lastNamePart}${firstNamePart}01.html`;
 };
 
-interface BasicStats {
-  season?: number;
-  games_played: number;
-  min: string;
-  pts: number;
-  reb: number;
-  ast: number;
-  stl: number;
-  blk: number;
-  turnover: number;
-  fg_pct: number;
-  fg3_pct: number;
-  ft_pct: number;
-  fgm?: number;
-  fga?: number;
-  fg3m?: number;
-  fg3a?: number;
-  fta?: number;
-}
-
-// Basketball Reference advanced stats
-interface AdvancedStats {
-  season?: string;
-  per?: number;              // Player Efficiency Rating
-  ts_pct?: number;           // True Shooting %
-  efg_pct?: number;          // Effective FG %
-  usg_pct?: number;          // Usage %
-  ows?: number;              // Offensive Win Shares
-  dws?: number;              // Defensive Win Shares
-  ws?: number;               // Win Shares
-  obpm?: number;             // Offensive Box Plus/Minus
-  dbpm?: number;             // Defensive Box Plus/Minus
-  bpm?: number;              // Box Plus/Minus
-  vorp?: number;             // Value Over Replacement Player
-  ast_pct?: number;          // Assist %
-  tov_pct?: number;          // Turnover %
-  orb_pct?: number;          // Offensive Rebound %
-  drb_pct?: number;          // Defensive Rebound %
-  trb_pct?: number;          // Total Rebound %
-  stl_pct?: number;          // Steal %
-  blk_pct?: number;          // Block %
-  // Legacy fields for compatibility
-  true_shooting_percentage?: number;
-  usage_percentage?: number;
-  net_rating?: number;
-  offensive_rating?: number;
-  defensive_rating?: number;
-  pie?: number;
-  pace?: number;
-  effective_field_goal_percentage?: number;
-  assist_percentage?: number;
-  rebound_percentage?: number;
-  offensive_rebound_percentage?: number;
-  defensive_rebound_percentage?: number;
-  turnover_ratio?: number;
-  steal_percentage?: number;
-  block_percentage?: number;
-  assist_ratio?: number;
-  assist_to_turnover?: number;
-}
-
-interface Contract {
-  season: number;
-  amount: number;
-  currency: string;
-}
-
 export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps) {
   const { isDark } = useTheme();
   const router = useRouter();
   const { userId } = useAuth();
-  const { isProUser, proSyncVersion } = useRevenueCat();
   const { openPaywall } = usePaywall();
   const [imageError, setImageError] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -166,48 +94,13 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
   const [editingLink, setEditingLink] = useState<PlayerLink | null>(null);
   const [isSharing, setIsSharing] = useState(false);
 
-  // Tab state
-  const isNBA = player.sport?.toUpperCase() === 'NBA';
-  const [activeTab, setActiveTab] = useState<PlayerCardTab>(isNBA ? 'stats' : 'links');
-
-  // Ball Don't Lie player data
-  const [bdlPlayerId, setBdlPlayerId] = useState<number | null>(null);
-  const [isSearchingPlayer, setIsSearchingPlayer] = useState(false);
-  const [playerNotFound, setPlayerNotFound] = useState(false);
-
-  // Stats state
-  const [basicStats, setBasicStats] = useState<BasicStats | null>(null);
-  const [advancedStats, setAdvancedStats] = useState<AdvancedStats | null>(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
-  const [statsLoaded, setStatsLoaded] = useState(false);
-  const [statsError, setStatsError] = useState<string | null>(null);
-
-  // Contract state
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [isLoadingContracts, setIsLoadingContracts] = useState(false);
-
-  // Advanced stats bottom sheet state
-  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
-
   // Reset state when player changes
   useEffect(() => {
     setImageError(false);
-    setBdlPlayerId(null);
-    setBasicStats(null);
-    setAdvancedStats(null);
-    setStatsLoaded(false);
-    setContracts([]);
-    setPlayerNotFound(false);
-    setShowAdvancedStats(false);
   }, [player.id]);
 
-  // Convex actions
-  const searchPlayerByName = useAction(api.nba.searchPlayerByName);
-  const getPlayerStats = useAction(api.nba.getPlayerStats);
-  const getAdvancedStats = useAction(api.nba.getAdvancedStats);
-  const getPlayerContract = useAction(api.nba.getPlayerContract);
+  // Convex mutations
   const createSharedPlayer = useMutation(api.sharedPlayers.createSharedPlayer);
-  const createProfileSave = useMutation(api.userProfileSaves.createProfileSave);
 
   const {
     getLinksForPlayer,
@@ -220,6 +113,8 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
 
   const playerLinks = getLinksForPlayer(player.id);
   const positionColor = getPositionColor(player.position);
+
+  const isNBA = player.sport?.toUpperCase() === 'NBA';
 
   // For NBA players, always generate Basketball Reference URL (stored URLs may be wrong)
   const getSportsReferenceUrl = () => {
@@ -238,132 +133,6 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     createdAt: 0,
   };
   const hasSportsReferenceLink = Boolean(sportsReferenceLink.url);
-
-  // Search for player in Ball Don't Lie API on mount (NBA only)
-  useEffect(() => {
-    if (!isNBA) return;
-
-    const searchPlayer = async () => {
-      setIsSearchingPlayer(true);
-      setPlayerNotFound(false);
-
-      try {
-        // Normalize name: remove accents and special characters
-        const normalizedName = player.name
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '');
-
-        console.log('[PlayerCard] Searching for player:', normalizedName);
-        const result = await searchPlayerByName({ name: normalizedName });
-        console.log('[PlayerCard] Search result:', result);
-
-        if (result.playerId) {
-          setBdlPlayerId(result.playerId);
-        } else {
-          console.log('[PlayerCard] Player not found in API');
-          setPlayerNotFound(true);
-        }
-      } catch (error) {
-        console.error('Failed to search player:', error);
-        setPlayerNotFound(true);
-      } finally {
-        setIsSearchingPlayer(false);
-      }
-    };
-
-    searchPlayer();
-  }, [player.name, isNBA, searchPlayerByName]);
-
-  // Fetch stats when tab changes to 'stats' and we have playerId
-  useEffect(() => {
-    if (activeTab !== 'stats' || !bdlPlayerId) return;
-    if (basicStats && (!isProUser || advancedStats)) return;
-
-    const fetchStats = async () => {
-      setIsLoadingStats(true);
-      setStatsError(null);
-
-      try {
-        if (!basicStats) {
-          const basicResult = await getPlayerStats({ playerId: bdlPlayerId });
-          console.log('[Stats] BDL response:', JSON.stringify({
-            requestedPlayerId: bdlPlayerId,
-            returnedSeason: basicResult.stats?.season,
-            pts: basicResult.stats?.pts,
-            ast: basicResult.stats?.ast,
-            reb: basicResult.stats?.reb,
-          }));
-          if (basicResult.stats) {
-            setBasicStats(basicResult.stats as unknown as BasicStats);
-          }
-        }
-
-        // Fetch advanced stats if Pro user (scraped from Basketball Reference)
-        if (isProUser && !advancedStats) {
-          try {
-            const advancedResult = await getAdvancedStats({
-              playerId: bdlPlayerId,
-              playerName: player.name,
-            });
-            if (advancedResult.stats && !advancedResult.requiresPro) {
-              // Stats come directly from Basketball Reference
-              setAdvancedStats(advancedResult.stats as AdvancedStats);
-            }
-          } catch (advError) {
-            // Advanced stats failed but basic stats still work - don't show error
-            console.warn('Advanced stats unavailable:', advError);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-        setStatsError('Failed to load stats');
-      } finally {
-        setIsLoadingStats(false);
-        setStatsLoaded(true);
-      }
-    };
-
-    fetchStats();
-  }, [activeTab, advancedStats, bdlPlayerId, basicStats, getAdvancedStats, getPlayerStats, isProUser, player.name, proSyncVersion]);
-
-  // Fetch contracts when tab changes to 'contract' and user is Pro
-  useEffect(() => {
-    if (activeTab !== 'contract' || !bdlPlayerId || contracts.length > 0) return;
-
-    const fetchContracts = async () => {
-      if (!isProUser) return; // Don't fetch if not Pro
-
-      setIsLoadingContracts(true);
-
-      try {
-        const result = await getPlayerContract({ playerId: bdlPlayerId });
-        if (result.contracts && !result.requiresPro) {
-          setContracts(
-            result.contracts.map((c: any) => ({
-              season: c.season,
-              amount: c.base_salary || c.cap_hit || c.total_cash || 0,
-              currency: 'USD',
-            }))
-          );
-        }
-      } catch (error) {
-        console.error('Failed to fetch contracts:', error);
-      } finally {
-        setIsLoadingContracts(false);
-      }
-    };
-
-    fetchContracts();
-  }, [activeTab, bdlPlayerId, contracts.length, getPlayerContract, isProUser, proSyncVersion]);
-
-  const handleUnlockPress = useCallback(() => {
-    onDismiss?.();
-    setTimeout(() => openPaywall(), 300);
-  }, [onDismiss, openPaywall]);
-
-  const handleAdvancedPress = useCallback(() => {
-    setShowAdvancedStats(prev => !prev);
-  }, []);
 
   const handleAddPress = () => {
     if (isAtLimit(player.id)) {
@@ -384,28 +153,11 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     setShowAddModal(true);
   };
 
-  const handleAddLink = async (url: string, title: string): Promise<boolean> => {
-    const success = await addLink(player.id, url, title);
-    if (success && userId) {
-      await createProfileSave({
-        userId,
-        type: 'receipt',
-        title,
-        url,
-        subtitle: player.name,
-        linkedEntityType: 'player',
-        linkedEntityId: player.id,
-        payload: { source: 'player_modal_mobile' },
-      });
-    }
-    return success;
-  };
-
   const handleSaveLink = async (url: string, title: string) => {
     if (editingLink) {
       await updateLink(editingLink.id, { url, title });
     } else {
-      await handleAddLink(url, title);
+      await addLink(player.id, url, title);
     }
     setShowAddModal(false);
     setEditingLink(null);
@@ -479,28 +231,6 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     }
   };
 
-  const handleSaveStatsSnapshot = async () => {
-    if (!userId) return;
-
-    await createProfileSave({
-      userId,
-      type: 'playerStatSnapshot',
-      title: player.name,
-      subtitle: player.team !== 'N/A' ? player.team : player.sport,
-      note: basicStats
-        ? `${basicStats.pts.toFixed(1)} PTS · ${basicStats.reb.toFixed(1)} REB · ${basicStats.ast.toFixed(1)} AST`
-        : undefined,
-      linkedEntityType: 'player',
-      linkedEntityId: player.id,
-      payload: {
-        source: 'player_modal_mobile',
-        stats: basicStats,
-        advancedStats,
-      },
-    });
-    Alert.alert('Saved', 'Player stats added to your profile.');
-  };
-
   // Determine player status styling
   const isHallOfFame = player.hallOfFame === true;
   const accentColor = isHallOfFame ? PlayerStatusColors.hallOfFame.primary : null;
@@ -515,280 +245,135 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
     return [BrandGradient.start, BrandGradient.end];
   };
 
-  // Render tab content
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'stats':
-        if (isSearchingPlayer) {
-          return (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
-              <Text style={[styles.loadingText, isDark && styles.textSecondary]}>
-                Finding player...
-              </Text>
-            </View>
-          );
-        }
+  // Render links content
+  const renderLinksContent = () => (
+    <>
+      {/* Links Section */}
+      <View style={styles.linksSection}>
+        <Text
+          style={[
+            styles.linksLabel,
+            { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+          ]}>
+          QUICK LINKS
+        </Text>
 
-        if (playerNotFound) {
-          return (
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="stats-chart-outline"
-                size={32}
-                color={DesignTokens.textMuted}
-              />
-              <Text style={[styles.emptyText, isDark && styles.textSecondary]}>
-                Stats not available for this player
-              </Text>
-            </View>
-          );
-        }
+        {/* Sports Reference Link (default) */}
+        {hasSportsReferenceLink && (
+          <View style={styles.linkItem}>
+            <LinkItem link={sportsReferenceLink} onEdit={() => {}} onDelete={() => {}} isDefault />
+          </View>
+        )}
 
-        if (!isLoadingStats && statsLoaded && !basicStats) {
-          const currentSeason = new Date().getMonth() >= 9
-            ? new Date().getFullYear()
-            : new Date().getFullYear() - 1;
-          const seasonStr = `${currentSeason}-${(currentSeason + 1).toString().slice(-2)}`;
-          return (
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="stats-chart-outline"
-                size={32}
-                color={DesignTokens.textMuted}
-              />
-              <Text style={[styles.emptyText, isDark && styles.textSecondary]}>
-                No stats available for the {seasonStr} season.
-              </Text>
-            </View>
-          );
-        }
-
-        return (
-          <PlayerStatsCard
-            basicStats={basicStats}
-            advancedStats={advancedStats as any}
-            season={basicStats?.season}
-            isLoading={isLoadingStats}
-            isProUser={isProUser}
-            onUnlockPress={handleUnlockPress}
-            onAdvancedPress={handleAdvancedPress}
-            isAdvancedExpanded={showAdvancedStats}
-            fullAdvancedStats={advancedStats}
-            isAdvancedLoading={isLoadingStats && !advancedStats}
+        {/* Custom Links */}
+        {playerLinks.length > 0 && (
+          <DraggableLinkList
+            links={playerLinks}
+            onReorder={handleReorderLinks}
+            onEdit={handleEdit}
+            onDelete={deleteLink}
           />
-        );
+        )}
 
-      case 'contract':
-        if (isSearchingPlayer) {
-          return (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
-              <Text style={[styles.loadingText, isDark && styles.textSecondary]}>
-                Finding player...
-              </Text>
-            </View>
-          );
-        }
-
-        if (playerNotFound) {
-          return (
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="document-text-outline"
-                size={32}
-                color={DesignTokens.textMuted}
-              />
-              <Text style={[styles.emptyText, isDark && styles.textSecondary]}>
-                Contract not available for this player
-              </Text>
-            </View>
-          );
-        }
-
-        if (!isProUser) {
-          return (
-            <ContractCard
-              contracts={[]}
-              isLocked={true}
-              onUnlockPress={handleUnlockPress}
+        {/* Empty State */}
+        {playerLinks.length === 0 && !hasSportsReferenceLink && (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name="link-outline"
+              size={32}
+              color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
             />
-          );
-        }
+            <Text
+              style={[
+                styles.emptyText,
+                { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
+              ]}>
+              No links yet
+            </Text>
+            <Text
+              style={[
+                styles.emptySubtext,
+                { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+              ]}>
+              Add custom links to this player
+            </Text>
+          </View>
+        )}
+      </View>
 
-        if (isLoadingContracts) {
-          return (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={DesignTokens.accentGreen} />
-              <Text style={[styles.loadingText, isDark && styles.textSecondary]}>
-                Loading contract...
-              </Text>
-            </View>
-          );
-        }
+      {/* Buttons */}
+      <View style={styles.buttonContainer}>
+        {/* Add Link Button */}
+        <TouchableOpacity
+          style={[styles.addButton, atLimit && styles.addButtonDisabled]}
+          onPress={handleAddPress}
+          activeOpacity={0.8}>
+          <LinearGradient
+            colors={atLimit ? ['#9CA3AF', '#9CA3AF'] : [BrandGradient.start, BrandGradient.end]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.addButtonGradient}>
+            <Ionicons name="add" size={20} color="#fff" />
+            <Text style={styles.addButtonText}>Add Link</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
-        return (
-          <ContractCard
-            contracts={contracts}
-            playerName={player.name}
-            isLocked={false}
+        {atLimit && (
+          <Text
+            style={[
+              styles.limitText,
+              { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
+            ]}>
+            Free limit reached (3/3)
+          </Text>
+        )}
+
+        {/* Add to List Button */}
+        <TouchableOpacity
+          style={[
+            styles.addToListButton,
+            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+          ]}
+          onPress={() => setShowAddToListModal(true)}
+          activeOpacity={0.8}>
+          <Ionicons
+            name="list"
+            size={20}
+            color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
           />
-        );
+          <Text
+            style={[
+              styles.addToListButtonText,
+              { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+            ]}>
+            Add to List
+          </Text>
+        </TouchableOpacity>
 
-      case 'links':
-      default:
-        return (
-          <>
-            {/* Links Section */}
-            <View style={styles.linksSection}>
-              <Text
-                style={[
-                  styles.linksLabel,
-                  { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
-                ]}>
-                QUICK LINKS
-              </Text>
-
-              {/* Sports Reference Link (default) */}
-              {hasSportsReferenceLink && (
-                <View style={styles.linkItem}>
-                  <LinkItem link={sportsReferenceLink} onEdit={() => {}} onDelete={() => {}} isDefault />
-                </View>
-              )}
-
-              {/* Custom Links */}
-              {playerLinks.length > 0 && (
-                <DraggableLinkList
-                  links={playerLinks}
-                  onReorder={handleReorderLinks}
-                  onEdit={handleEdit}
-                  onDelete={deleteLink}
-                />
-              )}
-
-              {/* Empty State */}
-              {playerLinks.length === 0 && !hasSportsReferenceLink && (
-                <View style={styles.emptyState}>
-                  <Ionicons
-                    name="link-outline"
-                    size={32}
-                    color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
-                  />
-                  <Text
-                    style={[
-                      styles.emptyText,
-                      { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary },
-                    ]}>
-                    No links yet
-                  </Text>
-                  <Text
-                    style={[
-                      styles.emptySubtext,
-                      { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
-                    ]}>
-                    Add custom links to this player
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Buttons */}
-            <View style={styles.buttonContainer}>
-              {/* Add Link Button */}
-              <TouchableOpacity
-                style={[styles.addButton, atLimit && styles.addButtonDisabled]}
-                onPress={handleAddPress}
-                activeOpacity={0.8}>
-                <LinearGradient
-                  colors={atLimit ? ['#9CA3AF', '#9CA3AF'] : [BrandGradient.start, BrandGradient.end]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.addButtonGradient}>
-                  <Ionicons name="add" size={20} color="#fff" />
-                  <Text style={styles.addButtonText}>Add Link</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {atLimit && (
-                <Text
-                  style={[
-                    styles.limitText,
-                    { color: isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted },
-                  ]}>
-                  Free limit reached (3/3)
-                </Text>
-              )}
-
-              {/* Add to List Button */}
-              <TouchableOpacity
-                style={[
-                  styles.addToListButton,
-                  { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
-                ]}
-                onPress={() => setShowAddToListModal(true)}
-                activeOpacity={0.8}>
-                <Ionicons
-                  name="list"
-                  size={20}
-                  color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
-                />
-                <Text
-                  style={[
-                    styles.addToListButtonText,
-                    { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
-                  ]}>
-                  Add to List
-                </Text>
-              </TouchableOpacity>
-
-              {/* Share Player Button */}
-              <TouchableOpacity
-                style={[
-                  styles.addToListButton,
-                  { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
-                ]}
-                onPress={handleSaveStatsSnapshot}
-                activeOpacity={0.8}>
-                <Ionicons
-                  name="stats-chart-outline"
-                  size={20}
-                  color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
-                />
-                <Text
-                  style={[
-                    styles.addToListButtonText,
-                    { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
-                  ]}>
-                  Save Stats
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.addToListButton,
-                  { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
-                ]}
-                onPress={handleSharePlayer}
-                disabled={isSharing}
-                activeOpacity={0.8}>
-                <Ionicons
-                  name={isSharing ? 'hourglass-outline' : 'share-outline'}
-                  size={20}
-                  color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
-                />
-                <Text
-                  style={[
-                    styles.addToListButtonText,
-                    { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
-                  ]}>
-                  {isSharing ? 'Sharing...' : 'Share Player'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        );
-    }
-  };
+        <TouchableOpacity
+          style={[
+            styles.addToListButton,
+            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+          ]}
+          onPress={handleSharePlayer}
+          disabled={isSharing}
+          activeOpacity={0.8}>
+          <Ionicons
+            name={isSharing ? 'hourglass-outline' : 'share-outline'}
+            size={20}
+            color={isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary}
+          />
+          <Text
+            style={[
+              styles.addToListButtonText,
+              { color: isDark ? DesignTokens.textPrimaryDark : DesignTokens.textPrimary },
+            ]}>
+            {isSharing ? 'Sharing...' : 'Share Player'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
 
   return (
     <View
@@ -879,18 +464,9 @@ export function PlayerCardContent({ player, onDismiss }: PlayerCardContentProps)
           ]}
         />
 
-        {/* Tabs (NBA only shows all tabs, others just Links) */}
-        <View style={styles.tabsContainer}>
-          <PlayerCardTabs
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            sport={player.sport}
-          />
-        </View>
-
-        {/* Tab Content */}
+        {/* Links Content */}
         <View style={styles.tabContent}>
-          {renderTabContent()}
+          {renderLinksContent()}
         </View>
       </ScrollView>
 

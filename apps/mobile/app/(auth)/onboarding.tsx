@@ -19,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { ONBOARDING_SLIDES } from '@/constants/onboarding';
 import { OnboardingSlide } from '@/components/onboarding/OnboardingSlide';
+import { OnboardingSignInSlide } from '@/components/onboarding/OnboardingSignInSlide';
 import { OnboardingPaywallSlide } from '@/components/onboarding/OnboardingPaywallSlide';
 import { OnboardingPagination } from '@/components/onboarding/OnboardingPagination';
 import { setOnboardingComplete } from '@/utils/storage';
@@ -26,7 +27,7 @@ import { DesignTokens, Typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TOTAL_SLIDES = ONBOARDING_SLIDES.length + 1; // +1 for paywall slide
+const TOTAL_SLIDES = ONBOARDING_SLIDES.length + 2; // +1 sign-in, +1 paywall
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -134,8 +135,12 @@ export default function OnboardingScreen() {
               scrollX={scrollX}
             />
           ))}
-          <OnboardingPaywallSlide
+          <OnboardingSignInSlide
             index={ONBOARDING_SLIDES.length}
+            scrollX={scrollX}
+          />
+          <OnboardingPaywallSlide
+            index={ONBOARDING_SLIDES.length + 1}
             scrollX={scrollX}
           />
         </Animated.ScrollView>

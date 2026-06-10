@@ -24,7 +24,6 @@ import Animated, {
 
 import { DesignTokens, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { usePaywall } from '@/context/PaywallContext';
 import { usePlayerSearch, Sport } from '@/hooks/usePlayerSearch';
 import type { Player } from '@/types';
 
@@ -124,17 +123,9 @@ function SportTab({
 
 export function HeroSearchCard({ onPlayerSelect }: HeroSearchCardProps) {
   const { isDark } = useTheme();
-  const { query, results, setQuery, selectedSport, setSelectedSport, searchLimitReached } = usePlayerSearch();
-  const { openPaywall } = usePaywall();
+  const { query, results, setQuery, selectedSport, setSelectedSport } = usePlayerSearch();
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
-
-  // Show paywall when search limit is reached
-  useEffect(() => {
-    if (searchLimitReached) {
-      openPaywall();
-    }
-  }, [searchLimitReached, openPaywall]);
 
   // Animation values
   const focusAnimation = useSharedValue(0);
@@ -353,14 +344,12 @@ export function HeroSearchCard({ onPlayerSelect }: HeroSearchCardProps) {
             isDark ? styles.dropdownShadowDark : styles.dropdownShadow,
           ]}>
           <Ionicons
-            name={searchLimitReached ? 'lock-closed-outline' : 'search-outline'}
+            name="search-outline"
             size={24}
             color={isDark ? DesignTokens.textMutedDark : DesignTokens.textMuted}
           />
           <Text style={[styles.noResultsText, { color: isDark ? DesignTokens.textSecondaryDark : DesignTokens.textSecondary }]}>
-            {searchLimitReached
-              ? 'Upgrade to Pro for unlimited searches'
-              : `No players found for "${query}"`}
+            {`No players found for "${query}"`}
           </Text>
         </Animated.View>
       )}
