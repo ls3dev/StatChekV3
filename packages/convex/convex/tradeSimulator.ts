@@ -13,6 +13,7 @@ const SALARY_MATCH_MULTIPLIER = 1.25;
 const SALARY_MATCH_BUFFER = 100_000;
 const MIN_ROSTER_SIZE = 13;
 const MAX_ROSTER_SIZE = 15;
+const internalApi = internal as any;
 
 function generateShareId(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -325,7 +326,7 @@ export const createTradeScenarioShare = mutation({
 export const getTradeScenarioByShareId = action({
   args: { shareId: v.string() },
   handler: async (ctx, args) => {
-    const scenario = await ctx.runQuery(internal.tradeSimulator._getScenarioByShareId, {
+    const scenario = await ctx.runQuery(internalApi.tradeSimulator._getScenarioByShareId, {
       shareId: args.shareId,
     });
 

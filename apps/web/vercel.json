@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
+  "installCommand": "npm install && npm install --prefix ../../packages/convex",
   "buildCommand": "npm run build",
-  "installCommand": "npm install",
   "outputDirectory": ".next"
 }

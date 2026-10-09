@@ -5,4 +5,6 @@ export const scoreboardFont = Big_Shoulders({
   subsets: ["latin"],
   weight: ["600", "800"],
   variable: "--font-scoreboard",
+  // next/font has no fallback metrics for this family
+  adjustFontFallback: false,
 });

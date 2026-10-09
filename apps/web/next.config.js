@@ -2,6 +2,10 @@ const path = require("path");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Convex functions and generated API live in packages/convex
+    externalDir: true,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

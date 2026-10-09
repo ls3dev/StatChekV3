@@ -551,6 +551,19 @@ class BallDontLieClient {
   }
 
   /**
+   * Search players currently on an NBA roster
+   */
+  async searchActivePlayers(
+    search: string,
+    perPage = 25
+  ): Promise<BDLPaginatedResponse<BDLPlayer>> {
+    return this.fetch<BDLPaginatedResponse<BDLPlayer>>("/players/active", {
+      search,
+      per_page: perPage,
+    });
+  }
+
+  /**
    * Get all teams
    */
   async getTeams(): Promise<BDLTeam[]> {

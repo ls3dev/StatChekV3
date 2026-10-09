@@ -199,18 +199,25 @@ export function PlayerModal({ player, isOpen, onClose }: PlayerModalProps) {
         if (advResult.requiresPro) {
           setAdvancedRequiresPro(true);
         } else if (advResult.stats) {
-          // Map BDL fields to our AdvancedStats interface
+          // Basketball Reference fields, with Ball Don't Lie names as fallback
           const s = advResult.stats as any;
           setAdvancedStats({
             per: s.per,
             ts_pct: s.ts_pct,
             efg_pct: s.efg_pct,
             usg_pct: s.usg_pct,
+            ows: s.ows,
+            dws: s.dws,
+            ws: s.ws,
+            obpm: s.obpm,
+            dbpm: s.dbpm,
+            bpm: s.bpm,
+            vorp: s.vorp,
             ast_pct: s.ast_pct,
             tov_pct: s.tov_pct,
-            orb_pct: s.oreb_pct,
-            drb_pct: s.dreb_pct,
-            trb_pct: s.reb_pct,
+            orb_pct: s.orb_pct ?? s.oreb_pct,
+            drb_pct: s.drb_pct ?? s.dreb_pct,
+            trb_pct: s.trb_pct ?? s.reb_pct,
             stl_pct: s.stl_pct,
             blk_pct: s.blk_pct,
           });

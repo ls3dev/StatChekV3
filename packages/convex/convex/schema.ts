@@ -10,7 +10,7 @@ export default defineSchema({
     username: v.optional(v.string()), // Unique username chosen by user
     image: v.optional(v.string()),
     isProUser: v.optional(v.boolean()),
-    proExpiresAt: v.optional(v.number()),
+    proExpiresAt: v.optional(v.union(v.number(), v.null())),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -309,4 +309,54 @@ export default defineSchema({
     ),
     lastUpdated: v.number(),
   }).index("by_team", ["teamId"]),
+
+  // NCAAB Standings cache
+  ncaabStandingsCache: defineTable({
+    season: v.number(),
+    data: v.any(),
+    cachedAt: v.number(),
+  }).index("by_season", ["season"]),
+
+  // NCAAB Rankings cache
+  ncaabRankingsCache: defineTable({
+    season: v.number(),
+    data: v.any(),
+    cachedAt: v.number(),
+  }).index("by_season", ["season"]),
+
+  // NCAAB Bracket cache
+  ncaabBracketCache: defineTable({
+    season: v.number(),
+    data: v.any(),
+    cachedAt: v.number(),
+  }).index("by_season", ["season"]),
+
+  // Season predictions - a user's award, All-NBA team, and seeding picks
+  seasonPredictions: defineTable({
+    userId: v.string(), // Clerk identity.subject
+    season: v.number(), // e.g., 2026 for the 2026-27 season
+    shareId: v.string(),
+    displayName: v.optional(v.string()),
+
+    // Award and All-NBA team picks. `id` is a Ball Don't Lie player ID,
+    // or a team ID for team-based categories (Coach of the Year)
+    picks: v.array(
+      v.object({
+        category: v.string(),
+        slot: v.number(),
+        id: v.number(),
+        name: v.string(),
+        teamAbbr: v.optional(v.string()),
+      })
+    ),
+
+    // Team IDs ordered by predicted seed (index 0 = 1st seed)
+    eastSeeding: v.array(v.number()),
+    westSeeding: v.array(v.number()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_season", ["userId", "season"])
+    .index("by_share_id", ["shareId"]),
 });
