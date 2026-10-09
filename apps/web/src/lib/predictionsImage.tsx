@@ -22,8 +22,8 @@ export type PredictionsImageData = {
 const COLORS = {
   background: "#0A0A0F",
   card: "#1A1A24",
-  accent: "#30D158",
-  textPrimary: "#FFFFFF",
+  accent: "#FF6B1A",
+  textPrimary: "#F4F1E8",
   textSecondary: "#A1A1AA",
   textMuted: "#71717A",
   divider: "rgba(255,255,255,0.08)",

@@ -52,7 +52,7 @@ export function PickerModal({ category, slot, season, takenIds, onSelect, onClos
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-t-2xl sm:rounded-2xl border border-white/10 bg-card"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-t-2xl sm:rounded-2xl border border-ballot-line bg-ballot-panel"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
@@ -96,7 +96,7 @@ function TeamGrid({
           onClick={() =>
             onSelect({ id: team.id, name: `${team.city} ${team.name}`, teamAbbr: team.abbreviation })
           }
-          className="flex flex-col items-center gap-1 rounded-lg border border-white/10 px-2 py-3 hover:border-accent/60 hover:bg-accent/5 disabled:opacity-40 disabled:hover:border-white/10 disabled:hover:bg-transparent transition-colors"
+          className="flex flex-col items-center gap-1 rounded-lg border border-white/10 px-2 py-3 hover:border-ballot-orange/60 hover:bg-ballot-orange/5 disabled:opacity-40 disabled:hover:border-white/10 disabled:hover:bg-transparent transition-colors"
         >
           <Image
             src={getNBATeamLogoUrl(team.abbreviation)}
@@ -176,7 +176,7 @@ function PlayerSearchPanel({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={category.rookiesOnly ? `Search ${season} rookies...` : "Search players..."}
-          className="w-full rounded-lg border border-white/10 bg-background-secondary px-4 py-2.5 text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
+          className="w-full rounded-lg border border-white/10 bg-background-primary px-4 py-2.5 text-ballot-chalk placeholder:text-text-muted focus:border-ballot-orange focus:outline-none"
         />
         {category.rookiesOnly && (
           <p className="mt-2 text-xs text-text-muted">Only players from the {season} draft class are shown.</p>
@@ -186,7 +186,7 @@ function PlayerSearchPanel({
       <div className="min-h-[200px] overflow-y-auto p-3">
         {isLoading && (
           <div className="flex justify-center p-6">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-ballot-orange border-t-transparent" />
           </div>
         )}
         {!isLoading && error && <p className="p-4 text-center text-sm text-red-300">{error}</p>}

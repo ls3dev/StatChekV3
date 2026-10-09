@@ -11,13 +11,20 @@ import {
   formatSeasonLabel,
 } from "@convex/lib/predictions";
 import {
-  AllTeamCard,
-  AwardCard,
-  SeedingColumn,
+  AwardRow,
+  BallotSection,
+  StandingsList,
+  TeamBlock,
   pickKey,
   type PredictionPick,
 } from "@/components/predictions/PredictionCards";
 import { SaveImageButton } from "@/components/predictions/SaveImageButton";
+import { scoreboardFont } from "@/lib/predictionsFont";
+
+const primaryButton =
+  "rounded-full bg-ballot-orange px-5 py-2 text-sm font-semibold text-black hover:bg-ballot-orange/90 disabled:opacity-60 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ballot-chalk";
+const secondaryButton =
+  "rounded-full border border-ballot-line px-4 py-2 text-sm font-semibold text-ballot-chalk hover:border-ballot-muted disabled:opacity-60 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ballot-orange";
 
 export function SharedPredictionsView({ shareId }: { shareId: string }) {
   const predictions = useQuery(api.predictions.getPredictionsByShareId, { shareId });
@@ -33,80 +40,68 @@ export function SharedPredictionsView({ shareId }: { shareId: string }) {
   if (predictions === undefined) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background-primary">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-ballot-orange border-t-transparent" />
       </main>
     );
   }
 
   if (predictions === null) {
     return (
-      <main className="min-h-screen bg-background-primary">
-        <div className="mx-auto max-w-5xl px-4 py-16 text-center md:px-6">
-          <h1 className="text-2xl font-bold text-text-primary">Predictions not found</h1>
-          <p className="mt-2 text-text-secondary">This link may be wrong or the predictions were removed.</p>
-          <Link
-            href={PREDICTIONS_PATH}
-            className="mt-6 inline-block rounded-lg bg-accent px-5 py-2.5 font-semibold text-white hover:bg-green-500 transition-colors"
-          >
-            Make Your Own Predictions
+      <main className={`${scoreboardFont.variable} min-h-screen bg-background-primary`}>
+        <div className="mx-auto max-w-[640px] px-4 py-20">
+          <h1 className="font-scoreboard text-6xl font-extrabold uppercase leading-[0.85] text-ballot-chalk">
+            Ballot not found
+          </h1>
+          <p className="mt-4 text-ballot-muted">
+            This link doesn&apos;t match any saved picks. Ask for the link again, or make your own.
+          </p>
+          <Link href={PREDICTIONS_PATH} className={`mt-8 inline-block ${primaryButton}`}>
+            Make your picks
           </Link>
         </div>
       </main>
     );
   }
 
-  const author = predictions.displayName ? `@${predictions.displayName}` : "A StatCheck user";
+  const author = predictions.displayName ? `@${predictions.displayName}` : "A StatCheck fan";
 
   return (
-    <main className="min-h-screen bg-background-primary">
-      <div className="mx-auto max-w-5xl px-4 py-8 md:px-6">
-        <div className="mb-8 rounded-xl border border-white/5 bg-card p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-text-primary md:text-3xl">
-                {formatSeasonLabel(predictions.season)} Predictions
-              </h1>
-              <p className="mt-1 text-text-secondary">
-                by {author} · Updated {new Date(predictions.updatedAt).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-2">
-              <SaveImageButton shareId={predictions.shareId} version={predictions.updatedAt} />
-              <Link
-                href={PREDICTIONS_PATH}
-                className="rounded-lg bg-accent px-5 py-2 text-center text-sm font-semibold text-white hover:bg-green-500 transition-colors"
-              >
-                Make Your Own
-              </Link>
-            </div>
+    <main className={`${scoreboardFont.variable} min-h-screen bg-background-primary pb-20`}>
+      <div className="mx-auto max-w-[640px] px-4">
+        <header className="pt-10">
+          <p className="text-lg font-semibold text-ballot-orange">{author}</p>
+          <h1 className="mt-2 font-scoreboard text-[clamp(2.75rem,13.4vw,5rem)] font-extrabold uppercase leading-[0.82] text-ballot-chalk">
+            {formatSeasonLabel(predictions.season)}
+            <br />
+            Predictions
+          </h1>
+          <p className="mt-5 text-sm text-ballot-muted">
+            Last updated {new Date(predictions.updatedAt).toLocaleDateString()}
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link href={PREDICTIONS_PATH} className={primaryButton}>
+              Make your picks
+            </Link>
+            <SaveImageButton shareId={predictions.shareId} version={predictions.updatedAt} className={secondaryButton} />
           </div>
-        </div>
+        </header>
 
-        <section className="mb-10">
-          <h2 className="mb-4 text-xl font-bold text-text-primary">Awards</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {AWARD_CATEGORIES.map((category) => (
-              <AwardCard key={category.key} category={category} picks={picks} />
-            ))}
-          </div>
-        </section>
+        <BallotSection id="awards" title="Awards">
+          {AWARD_CATEGORIES.map((category) => (
+            <AwardRow key={category.key} category={category} picks={picks} />
+          ))}
+        </BallotSection>
 
-        <section className="mb-10">
-          <h2 className="mb-4 text-xl font-bold text-text-primary">All-NBA Teams</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {ALL_TEAM_CATEGORIES.map((category) => (
-              <AllTeamCard key={category.key} category={category} picks={picks} />
-            ))}
-          </div>
-        </section>
+        <BallotSection id="teams" title="All-NBA teams">
+          {ALL_TEAM_CATEGORIES.map((category) => (
+            <TeamBlock key={category.key} category={category} picks={picks} />
+          ))}
+        </BallotSection>
 
-        <section>
-          <h2 className="mb-4 text-xl font-bold text-text-primary">Seeding</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <SeedingColumn title="Eastern Conference" teamIds={predictions.eastSeeding} />
-            <SeedingColumn title="Western Conference" teamIds={predictions.westSeeding} />
-          </div>
-        </section>
+        <BallotSection id="standings" title="Standings">
+          <StandingsList title="Eastern Conference" teamIds={predictions.eastSeeding} />
+          <StandingsList title="Western Conference" teamIds={predictions.westSeeding} />
+        </BallotSection>
       </div>
     </main>
   );

@@ -22,128 +22,160 @@ type SlotHandlers = {
   onClearSlot?: (category: PredictionCategory, slot: number) => void;
 };
 
-function PickSlot({
+const focusRing =
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ballot-orange";
+
+export function BallotSection({
+  id,
+  title,
+  aside,
+  children,
+}: {
+  id: string;
+  title: string;
+  aside?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="scroll-mt-32 pt-14">
+      <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-ballot-chalk/80 pb-2">
+        <h2 className="font-scoreboard text-4xl font-extrabold uppercase leading-none text-ballot-chalk">{title}</h2>
+        {aside && <span className="text-sm tabular-nums text-ballot-muted">{aside}</span>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ClearButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={`shrink-0 rounded-full p-2 text-ballot-muted hover:bg-white/5 hover:text-ballot-chalk transition-colors ${focusRing}`}
+    >
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  );
+}
+
+export function AwardRow({
   category,
-  slot,
-  pick,
+  picks,
   onSelectSlot,
   onClearSlot,
-  compact,
 }: SlotHandlers & {
   category: PredictionCategory;
-  slot: number;
-  pick?: PredictionPick;
-  compact?: boolean;
+  picks: Map<string, PredictionPick>;
 }) {
+  const pick = picks.get(pickKey(category.key, 0));
   const readOnly = !onSelectSlot;
-  const placeholder = category.kind === "team" ? "Pick a team" : "Pick a player";
+  const prompt = category.kind === "team" ? "Pick a team" : "Pick a player";
 
-  if (!pick) {
-    if (readOnly) {
-      return (
-        <div className={`rounded-lg border border-dashed border-white/10 px-3 ${compact ? "py-2" : "py-3"}`}>
-          <p className="text-sm text-text-muted">No pick</p>
-        </div>
-      );
-    }
-    return (
-      <button
-        type="button"
-        onClick={() => onSelectSlot(category, slot)}
-        className={`w-full rounded-lg border border-dashed border-white/15 hover:border-accent/60 hover:bg-accent/5 px-3 ${
-          compact ? "py-2" : "py-3"
-        } text-left text-sm text-text-secondary hover:text-text-primary transition-colors`}
-      >
-        + {placeholder}
-      </button>
-    );
-  }
+  const body = (
+    <>
+      <span className="w-24 shrink-0 font-scoreboard text-3xl font-extrabold uppercase leading-none text-ballot-orange sm:w-28 sm:text-4xl">
+        {category.shortLabel}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs text-ballot-muted">{category.label}</span>
+        {pick ? (
+          <span className="block truncate text-lg font-semibold text-ballot-chalk">
+            {pick.name}
+            {pick.teamAbbr && category.kind === "player" && (
+              <span className="ml-2 text-sm font-normal text-ballot-muted">{pick.teamAbbr}</span>
+            )}
+          </span>
+        ) : (
+          <span className="block text-lg text-ballot-muted/70">{readOnly ? "No pick" : prompt}</span>
+        )}
+      </span>
+    </>
+  );
 
   return (
-    <div
-      className={`flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-background-secondary px-3 ${
-        compact ? "py-2" : "py-3"
-      }`}
-    >
-      <button
-        type="button"
-        disabled={readOnly}
-        onClick={() => onSelectSlot?.(category, slot)}
-        className="min-w-0 flex-1 text-left disabled:cursor-default"
-      >
-        <p className="truncate text-sm font-semibold text-text-primary">{pick.name}</p>
-        {pick.teamAbbr && <p className="text-xs text-text-secondary">{pick.teamAbbr}</p>}
-      </button>
-      {onClearSlot && (
+    <div className="flex items-center gap-2 border-b border-ballot-line">
+      {readOnly ? (
+        <div className="flex min-w-0 flex-1 items-center gap-3 py-4">{body}</div>
+      ) : (
         <button
           type="button"
-          onClick={() => onClearSlot(category, slot)}
-          className="shrink-0 rounded-md p-1 text-text-muted hover:bg-white/10 hover:text-text-primary transition-colors"
-          aria-label={`Remove ${pick.name}`}
+          onClick={() => onSelectSlot(category, 0)}
+          className={`group flex min-w-0 flex-1 items-center gap-3 py-4 text-left ${focusRing}`}
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          {body}
+          {!pick && (
+            <span className="shrink-0 text-2xl leading-none text-ballot-muted group-hover:text-ballot-orange transition-colors">
+              +
+            </span>
+          )}
         </button>
       )}
+      {pick && onClearSlot && <ClearButton label={`Remove ${pick.name}`} onClick={() => onClearSlot(category, 0)} />}
     </div>
   );
 }
 
-export function AwardCard({
+export function TeamBlock({
   category,
   picks,
-  ...handlers
+  onSelectSlot,
+  onClearSlot,
 }: SlotHandlers & {
   category: PredictionCategory;
   picks: Map<string, PredictionPick>;
 }) {
-  return (
-    <div className="bg-card rounded-xl border border-white/5 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-accent">{category.shortLabel}</p>
-      <p className="mb-3 text-sm text-text-secondary">{category.label}</p>
-      <PickSlot category={category} slot={0} pick={picks.get(pickKey(category.key, 0))} {...handlers} />
-    </div>
-  );
-}
-
-export function AllTeamCard({
-  category,
-  picks,
-  ...handlers
-}: SlotHandlers & {
-  category: PredictionCategory;
-  picks: Map<string, PredictionPick>;
-}) {
-  const filled = Array.from({ length: category.slots }).filter((_, slot) =>
-    picks.has(pickKey(category.key, slot))
-  ).length;
+  const slots = Array.from({ length: category.slots }, (_, slot) => picks.get(pickKey(category.key, slot)));
+  const filled = slots.filter(Boolean).length;
+  const readOnly = !onSelectSlot;
 
   return (
-    <div className="bg-card rounded-xl border border-white/5">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-        <p className="font-semibold text-text-primary">{category.label}</p>
-        <p className="text-xs tabular-nums text-text-secondary">
+    <div className="mb-8">
+      <div className="mb-1 flex items-baseline justify-between">
+        <h3 className="font-scoreboard text-2xl font-extrabold uppercase text-ballot-chalk">{category.label}</h3>
+        <span className={`text-sm tabular-nums ${filled === category.slots ? "text-ballot-orange" : "text-ballot-muted"}`}>
           {filled}/{category.slots}
-        </p>
+        </span>
       </div>
-      <div className="space-y-2 p-3">
-        {Array.from({ length: category.slots }).map((_, slot) => (
-          <PickSlot
-            key={slot}
-            category={category}
-            slot={slot}
-            pick={picks.get(pickKey(category.key, slot))}
-            compact
-            {...handlers}
-          />
+      <ul>
+        {slots.map((pick, slot) => (
+          <li key={slot} className="flex items-center gap-2 border-b border-ballot-line">
+            {pick ? (
+              <>
+                <button
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() => onSelectSlot?.(category, slot)}
+                  className={`flex min-w-0 flex-1 items-baseline gap-2 py-3 text-left disabled:cursor-default ${focusRing}`}
+                >
+                  <span className="truncate font-semibold text-ballot-chalk">{pick.name}</span>
+                  {pick.teamAbbr && <span className="text-sm text-ballot-muted">{pick.teamAbbr}</span>}
+                </button>
+                {onClearSlot && <ClearButton label={`Remove ${pick.name}`} onClick={() => onClearSlot(category, slot)} />}
+              </>
+            ) : readOnly ? (
+              <span className="py-3 text-ballot-muted/70">—</span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onSelectSlot(category, slot)}
+                className={`group flex flex-1 items-center justify-between py-3 text-left text-ballot-muted hover:text-ballot-chalk transition-colors ${focusRing}`}
+              >
+                <span>Add a player</span>
+                <span className="text-xl leading-none group-hover:text-ballot-orange transition-colors">+</span>
+              </button>
+            )}
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
 
-export function SeedingColumn({
+export function StandingsList({
   title,
   teamIds,
   onMove,
@@ -153,67 +185,63 @@ export function SeedingColumn({
   onMove?: (index: number, direction: -1 | 1) => void;
 }) {
   return (
-    <div className="bg-card rounded-xl border border-white/5">
-      <div className="border-b border-white/10 px-4 py-3">
-        <p className="font-semibold text-text-primary">{title}</p>
-      </div>
-      <ol className="p-2">
+    <div className="mb-10">
+      <h3 className="mb-2 font-scoreboard text-2xl font-extrabold uppercase text-ballot-chalk">{title}</h3>
+      <ol>
         {teamIds.map((teamId, index) => {
           const team = NBA_TEAMS[teamId];
           const seed = index + 1;
+          const playIn = seed >= 7 && seed <= 10;
+          const lottery = seed > 10;
           return (
-            <li key={teamId}>
-              {seed === 7 && <SeedDivider label="Play-In" />}
-              {seed === 11 && <SeedDivider label="Lottery" />}
-              <div className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-white/5">
-                <span className="w-5 text-right text-sm font-semibold tabular-nums text-text-secondary">
-                  {seed}
+            <li
+              key={teamId}
+              className={`flex items-center gap-3 border-b border-ballot-line pr-1 ${playIn ? "bg-ballot-orange/[0.07]" : ""}`}
+            >
+              <span
+                className={`w-14 shrink-0 text-right font-scoreboard text-4xl font-extrabold leading-[1.15] tabular-nums ${
+                  lottery ? "text-ballot-muted/50" : playIn ? "text-ballot-orange/80" : "text-ballot-orange"
+                }`}
+              >
+                {seed}
+              </span>
+              <Image
+                src={getNBATeamLogoUrl(team.abbreviation)}
+                alt=""
+                width={28}
+                height={28}
+                className={`h-7 w-7 shrink-0 object-contain ${lottery ? "opacity-50" : ""}`}
+                unoptimized
+              />
+              <span className={`min-w-0 flex-1 truncate ${lottery ? "text-ballot-muted" : "text-ballot-chalk"}`}>
+                <span className="font-semibold">{team.name}</span>
+                <span className="ml-1.5 hidden text-sm text-ballot-muted sm:inline">{team.city}</span>
+              </span>
+              {seed === 7 && <span className="hidden text-xs text-ballot-orange/80 sm:inline">Play-in</span>}
+              {seed === 11 && <span className="hidden text-xs text-ballot-muted sm:inline">Lottery</span>}
+              {onMove && (
+                <span className="flex shrink-0">
+                  <MoveButton
+                    label={`Move ${team.name} up`}
+                    disabled={index === 0}
+                    onClick={() => onMove(index, -1)}
+                    path="M5 15l7-7 7 7"
+                  />
+                  <MoveButton
+                    label={`Move ${team.name} down`}
+                    disabled={index === teamIds.length - 1}
+                    onClick={() => onMove(index, 1)}
+                    path="M19 9l-7 7-7-7"
+                  />
                 </span>
-                <Image
-                  src={getNBATeamLogoUrl(team.abbreviation)}
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 object-contain"
-                  unoptimized
-                />
-                <span className="min-w-0 flex-1 truncate text-sm text-text-primary">
-                  <span className="sm:hidden">{team.abbreviation}</span>
-                  <span className="hidden sm:inline">
-                    {team.city} {team.name}
-                  </span>
-                </span>
-                {onMove && (
-                  <div className="flex shrink-0 gap-1">
-                    <MoveButton
-                      label={`Move ${team.name} up`}
-                      disabled={index === 0}
-                      onClick={() => onMove(index, -1)}
-                      path="M5 15l7-7 7 7"
-                    />
-                    <MoveButton
-                      label={`Move ${team.name} down`}
-                      disabled={index === teamIds.length - 1}
-                      onClick={() => onMove(index, 1)}
-                      path="M19 9l-7 7-7-7"
-                    />
-                  </div>
-                )}
-              </div>
+              )}
             </li>
           );
         })}
       </ol>
-    </div>
-  );
-}
-
-function SeedDivider({ label }: { label: string }) {
-  return (
-    <div className="my-1 flex items-center gap-2 px-2">
-      <div className="h-px flex-1 bg-white/10" />
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">{label}</span>
-      <div className="h-px flex-1 bg-white/10" />
+      <p className="mt-3 text-xs text-ballot-muted">
+        Seeds 7–10 go to the play-in. The shaded rows mark that band.
+      </p>
     </div>
   );
 }
@@ -235,7 +263,7 @@ function MoveButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="rounded-md p-1.5 text-text-secondary hover:bg-white/10 hover:text-text-primary disabled:opacity-25 disabled:hover:bg-transparent transition-colors"
+      className={`rounded-full p-2 text-ballot-muted hover:bg-white/5 hover:text-ballot-chalk disabled:opacity-20 disabled:hover:bg-transparent transition-colors ${focusRing}`}
     >
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={path} />
