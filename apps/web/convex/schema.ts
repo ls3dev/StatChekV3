@@ -313,4 +313,33 @@ export default defineSchema({
   })
     .index("by_share_id", ["shareId"])
     .index("by_owner_created", ["ownerUserId", "createdAt"]),
+
+  // Season predictions - a user's award, All-NBA team, and seeding picks
+  seasonPredictions: defineTable({
+    userId: v.string(), // Clerk identity.subject
+    season: v.number(), // e.g., 2026 for the 2026-27 season
+    shareId: v.string(),
+    displayName: v.optional(v.string()),
+
+    // Award and All-NBA team picks. `id` is a Ball Don't Lie player ID,
+    // or a team ID for team-based categories (Coach of the Year)
+    picks: v.array(
+      v.object({
+        category: v.string(),
+        slot: v.number(),
+        id: v.number(),
+        name: v.string(),
+        teamAbbr: v.optional(v.string()),
+      })
+    ),
+
+    // Team IDs ordered by predicted seed (index 0 = 1st seed)
+    eastSeeding: v.array(v.number()),
+    westSeeding: v.array(v.number()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_season", ["userId", "season"])
+    .index("by_share_id", ["shareId"]),
 });
