@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "if [ \"$VERCEL_ENV\" = \"production\" ]; then npx convex deploy --cmd 'npm run build'; else npm run build; fi",
   "installCommand": "npm install",
   "outputDirectory": ".next"
 }
