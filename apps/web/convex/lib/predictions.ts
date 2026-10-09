@@ -1,5 +1,9 @@
 // Shared definitions for season predictions (used by Convex functions and the web app)
 
+// The season predictions are open for, e.g. 2026 for the 2026-27 season
+export const PREDICTIONS_SEASON = 2026;
+export const PREDICTIONS_PATH = "/2026-predictions";
+
 export type PredictionCategoryKind = "player" | "team";
 
 export type PredictionCategory = {

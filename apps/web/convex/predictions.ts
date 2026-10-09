@@ -1,13 +1,10 @@
 import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import {
-  createBallDontLieClient,
-  getCurrentNBASeason,
-  type BDLPlayer,
-} from "./lib/balldontlie";
+import { createBallDontLieClient, type BDLPlayer } from "./lib/balldontlie";
 import {
   EAST_TEAM_IDS,
   PREDICTION_CATEGORY_MAP,
+  PREDICTIONS_SEASON,
   WEST_TEAM_IDS,
 } from "./lib/predictions";
 
@@ -77,7 +74,7 @@ function validateSeeding(seeding: number[], teamIds: number[], conference: strin
 }
 
 /**
- * Get the signed-in user's predictions for the current season
+ * Get the signed-in user's predictions for the open season
  */
 export const getMyPredictions = query({
   args: {},
@@ -90,14 +87,14 @@ export const getMyPredictions = query({
     return await ctx.db
       .query("seasonPredictions")
       .withIndex("by_user_season", (q) =>
-        q.eq("userId", identity.subject).eq("season", getCurrentNBASeason())
+        q.eq("userId", identity.subject).eq("season", PREDICTIONS_SEASON)
       )
       .first();
   },
 });
 
 /**
- * Create or update the signed-in user's predictions for the current season
+ * Create or update the signed-in user's predictions for the open season
  */
 export const savePredictions = mutation({
   args: {
@@ -115,7 +112,7 @@ export const savePredictions = mutation({
     validateSeeding(args.eastSeeding, EAST_TEAM_IDS, "East");
     validateSeeding(args.westSeeding, WEST_TEAM_IDS, "West");
 
-    const season = getCurrentNBASeason();
+    const season = PREDICTIONS_SEASON;
     const now = Date.now();
 
     const user = await ctx.db

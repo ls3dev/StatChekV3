@@ -42,6 +42,15 @@ export const deleteAccount = mutation({
       await ctx.db.delete(settings._id);
     }
 
+    // Delete season predictions
+    const predictions = await ctx.db
+      .query("seasonPredictions")
+      .withIndex("by_user_season", (q) => q.eq("userId", userId))
+      .collect();
+    for (const prediction of predictions) {
+      await ctx.db.delete(prediction._id);
+    }
+
     // Delete the user record
     const user = await ctx.db
       .query("users")

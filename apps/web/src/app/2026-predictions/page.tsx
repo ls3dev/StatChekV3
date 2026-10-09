@@ -12,6 +12,8 @@ import {
   EAST_TEAM_IDS,
   PREDICTION_CATEGORIES,
   PREDICTION_CATEGORY_MAP,
+  PREDICTIONS_PATH,
+  PREDICTIONS_SEASON,
   WEST_TEAM_IDS,
   formatSeasonLabel,
   type PredictionCategory,
@@ -24,6 +26,7 @@ import {
   type PredictionPick,
 } from "@/components/predictions/PredictionCards";
 import { PickerModal, type PickerSelection } from "@/components/predictions/PickerModal";
+import { SaveImageButton } from "@/components/predictions/SaveImageButton";
 
 type Tab = "awards" | "teams" | "seeding";
 
@@ -47,7 +50,7 @@ function sortByStandings(teamIds: number[], standings: Standing[]): number[] {
 
 export default function PredictionsPage() {
   const { isAuthenticated, isLoading: authLoading, signIn } = useAuth();
-  const season = useQuery(api.nba.getCurrentSeason);
+  const season = PREDICTIONS_SEASON;
   const myPredictions = useQuery(api.predictions.getMyPredictions);
   const savePredictions = useMutation(api.predictions.savePredictions);
   const getStandings = useAction(api.nba.getStandings);
@@ -80,7 +83,6 @@ export default function PredictionsPage() {
 
   // Default seeding to last season's final standings
   useEffect(() => {
-    if (season === undefined) return;
     let cancelled = false;
     getStandings({ season: season - 1 })
       .then(({ standings }) => {
@@ -196,14 +198,14 @@ export default function PredictionsPage() {
   const copyShareLink = async () => {
     if (!shareId) return;
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/predictions/${shareId}`);
+      await navigator.clipboard.writeText(`${window.location.origin}${PREDICTIONS_PATH}/${shareId}`);
       setMessage({ type: "success", text: "Share link copied to clipboard." });
     } catch {
       setMessage({ type: "error", text: "Could not copy the link." });
     }
   };
 
-  if (season === undefined || authLoading) {
+  if (authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background-primary">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
@@ -257,8 +259,9 @@ export default function PredictionsPage() {
                   >
                     Copy Share Link
                   </button>
+                  <SaveImageButton shareId={shareId} version={myPredictions?.updatedAt ?? 0} />
                   <Link
-                    href={`/predictions/${shareId}`}
+                    href={`${PREDICTIONS_PATH}/${shareId}`}
                     className="rounded-lg bg-background-secondary px-4 py-2 text-sm font-semibold text-text-primary hover:bg-white/10 transition-colors"
                   >
                     View

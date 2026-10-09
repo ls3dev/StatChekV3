@@ -2,12 +2,12 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import {
   ALL_TEAM_CATEGORIES,
   AWARD_CATEGORIES,
+  PREDICTIONS_PATH,
   formatSeasonLabel,
 } from "@convex/lib/predictions";
 import {
@@ -17,10 +17,9 @@ import {
   pickKey,
   type PredictionPick,
 } from "@/components/predictions/PredictionCards";
+import { SaveImageButton } from "@/components/predictions/SaveImageButton";
 
-export default function SharedPredictionsPage() {
-  const params = useParams();
-  const shareId = params.shareId as string;
+export function SharedPredictionsView({ shareId }: { shareId: string }) {
   const predictions = useQuery(api.predictions.getPredictionsByShareId, { shareId });
 
   const picks = useMemo(
@@ -46,7 +45,7 @@ export default function SharedPredictionsPage() {
           <h1 className="text-2xl font-bold text-text-primary">Predictions not found</h1>
           <p className="mt-2 text-text-secondary">This link may be wrong or the predictions were removed.</p>
           <Link
-            href="/predictions"
+            href={PREDICTIONS_PATH}
             className="mt-6 inline-block rounded-lg bg-accent px-5 py-2.5 font-semibold text-white hover:bg-green-500 transition-colors"
           >
             Make Your Own Predictions
@@ -71,12 +70,15 @@ export default function SharedPredictionsPage() {
                 by {author} · Updated {new Date(predictions.updatedAt).toLocaleDateString()}
               </p>
             </div>
-            <Link
-              href="/predictions"
-              className="shrink-0 rounded-lg bg-accent px-5 py-2.5 text-center text-sm font-semibold text-white hover:bg-green-500 transition-colors"
-            >
-              Make Your Own
-            </Link>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <SaveImageButton shareId={predictions.shareId} version={predictions.updatedAt} />
+              <Link
+                href={PREDICTIONS_PATH}
+                className="rounded-lg bg-accent px-5 py-2 text-center text-sm font-semibold text-white hover:bg-green-500 transition-colors"
+              >
+                Make Your Own
+              </Link>
+            </div>
           </div>
         </div>
 

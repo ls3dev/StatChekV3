@@ -347,7 +347,7 @@ export default function HomePage() {
               <span>🏆</span> Standings
             </Link>
             <Link
-              href="/predictions"
+              href="/2026-predictions"
               className="flex items-center gap-1.5 px-4 py-2 bg-accent/10 hover:bg-accent/20 text-accent rounded-lg text-sm font-semibold transition-colors"
             >
               <span>🔮</span> Predictions
