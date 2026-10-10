@@ -4,8 +4,8 @@
   "private": true,
   "main": "index.ts",
   "scripts": {
-    "dev": "convex dev",
-    "deploy": "convex deploy"
+    "dev": "cd ../../apps/web && convex dev",
+    "deploy": "cd ../../apps/web && convex deploy"
   },
   "dependencies": {
     "convex": "^1.17.4"
