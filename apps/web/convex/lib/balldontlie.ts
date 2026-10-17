@@ -8,6 +8,7 @@
  */
 
 const BASE_URL = "https://api.balldontlie.io/v1";
+const NBA_BASE_URL = "https://api.balldontlie.io/nba/v1";
 
 // ========================================
 // Types
@@ -112,12 +113,38 @@ export interface BDLTeamBasicSeasonAverages {
   w_pct: number;
 }
 
+// API response fields for per-game advanced stats
+interface BDLAdvancedStatsGame {
+  id: number;
+  pie: number;
+  pace: number;
+  usage_percentage: number;
+  true_shooting_percentage: number;
+  effective_field_goal_percentage: number;
+  assist_percentage: number;
+  assist_ratio: number;
+  assist_to_turnover: number;
+  rebound_percentage: number;
+  offensive_rebound_percentage: number;
+  defensive_rebound_percentage: number;
+  steal_percentage?: number;
+  block_percentage?: number;
+  turnover_ratio: number;
+  net_rating: number;
+  offensive_rating: number;
+  defensive_rating: number;
+  player: BDLPlayer;
+  team: BDLTeam;
+  game: BDLGame;
+}
+
+// Aggregated season averages (what we return)
 export interface BDLAdvancedStats {
   player_id: number;
   season: number;
   pie: number; // Player Impact Estimate
   pace: number;
-  per: number; // Player Efficiency Rating
+  per: number; // Player Efficiency Rating (not in API, calculated)
   usg_pct: number; // Usage Rate
   ts_pct: number; // True Shooting %
   efg_pct: number; // Effective FG%
@@ -147,6 +174,12 @@ export interface BDLInjury {
   status: string;
   description: string;
   return_date: string | null;
+}
+
+export interface BDLLeader {
+  player: BDLPlayer;
+  value: number;
+  rank: number;
 }
 
 export interface BDLPlayerBoxScore {
@@ -202,6 +235,19 @@ export interface BDLBoxScore {
   visitor_in_bonus: boolean;
 }
 
+export interface BDLPlay {
+  id: number;
+  description: string | null;
+  clock: string | null;
+  period: number;
+  home_score: number | null;
+  away_score: number | null;
+  score_value: number | null;
+  scoring_play: boolean;
+  order: number;
+  team: BDLTeam | null;
+}
+
 export interface BDLTeamSeasonAverages {
   team_id: number;
   season: number;
@@ -232,25 +278,6 @@ export interface BDLTeamSeasonAverages {
   wins: number;
 }
 
-export interface BDLPlay {
-  id: number;
-  description: string | null;
-  clock: string | null;
-  period: number;
-  home_score: number | null;
-  away_score: number | null;
-  score_value: number | null;
-  scoring_play: boolean;
-  order: number;
-  team: BDLTeam | null;
-}
-
-export interface BDLLeader {
-  player: BDLPlayer;
-  value: number;
-  rank: number;
-}
-
 export interface BDLPaginatedResponse<T> {
   data: T[];
   meta: {
@@ -277,14 +304,22 @@ class BallDontLieClient {
 
   private async fetch<T>(
     endpoint: string,
-    params?: Record<string, string | number | undefined>
+    params?: Record<string, string | number | (string | number)[] | undefined>,
+    baseUrl = BASE_URL
   ): Promise<T> {
-    const url = new URL(`${BASE_URL}${endpoint}`);
+    const url = new URL(`${baseUrl}${endpoint}`);
 
     // Add query parameters
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
+          if (Array.isArray(value)) {
+            value.forEach((entry) => {
+              url.searchParams.append(key, String(entry));
+            });
+            return;
+          }
+
           url.searchParams.append(key, String(value));
         }
       });
@@ -379,6 +414,99 @@ class BallDontLieClient {
   }
 
   /**
+   * Get team season averages for one or more teams.
+   * Uses the NBA namespace endpoint from Ball Don't Lie.
+   */
+  async getTeamSeasonAverages(params: {
+    season?: number;
+    teamIds: number[];
+    seasonType?: "regular" | "playoffs";
+  }): Promise<BDLTeamSeasonAverages[]> {
+    const response = await this.fetch<
+      BDLPaginatedResponse<
+        | BDLTeamSeasonAverages
+        | {
+            team: { id: number };
+            season: number;
+            season_type: string;
+            stats: {
+              gp: number;
+              pts: number;
+              reb: number;
+              ast: number;
+              stl: number;
+              blk: number;
+              tov: number;
+              pf: number;
+              fgm: number;
+              fga: number;
+              fg_pct: number;
+              fg3m: number;
+              fg3a: number;
+              fg3_pct: number;
+              ftm: number;
+              fta: number;
+              ft_pct: number;
+              oreb: number;
+              dreb: number;
+              min: string;
+              plus_minus: number;
+              w_pct: number;
+              l: number;
+              w: number;
+            };
+          }
+      >
+    >(
+      "/team_season_averages/general",
+      {
+        season: params.season,
+        "team_ids[]": params.teamIds,
+        season_type: params.seasonType ?? "regular",
+        type: "base",
+        per_page: params.teamIds.length || 2,
+      },
+      NBA_BASE_URL
+    );
+
+    return response.data.map((item) => {
+      if (!("stats" in item)) {
+        return item;
+      }
+
+      return {
+        team_id: item.team.id,
+        season: item.season,
+        season_type: item.season_type,
+        games: item.stats.gp,
+        pts: item.stats.pts,
+        reb: item.stats.reb,
+        ast: item.stats.ast,
+        stl: item.stats.stl,
+        blk: item.stats.blk,
+        turnover: item.stats.tov,
+        pf: item.stats.pf,
+        fgm: item.stats.fgm,
+        fga: item.stats.fga,
+        fg_pct: item.stats.fg_pct,
+        fg3m: item.stats.fg3m,
+        fg3a: item.stats.fg3a,
+        fg3_pct: item.stats.fg3_pct,
+        ftm: item.stats.ftm,
+        fta: item.stats.fta,
+        ft_pct: item.stats.ft_pct,
+        oreb: item.stats.oreb,
+        dreb: item.stats.dreb,
+        min: item.stats.min,
+        plus_minus: item.stats.plus_minus,
+        win_pct: item.stats.w_pct,
+        losses: item.stats.l,
+        wins: item.stats.w,
+      };
+    });
+  }
+
+  /**
    * Get stat leaders
    * Cache: 1 hour
    */
@@ -423,6 +551,19 @@ class BallDontLieClient {
   }
 
   /**
+   * Search players currently on an NBA roster
+   */
+  async searchActivePlayers(
+    search: string,
+    perPage = 25
+  ): Promise<BDLPaginatedResponse<BDLPlayer>> {
+    return this.fetch<BDLPaginatedResponse<BDLPlayer>>("/players/active", {
+      search,
+      per_page: perPage,
+    });
+  }
+
+  /**
    * Get all teams
    */
   async getTeams(): Promise<BDLTeam[]> {
@@ -438,30 +579,37 @@ class BallDontLieClient {
     teamId: number,
     season?: number
   ): Promise<BDLTeamBasicSeasonAverages | null> {
-    const targetSeason = season ?? getCurrentNBASeason();
-    const params: Record<string, string | number | undefined> = {
-      type: "base",
-      season: targetSeason,
-      "team_ids[]": teamId,
-    };
-
-    // Docs use /team_season_averages/{category}; keep a fallback path for compatibility.
-    try {
-      const response = await this.fetch<BDLPaginatedResponse<BDLTeamBasicSeasonAverages>>(
-        "/team_season_averages/general",
-        params
-      );
-      return response.data[0] ?? null;
-    } catch (error) {
-      const fallback = await this.fetch<BDLPaginatedResponse<BDLTeamBasicSeasonAverages>>(
-        "/team_season_averages",
-        {
-          ...params,
-          category: "general",
-        }
-      );
-      return fallback.data[0] ?? null;
+    const stats = (
+      await this.getTeamSeasonAverages({
+        season: season ?? getCurrentNBASeason(),
+        teamIds: [teamId],
+        seasonType: "regular",
+      })
+    )[0];
+    if (!stats) {
+      return null;
     }
+
+    return {
+      team_id: stats.team_id,
+      season: stats.season,
+      gp: stats.games,
+      min: stats.min,
+      pts: stats.pts,
+      reb: stats.reb,
+      ast: stats.ast,
+      stl: stats.stl,
+      blk: stats.blk,
+      tov: stats.turnover,
+      fg_pct: stats.fg_pct,
+      fg3_pct: stats.fg3_pct,
+      ft_pct: stats.ft_pct,
+      oreb: stats.oreb,
+      dreb: stats.dreb,
+      w: stats.wins,
+      l: stats.losses,
+      w_pct: stats.win_pct,
+    };
   }
 
   // ========================================
@@ -470,6 +618,7 @@ class BallDontLieClient {
 
   /**
    * Get advanced season averages for a player
+   * NOTE: The API returns per-game stats, so we aggregate them into season averages
    * Cache: 1 hour
    * Requires: Pro
    */
@@ -477,14 +626,87 @@ class BallDontLieClient {
     playerId: number,
     season?: number
   ): Promise<BDLAdvancedStats | null> {
-    const response = await this.fetch<BDLPaginatedResponse<BDLAdvancedStats>>(
-      "/season_averages/advanced",
-      {
-        player_id: playerId,
-        season: season ?? getCurrentNBASeason(),
+    try {
+      const targetSeason = season ?? getCurrentNBASeason();
+      const response = await this.fetch<BDLPaginatedResponse<BDLAdvancedStatsGame>>(
+        "/stats/advanced",
+        {
+          "player_ids[]": playerId,
+          season: targetSeason,
+          per_page: 100, // Get more games for better averaging
+        }
+      );
+
+      const games = response.data;
+      if (!games || games.length === 0) {
+        return null;
       }
-    );
-    return response.data[0] ?? null;
+
+      // Aggregate all game stats into season averages
+      const numGames = games.length;
+      const sum = games.reduce(
+        (acc, game) => ({
+          pie: acc.pie + (game.pie || 0),
+          pace: acc.pace + (game.pace || 0),
+          usg_pct: acc.usg_pct + (game.usage_percentage || 0),
+          ts_pct: acc.ts_pct + (game.true_shooting_percentage || 0),
+          efg_pct: acc.efg_pct + (game.effective_field_goal_percentage || 0),
+          ast_pct: acc.ast_pct + (game.assist_percentage || 0),
+          reb_pct: acc.reb_pct + (game.rebound_percentage || 0),
+          oreb_pct: acc.oreb_pct + (game.offensive_rebound_percentage || 0),
+          dreb_pct: acc.dreb_pct + (game.defensive_rebound_percentage || 0),
+          stl_pct: acc.stl_pct + (game.steal_percentage || 0),
+          blk_pct: acc.blk_pct + (game.block_percentage || 0),
+          tov_pct: acc.tov_pct + (game.turnover_ratio || 0),
+          net_rating: acc.net_rating + (game.net_rating || 0),
+          off_rating: acc.off_rating + (game.offensive_rating || 0),
+          def_rating: acc.def_rating + (game.defensive_rating || 0),
+        }),
+        {
+          pie: 0,
+          pace: 0,
+          usg_pct: 0,
+          ts_pct: 0,
+          efg_pct: 0,
+          ast_pct: 0,
+          reb_pct: 0,
+          oreb_pct: 0,
+          dreb_pct: 0,
+          stl_pct: 0,
+          blk_pct: 0,
+          tov_pct: 0,
+          net_rating: 0,
+          off_rating: 0,
+          def_rating: 0,
+        }
+      );
+
+      // Return averaged stats (PER is not available from API)
+      return {
+        player_id: playerId,
+        season: targetSeason,
+        pie: sum.pie / numGames,
+        pace: sum.pace / numGames,
+        per: 0, // PER not available from this endpoint
+        usg_pct: sum.usg_pct / numGames,
+        ts_pct: sum.ts_pct / numGames,
+        efg_pct: sum.efg_pct / numGames,
+        ast_pct: sum.ast_pct / numGames,
+        reb_pct: sum.reb_pct / numGames,
+        oreb_pct: sum.oreb_pct / numGames,
+        dreb_pct: sum.dreb_pct / numGames,
+        stl_pct: sum.stl_pct / numGames,
+        blk_pct: sum.blk_pct / numGames,
+        tov_pct: sum.tov_pct / numGames,
+        net_rating: sum.net_rating / numGames,
+        off_rating: sum.off_rating / numGames,
+        def_rating: sum.def_rating / numGames,
+      };
+    } catch (error) {
+      // Advanced stats endpoint may not be available for all players
+      console.warn("Advanced stats not available:", error);
+      return null;
+    }
   }
 
   /**
@@ -541,105 +763,8 @@ class BallDontLieClient {
   }
 
   /**
-   * Get team season averages
-   */
-  async getTeamSeasonAverages(params: {
-    season?: number;
-    teamIds: number[];
-    seasonType?: "regular" | "playoffs";
-  }): Promise<BDLTeamSeasonAverages[]> {
-    const queryParams: Record<string, string | number | undefined> = {
-      season: params.season ?? getCurrentNBASeason(),
-      season_type: params.seasonType ?? "regular",
-    };
-    // Add team IDs
-    const teamIdsStr = params.teamIds.join(",");
-    queryParams["team_ids"] = teamIdsStr;
-
-    const url = new URL(`${BASE_URL}/team_season_averages/general`);
-    if (queryParams.season) url.searchParams.append("season", String(queryParams.season));
-    if (queryParams.season_type) url.searchParams.append("season_type", String(queryParams.season_type));
-    for (const id of params.teamIds) {
-      url.searchParams.append("team_ids[]", String(id));
-    }
-
-    const response = await fetch(url.toString(), {
-      headers: { Authorization: this.apiKey },
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
-    }
-
-    const json = await response.json() as any;
-    const data = json.data ?? json;
-
-    // Normalize response format
-    return (Array.isArray(data) ? data : []).map((entry: any) => {
-      if (entry.team_id) return entry as BDLTeamSeasonAverages;
-      // Nested format: { team: { id }, season, stats: { ... } }
-      const stats = entry.stats ?? {};
-      return {
-        team_id: entry.team?.id ?? 0,
-        season: entry.season ?? 0,
-        season_type: entry.season_type ?? "regular",
-        games: stats.gp ?? 0,
-        pts: stats.pts ?? 0,
-        reb: stats.reb ?? 0,
-        ast: stats.ast ?? 0,
-        stl: stats.stl ?? 0,
-        blk: stats.blk ?? 0,
-        turnover: stats.tov ?? 0,
-        pf: stats.pf ?? 0,
-        fgm: stats.fgm ?? 0,
-        fga: stats.fga ?? 0,
-        fg_pct: stats.fg_pct ?? 0,
-        fg3m: stats.fg3m ?? 0,
-        fg3a: stats.fg3a ?? 0,
-        fg3_pct: stats.fg3_pct ?? 0,
-        ftm: stats.ftm ?? 0,
-        fta: stats.fta ?? 0,
-        ft_pct: stats.ft_pct ?? 0,
-        oreb: stats.oreb ?? 0,
-        dreb: stats.dreb ?? 0,
-        min: stats.min ?? "0",
-        plus_minus: stats.plus_minus ?? 0,
-        win_pct: stats.w_pct ?? 0,
-        losses: stats.l ?? 0,
-        wins: stats.w ?? 0,
-      } as BDLTeamSeasonAverages;
-    });
-  }
-
-  /**
-   * Get play-by-play for a game
-   */
-  async getGamePlays(gameId: number): Promise<BDLPlay[]> {
-    const plays: BDLPlay[] = [];
-    let cursor: number | undefined;
-
-    while (true) {
-      const response = await this.fetch<
-        BDLPaginatedResponse<BDLPlay>
-      >("/plays", {
-        game_id: gameId,
-        per_page: 100,
-        cursor,
-      });
-
-      const page = response.data ?? [];
-      plays.push(...page);
-
-      cursor = response.meta?.next_cursor ?? undefined;
-      if (cursor === undefined) break;
-    }
-
-    return plays.sort((a, b) => a.order - b.order);
-  }
-
-  /**
    * Get box scores for a specific date
-   * Requires: Pro (GOAT tier)
+   * Returns game-level box scores with nested player stats
    */
   async getBoxScores(date: string): Promise<BDLBoxScore[]> {
     const response = await this.fetch<BDLPaginatedResponse<BDLBoxScore>>(
@@ -650,14 +775,46 @@ class BallDontLieClient {
   }
 
   /**
-   * Get live box scores
-   * Requires: Pro (GOAT tier)
+   * Get live box scores for games currently in progress
+   * Returns real-time player stats during live games
    */
   async getLiveBoxScores(): Promise<BDLBoxScore[]> {
     const response = await this.fetch<BDLPaginatedResponse<BDLBoxScore>>(
       "/box_scores/live"
     );
     return response.data;
+  }
+
+  /**
+   * Get play-by-play for a specific game
+   * Returns all plays in chronological order
+   */
+  async getGamePlays(gameId: number): Promise<BDLPlay[]> {
+    const plays: BDLPlay[] = [];
+    let cursor: number | undefined;
+
+    while (true) {
+      const response = await this.fetch<
+        BDLPaginatedResponse<BDLPlay> | { data: BDLPlay[]; meta?: { next_cursor?: number | null } } | BDLPlay[]
+      >(
+        "/plays",
+        {
+          game_id: gameId,
+          per_page: 100,
+          cursor,
+        }
+      );
+
+      const page = Array.isArray(response) ? response : response.data ?? [];
+      plays.push(...page);
+
+      cursor = Array.isArray(response) ? undefined : response.meta?.next_cursor ?? undefined;
+      if (cursor === undefined) {
+        break;
+      }
+    }
+
+    return plays.sort((a, b) => a.order - b.order);
   }
 }
 

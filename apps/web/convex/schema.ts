@@ -279,6 +279,37 @@ export default defineSchema({
     cachedAt: v.number(),
   }).index("by_season_stat", ["season", "statType"]),
 
+  // Trade simulator scenarios - shareable simulation snapshots
+  tradeScenarios: defineTable({
+    shareId: v.string(),
+    ownerUserId: v.string(),
+    league: v.literal("nba"),
+    request: v.any(),
+    result: v.any(),
+    createdAt: v.number(),
+    expiresAt: v.optional(v.number()),
+    isPublic: v.boolean(),
+  })
+    .index("by_share_id", ["shareId"])
+    .index("by_owner_created", ["ownerUserId", "createdAt"]),
+
+  // NBA Draft Picks - Static data manually updated after trades/drafts
+  nbaDraftPicks: defineTable({
+    teamId: v.number(), // Ball Don't Lie team ID
+    teamAbbreviation: v.string(), // e.g., "LAL", "BOS"
+    picks: v.array(
+      v.object({
+        year: v.number(),
+        round: v.number(),
+        originalTeam: v.string(), // Team abbreviation that originally owned the pick
+        conditions: v.optional(v.string()), // Protection conditions
+        swapRights: v.optional(v.boolean()), // If this is a swap right
+        viaTradeWith: v.optional(v.string()), // Team traded from
+      })
+    ),
+    lastUpdated: v.number(),
+  }).index("by_team", ["teamId"]),
+
   // NCAAB Standings cache
   ncaabStandingsCache: defineTable({
     season: v.number(),
@@ -300,17 +331,32 @@ export default defineSchema({
     cachedAt: v.number(),
   }).index("by_season", ["season"]),
 
-  // Trade simulator scenarios - shareable simulation snapshots
-  tradeScenarios: defineTable({
+  // Season predictions - a user's award, All-NBA team, and seeding picks
+  seasonPredictions: defineTable({
+    userId: v.string(), // Clerk identity.subject
+    season: v.number(), // e.g., 2026 for the 2026-27 season
     shareId: v.string(),
-    ownerUserId: v.string(),
-    league: v.literal("nba"),
-    request: v.any(),
-    result: v.any(),
+    displayName: v.optional(v.string()),
+
+    // Award and All-NBA team picks. `id` is a Ball Don't Lie player ID,
+    // or a team ID for team-based categories (Coach of the Year)
+    picks: v.array(
+      v.object({
+        category: v.string(),
+        slot: v.number(),
+        id: v.number(),
+        name: v.string(),
+        teamAbbr: v.optional(v.string()),
+      })
+    ),
+
+    // Team IDs ordered by predicted seed (index 0 = 1st seed)
+    eastSeeding: v.array(v.number()),
+    westSeeding: v.array(v.number()),
+
     createdAt: v.number(),
-    expiresAt: v.optional(v.number()),
-    isPublic: v.boolean(),
+    updatedAt: v.number(),
   })
-    .index("by_share_id", ["shareId"])
-    .index("by_owner_created", ["ownerUserId", "createdAt"]),
+    .index("by_user_season", ["userId", "season"])
+    .index("by_share_id", ["shareId"]),
 });

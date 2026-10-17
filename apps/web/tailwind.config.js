@@ -34,10 +34,19 @@ module.exports = {
           nfl: "#22C55E",
           mlb: "#3B82F6",
         },
+        // Predictions ballot
+        ballot: {
+          orange: "#FF6B1A",
+          chalk: "#F4F1E8",
+          line: "#2A2C36",
+          muted: "#8B8D98",
+          panel: "#15161D",
+        },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
         display: ["var(--font-outfit)", "system-ui", "sans-serif"],
+        scoreboard: ["var(--font-scoreboard)", "var(--font-outfit)", "system-ui", "sans-serif"],
       },
     },
   },

@@ -8,6 +8,7 @@ import { useListsContext } from "@/context/ListsContext";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { ProfileSaveType } from "@/lib/types";
+import { ProfilePredictionsCard } from "@/components/predictions/ProfilePredictionsCard";
 
 const PROFILE_SAVE_LABELS: Record<ProfileSaveType, string> = {
   receipt: "Receipts",
@@ -233,6 +234,8 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+
+          {isAuthenticated && <ProfilePredictionsCard />}
 
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">

@@ -16,12 +16,14 @@ export const getUserSettings = query({
     if (!settings) {
       return {
         theme: "dark" as const,
+        accentColor: "#30D158",
         notifications: true,
       };
     }
 
     return {
       theme: settings.theme,
+      accentColor: settings.accentColor ?? "#30D158",
       notifications: settings.notifications ?? true,
     };
   },
@@ -88,6 +90,37 @@ export const setTheme = mutation({
       await ctx.db.insert("userSettings", {
         userId: args.userId,
         theme: args.theme,
+        notifications: true,
+        updatedAt: Date.now(),
+      });
+    }
+  },
+});
+
+/**
+ * Set accent color preference
+ */
+export const setAccentColor = mutation({
+  args: {
+    userId: v.string(),
+    accentColor: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        accentColor: args.accentColor,
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("userSettings", {
+        userId: args.userId,
+        theme: "dark",
+        accentColor: args.accentColor,
         notifications: true,
         updatedAt: Date.now(),
       });

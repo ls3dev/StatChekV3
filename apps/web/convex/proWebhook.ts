@@ -56,7 +56,7 @@ interface RevenueCatEvent {
   };
 }
 
-const DEFAULT_PRO_ENTITLEMENT_IDS = ["pro"];
+const DEFAULT_PRO_ENTITLEMENT_IDS = ["pro", "statcheck pro"];
 
 function parseConfiguredProEntitlementIds(rawValue: string | undefined): string[] {
   if (!rawValue) return DEFAULT_PRO_ENTITLEMENT_IDS;
