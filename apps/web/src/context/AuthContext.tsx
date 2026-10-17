@@ -13,7 +13,6 @@ import { useConvexAuth, useMutation } from "convex/react";
 import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
 import { api } from "@convex/_generated/api";
 import {
-  hasCompletedOnboarding,
   getOrCreateAnonymousId,
 } from "@/utils/storage";
 import { posthog } from "@/providers/PostHogProvider";
@@ -104,41 +103,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     syncUser();
   }, [convexIsAuthenticated, clerkUser, getOrCreateUser]);
 
-  // Check onboarding status on mount and when navigating (client-side only)
+  // Set up the anonymous ID used for guest lists (client-side only)
   useEffect(() => {
-    const checkOnboarding = () => {
-      const onboardingComplete = hasCompletedOnboarding();
-      if (!onboardingComplete) {
-        setStatus("onboarding");
-      } else if (status === "onboarding") {
-        // Onboarding was just completed, transition to loading to trigger auth check
-        setStatus("loading");
-      }
-      setOnboardingChecked(true);
-      const anonId = getOrCreateAnonymousId();
-      setAnonymousId(anonId);
-    };
-    checkOnboarding();
-
-    // Listen for onboarding complete event (same tab)
-    const handleOnboardingComplete = () => {
-      setStatus("loading");
-    };
-    window.addEventListener("onboarding-complete", handleOnboardingComplete);
-
-    // Listen for storage changes (other tabs)
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "statcheck_onboarding_complete" && e.newValue === "true") {
-        setStatus("loading");
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-
-    return () => {
-      window.removeEventListener("onboarding-complete", handleOnboardingComplete);
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, [status]);
+    setAnonymousId(getOrCreateAnonymousId());
+    setOnboardingChecked(true);
+  }, []);
 
   // Update status based on Convex auth state
   useEffect(() => {
