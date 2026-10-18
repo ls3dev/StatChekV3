@@ -50,6 +50,10 @@ export const PREDICTION_CATEGORY_MAP: Record<string, PredictionCategory> =
 export const EAST_TEAM_IDS = [1, 2, 3, 4, 5, 6, 9, 12, 16, 17, 20, 22, 23, 28, 30];
 export const WEST_TEAM_IDS = [7, 8, 10, 11, 13, 14, 15, 18, 19, 21, 24, 25, 26, 27, 29];
 
+export const GAMES_PER_SEASON = 82;
+// Every game has one winner: 30 teams x 82 games / 2
+export const LEAGUE_TOTAL_WINS = (30 * GAMES_PER_SEASON) / 2;
+
 export function formatSeasonLabel(season: number): string {
   return `${season}-${(season + 1).toString().slice(-2)}`;
 }

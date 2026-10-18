@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { createBallDontLieClient, type BDLPlayer } from "./lib/balldontlie";
 import {
   EAST_TEAM_IDS,
+  GAMES_PER_SEASON,
   PREDICTION_CATEGORY_MAP,
   PREDICTIONS_SEASON,
   WEST_TEAM_IDS,
@@ -73,6 +74,33 @@ function validateSeeding(seeding: number[], teamIds: number[], conference: strin
   }
 }
 
+const teamWinsValidator = v.array(v.object({ teamId: v.number(), wins: v.number() }));
+
+function validateTeamWins(
+  teamWins: Array<{ teamId: number; wins: number }>,
+  eastSeeding: number[],
+  westSeeding: number[]
+) {
+  const allTeams = [...EAST_TEAM_IDS, ...WEST_TEAM_IDS];
+  const winsByTeam = new Map(teamWins.map((t) => [t.teamId, t.wins]));
+  if (teamWins.length !== allTeams.length || !allTeams.every((id) => winsByTeam.has(id))) {
+    throw new Error("Predicted wins must include every team exactly once");
+  }
+  for (const { wins } of teamWins) {
+    if (!Number.isInteger(wins) || wins < 0 || wins > GAMES_PER_SEASON) {
+      throw new Error(`Predicted wins must be between 0 and ${GAMES_PER_SEASON}`);
+    }
+  }
+  // Seeds must follow the predicted records (ties can go either way)
+  for (const seeding of [eastSeeding, westSeeding]) {
+    for (let i = 1; i < seeding.length; i++) {
+      if (winsByTeam.get(seeding[i])! > winsByTeam.get(seeding[i - 1])!) {
+        throw new Error("Seeding must be ordered by predicted wins");
+      }
+    }
+  }
+}
+
 /**
  * Get the signed-in user's predictions for the open season
  */
@@ -101,6 +129,7 @@ export const savePredictions = mutation({
     picks: v.array(pickValidator),
     eastSeeding: v.array(v.number()),
     westSeeding: v.array(v.number()),
+    teamWins: v.optional(teamWinsValidator),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -111,6 +140,9 @@ export const savePredictions = mutation({
     validatePicks(args.picks);
     validateSeeding(args.eastSeeding, EAST_TEAM_IDS, "East");
     validateSeeding(args.westSeeding, WEST_TEAM_IDS, "West");
+    if (args.teamWins) {
+      validateTeamWins(args.teamWins, args.eastSeeding, args.westSeeding);
+    }
 
     const season = PREDICTIONS_SEASON;
     const now = Date.now();
@@ -133,6 +165,7 @@ export const savePredictions = mutation({
         picks: args.picks,
         eastSeeding: args.eastSeeding,
         westSeeding: args.westSeeding,
+        teamWins: args.teamWins,
         displayName,
         updatedAt: now,
       });
@@ -157,6 +190,7 @@ export const savePredictions = mutation({
       picks: args.picks,
       eastSeeding: args.eastSeeding,
       westSeeding: args.westSeeding,
+      teamWins: args.teamWins,
       createdAt: now,
       updatedAt: now,
     });
@@ -187,6 +221,7 @@ export const getPredictionsByShareId = query({
       picks: predictions.picks,
       eastSeeding: predictions.eastSeeding,
       westSeeding: predictions.westSeeding,
+      teamWins: predictions.teamWins,
       updatedAt: predictions.updatedAt,
     };
   },

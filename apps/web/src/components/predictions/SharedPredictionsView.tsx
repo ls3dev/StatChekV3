@@ -37,6 +37,14 @@ export function SharedPredictionsView({ shareId }: { shareId: string }) {
     [predictions]
   );
 
+  const winsByTeam = useMemo(
+    () =>
+      predictions?.teamWins
+        ? new Map(predictions.teamWins.map((t) => [t.teamId, t.wins]))
+        : undefined,
+    [predictions]
+  );
+
   if (predictions === undefined) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background-primary">
@@ -99,8 +107,8 @@ export function SharedPredictionsView({ shareId }: { shareId: string }) {
         </BallotSection>
 
         <BallotSection id="standings" title="Standings">
-          <StandingsList title="Eastern Conference" teamIds={predictions.eastSeeding} />
-          <StandingsList title="Western Conference" teamIds={predictions.westSeeding} />
+          <StandingsList title="Eastern Conference" teamIds={predictions.eastSeeding} wins={winsByTeam} />
+          <StandingsList title="Western Conference" teamIds={predictions.westSeeding} wins={winsByTeam} />
         </BallotSection>
       </div>
     </main>

@@ -354,6 +354,11 @@ export default defineSchema({
     eastSeeding: v.array(v.number()),
     westSeeding: v.array(v.number()),
 
+    // Predicted regular-season wins per team (losses = 82 - wins)
+    teamWins: v.optional(
+      v.array(v.object({ teamId: v.number(), wins: v.number() }))
+    ),
+
     createdAt: v.number(),
     updatedAt: v.number(),
   })

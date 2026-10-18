@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { NBA_TEAMS } from "@/lib/nbaTeams";
 import { getNBATeamLogoUrl } from "@/lib/nbaTeamLogos";
-import type { PredictionCategory } from "@convex/lib/predictions";
+import { GAMES_PER_SEASON, type PredictionCategory } from "@convex/lib/predictions";
 
 export type PredictionPick = {
   category: string;
@@ -178,10 +179,15 @@ export function TeamBlock({
 export function StandingsList({
   title,
   teamIds,
+  wins,
+  onWinsChange,
   onMove,
 }: {
   title: string;
   teamIds: number[];
+  // Predicted wins per team; omitted for ballots saved before records existed
+  wins?: Map<number, number>;
+  onWinsChange?: (teamId: number, wins: number) => void;
   onMove?: (index: number, direction: -1 | 1) => void;
 }) {
   return (
@@ -193,13 +199,19 @@ export function StandingsList({
           const seed = index + 1;
           const playIn = seed >= 7 && seed <= 10;
           const lottery = seed > 10;
+          const teamWins = wins?.get(teamId);
+          // Arrows only break ties between teams with the same record
+          const tiedAbove = index > 0 && teamWins !== undefined && wins?.get(teamIds[index - 1]) === teamWins;
+          const tiedBelow =
+            index < teamIds.length - 1 && teamWins !== undefined && wins?.get(teamIds[index + 1]) === teamWins;
+          const showArrows = onMove && (wins ? tiedAbove || tiedBelow : true);
           return (
             <li
               key={teamId}
-              className={`flex items-center gap-3 border-b border-ballot-line pr-1 ${playIn ? "bg-ballot-orange/[0.07]" : ""}`}
+              className={`flex items-center gap-2 border-b border-ballot-line pr-1 sm:gap-3 ${playIn ? "bg-ballot-orange/[0.07]" : ""}`}
             >
               <span
-                className={`w-14 shrink-0 text-right font-scoreboard text-4xl font-extrabold leading-[1.15] tabular-nums ${
+                className={`w-10 shrink-0 text-right font-scoreboard text-3xl font-extrabold leading-[1.15] tabular-nums sm:w-14 sm:text-4xl ${
                   lottery ? "text-ballot-muted/50" : playIn ? "text-ballot-orange/80" : "text-ballot-orange"
                 }`}
               >
@@ -217,19 +229,33 @@ export function StandingsList({
                 <span className="font-semibold">{team.name}</span>
                 <span className="ml-1.5 hidden text-sm text-ballot-muted sm:inline">{team.city}</span>
               </span>
-              {seed === 7 && <span className="hidden text-xs text-ballot-orange/80 sm:inline">Play-in</span>}
-              {seed === 11 && <span className="hidden text-xs text-ballot-muted sm:inline">Lottery</span>}
-              {onMove && (
+              {seed === 7 && <span className="hidden text-xs text-ballot-orange/80 md:inline">Play-in</span>}
+              {seed === 11 && <span className="hidden text-xs text-ballot-muted md:inline">Lottery</span>}
+              {teamWins !== undefined && (
+                <span className="flex shrink-0 items-baseline tabular-nums">
+                  {onWinsChange ? (
+                    <WinsInput
+                      teamName={team.name}
+                      wins={teamWins}
+                      onCommit={(value) => onWinsChange(teamId, value)}
+                    />
+                  ) : (
+                    <span className="font-semibold text-ballot-chalk">{teamWins}</span>
+                  )}
+                  <span className="text-ballot-muted">–{GAMES_PER_SEASON - teamWins}</span>
+                </span>
+              )}
+              {showArrows && (
                 <span className="flex shrink-0">
                   <MoveButton
                     label={`Move ${team.name} up`}
-                    disabled={index === 0}
+                    disabled={wins ? !tiedAbove : index === 0}
                     onClick={() => onMove(index, -1)}
                     path="M5 15l7-7 7 7"
                   />
                   <MoveButton
                     label={`Move ${team.name} down`}
-                    disabled={index === teamIds.length - 1}
+                    disabled={wins ? !tiedBelow : index === teamIds.length - 1}
                     onClick={() => onMove(index, 1)}
                     path="M19 9l-7 7-7-7"
                   />
@@ -243,6 +269,51 @@ export function StandingsList({
         Seeds 7–10 go to the play-in. The shaded rows mark that band.
       </p>
     </div>
+  );
+}
+
+function WinsInput({
+  teamName,
+  wins,
+  onCommit,
+}: {
+  teamName: string;
+  wins: number;
+  onCommit: (wins: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(wins));
+
+  useEffect(() => {
+    setDraft(String(wins));
+  }, [wins]);
+
+  // Commit on blur or Enter so the list doesn't re-sort mid-typing
+  const commit = () => {
+    const parsed = parseInt(draft, 10);
+    if (Number.isNaN(parsed)) {
+      setDraft(String(wins));
+      return;
+    }
+    const clamped = Math.min(GAMES_PER_SEASON, Math.max(0, parsed));
+    setDraft(String(clamped));
+    if (clamped !== wins) onCommit(clamped);
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      maxLength={2}
+      value={draft}
+      aria-label={`${teamName} predicted wins`}
+      onChange={(event) => setDraft(event.target.value.replace(/[^0-9]/g, ""))}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+      }}
+      className="w-9 rounded-md border border-ballot-line bg-transparent py-1 text-center font-semibold text-ballot-chalk focus:border-ballot-orange focus:outline-none"
+    />
   );
 }
 

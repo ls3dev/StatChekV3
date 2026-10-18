@@ -15,6 +15,8 @@ import {
   PREDICTIONS_PATH,
   PREDICTIONS_SEASON,
   WEST_TEAM_IDS,
+  GAMES_PER_SEASON,
+  LEAGUE_TOTAL_WINS,
   formatSeasonLabel,
   type PredictionCategory,
 } from "@convex/lib/predictions";
@@ -33,6 +35,7 @@ import { SaveImageButton } from "@/components/predictions/SaveImageButton";
 type Standing = {
   team: { id: number };
   conference_rank: number;
+  wins: number;
 };
 
 const TOTAL_SLOTS = PREDICTION_CATEGORIES.reduce((sum, c) => sum + c.slots, 0);
@@ -48,6 +51,15 @@ function sortByStandings(teamIds: number[], standings: Standing[]): number[] {
   return [...teamIds].sort((a, b) => (rankByTeam.get(a) ?? 99) - (rankByTeam.get(b) ?? 99));
 }
 
+// Most wins first; ties keep their current order so tiebreaks stick
+function sortByWins(teamIds: number[], wins: Map<number, number>): number[] {
+  return [...teamIds].sort((a, b) => (wins.get(b) ?? 0) - (wins.get(a) ?? 0));
+}
+
+const DEFAULT_WINS = GAMES_PER_SEASON / 2;
+const defaultWinsMap = () =>
+  new Map([...EAST_TEAM_IDS, ...WEST_TEAM_IDS].map((id) => [id, DEFAULT_WINS]));
+
 export default function PredictionsPage() {
   const { isAuthenticated, isLoading: authLoading, signIn } = useAuth();
   const season = PREDICTIONS_SEASON;
@@ -58,6 +70,7 @@ export default function PredictionsPage() {
   const [picks, setPicks] = useState<Map<string, PredictionPick>>(new Map());
   const [eastSeeding, setEastSeeding] = useState(() => sortAlphabetically(EAST_TEAM_IDS));
   const [westSeeding, setWestSeeding] = useState(() => sortAlphabetically(WEST_TEAM_IDS));
+  const [winsByTeam, setWinsByTeam] = useState<Map<number, number>>(defaultWinsMap);
   const [activeSlot, setActiveSlot] = useState<{ category: PredictionCategory; slot: number } | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -77,6 +90,9 @@ export default function PredictionsPage() {
     setPicks(new Map(myPredictions.picks.map((p) => [pickKey(p.category, p.slot), p])));
     setEastSeeding(myPredictions.eastSeeding);
     setWestSeeding(myPredictions.westSeeding);
+    if (myPredictions.teamWins) {
+      setWinsByTeam(new Map(myPredictions.teamWins.map((t) => [t.teamId, t.wins])));
+    }
     setShareId(myPredictions.shareId);
   }, [myPredictions, isDirty]);
 
@@ -88,8 +104,11 @@ export default function PredictionsPage() {
         if (cancelled || hydratedFromServer.current || isDirtyRef.current) return;
         const typed = standings as Standing[];
         if (typed.length === 0) return;
-        setEastSeeding(sortByStandings(EAST_TEAM_IDS, typed));
-        setWestSeeding(sortByStandings(WEST_TEAM_IDS, typed));
+        const lastSeasonWins = defaultWinsMap();
+        for (const standing of typed) lastSeasonWins.set(standing.team.id, standing.wins);
+        setWinsByTeam(lastSeasonWins);
+        setEastSeeding(sortByWins(sortByStandings(EAST_TEAM_IDS, typed), lastSeasonWins));
+        setWestSeeding(sortByWins(sortByStandings(WEST_TEAM_IDS, typed), lastSeasonWins));
         setSeededFromLastSeason(true);
       })
       .catch((error) => console.error("Failed loading last season standings", error));
@@ -161,6 +180,15 @@ export default function PredictionsPage() {
     markDirty();
   };
 
+  const changeWins = (conference: "east" | "west") => (teamId: number, wins: number) => {
+    const next = new Map(winsByTeam);
+    next.set(teamId, wins);
+    setWinsByTeam(next);
+    const setSeeding = conference === "east" ? setEastSeeding : setWestSeeding;
+    setSeeding((prev) => sortByWins(prev, next));
+    markDirty();
+  };
+
   const closePicker = useCallback(() => setActiveSlot(null), []);
 
   const handleSave = async () => {
@@ -181,6 +209,7 @@ export default function PredictionsPage() {
         })),
         eastSeeding,
         westSeeding,
+        teamWins: Array.from(winsByTeam, ([teamId, wins]) => ({ teamId, wins })),
       });
       hydratedFromServer.current = true;
       setShareId(result.shareId);
@@ -221,6 +250,7 @@ export default function PredictionsPage() {
   const awardSlots = AWARD_CATEGORIES.reduce((sum, c) => sum + c.slots, 0);
   const teamSlots = ALL_TEAM_CATEGORIES.reduce((sum, c) => sum + c.slots, 0);
   const progress = picks.size / TOTAL_SLOTS;
+  const totalWins = Array.from(winsByTeam.values()).reduce((sum, w) => sum + w, 0);
   const openPicker = (category: PredictionCategory, slot: number) => setActiveSlot({ category, slot });
 
   const sections = [
@@ -313,8 +343,31 @@ export default function PredictionsPage() {
           title="Standings"
           aside={seededFromLastSeason && !hydratedFromServer.current && !isDirty ? "Starts from last season" : undefined}
         >
-          <StandingsList title="Eastern Conference" teamIds={eastSeeding} onMove={moveTeam("east")} />
-          <StandingsList title="Western Conference" teamIds={westSeeding} onMove={moveTeam("west")} />
+          <p className="mb-6 text-sm text-ballot-muted">
+            Type each team&apos;s wins and the standings sort themselves. Use the arrows to break ties.
+          </p>
+          <StandingsList
+            title="Eastern Conference"
+            teamIds={eastSeeding}
+            wins={winsByTeam}
+            onWinsChange={changeWins("east")}
+            onMove={moveTeam("east")}
+          />
+          <StandingsList
+            title="Western Conference"
+            teamIds={westSeeding}
+            wins={winsByTeam}
+            onWinsChange={changeWins("west")}
+            onMove={moveTeam("west")}
+          />
+          <p className={`text-sm tabular-nums ${totalWins === LEAGUE_TOTAL_WINS ? "text-ballot-muted" : "text-ballot-orange"}`}>
+            League total: {totalWins.toLocaleString()} wins
+            {totalWins === LEAGUE_TOTAL_WINS
+              ? ", which matches a real season."
+              : `. A real season has exactly ${LEAGUE_TOTAL_WINS.toLocaleString()}, so you're ${Math.abs(
+                  totalWins - LEAGUE_TOTAL_WINS
+                )} ${totalWins > LEAGUE_TOTAL_WINS ? "over" : "under"}.`}
+          </p>
         </BallotSection>
       </div>
 

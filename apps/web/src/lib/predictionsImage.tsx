@@ -2,6 +2,7 @@ import { NBA_TEAMS } from "@/lib/nbaTeams";
 import {
   ALL_TEAM_CATEGORIES,
   AWARD_CATEGORIES,
+  GAMES_PER_SEASON,
   PREDICTIONS_PATH,
   formatSeasonLabel,
 } from "@convex/lib/predictions";
@@ -17,6 +18,7 @@ export type PredictionsImageData = {
   picks: Array<{ category: string; slot: number; name: string; teamAbbr?: string }>;
   eastSeeding: number[];
   westSeeding: number[];
+  teamWins?: Array<{ teamId: number; wins: number }>;
 };
 
 const COLORS = {
@@ -56,7 +58,15 @@ function SectionTitle({ children }: { children: string }) {
   );
 }
 
-function SeedingList({ title, teamIds }: { title: string; teamIds: number[] }) {
+function SeedingList({
+  title,
+  teamIds,
+  wins,
+}: {
+  title: string;
+  teamIds: number[];
+  wins?: Map<number, number>;
+}) {
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
       <div style={{ display: "flex", fontSize: 18, fontWeight: 700, color: COLORS.textPrimary, marginBottom: 6 }}>
@@ -80,7 +90,12 @@ function SeedingList({ title, teamIds }: { title: string; teamIds: number[] }) {
             <div style={{ display: "flex", width: 30, justifyContent: "flex-end", marginRight: 12, color: COLORS.textMuted }}>
               {String(seed)}
             </div>
-            <div style={{ display: "flex" }}>{team ? `${team.city} ${team.name}` : "—"}</div>
+            <div style={{ display: "flex", flex: 1 }}>{team ? `${team.city} ${team.name}` : "—"}</div>
+            {wins?.has(teamId) && (
+              <div style={{ display: "flex", marginRight: 4 }}>
+                {`${wins.get(teamId)}–${GAMES_PER_SEASON - wins.get(teamId)!}`}
+              </div>
+            )}
           </div>
         );
       })}
@@ -91,6 +106,7 @@ function SeedingList({ title, teamIds }: { title: string; teamIds: number[] }) {
 export function PredictionsImage({ data }: { data: PredictionsImageData }) {
   const pickFor = (category: string, slot: number) =>
     data.picks.find((p) => p.category === category && p.slot === slot);
+  const winsByTeam = data.teamWins ? new Map(data.teamWins.map((t) => [t.teamId, t.wins])) : undefined;
 
   return (
     <div
@@ -170,8 +186,8 @@ export function PredictionsImage({ data }: { data: PredictionsImageData }) {
       <div style={{ display: "flex", flexDirection: "column", flex: 1, background: COLORS.card, borderRadius: 20, padding: "22px 28px" }}>
         <SectionTitle>Seeding</SectionTitle>
         <div style={{ display: "flex", gap: 32 }}>
-          <SeedingList title="East" teamIds={data.eastSeeding} />
-          <SeedingList title="West" teamIds={data.westSeeding} />
+          <SeedingList title="East" teamIds={data.eastSeeding} wins={winsByTeam} />
+          <SeedingList title="West" teamIds={data.westSeeding} wins={winsByTeam} />
         </div>
       </div>
 
