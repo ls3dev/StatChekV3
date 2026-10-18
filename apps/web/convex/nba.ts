@@ -16,9 +16,14 @@ import {
   type BDLInjury,
   type BDLLeader,
   type BDLBoxScore,
-  type BDLTeamSeasonAverages,
   type BDLPlay,
+  type BDLTeamSeasonAverages,
 } from "./lib/balldontlie";
+import {
+  fetchBBRefAdvancedStats,
+  getCurrentSeasonString,
+  type BBRefAdvancedStats,
+} from "./lib/basketballReference";
 
 // ========================================
 // Internal Queries (for cache lookups)
@@ -88,6 +93,16 @@ export const _getLeadersCache = internalQuery({
       .withIndex("by_season_stat", (q) =>
         q.eq("season", args.season).eq("statType", args.statType)
       )
+      .first();
+  },
+});
+
+export const _getDraftPicks = internalQuery({
+  args: { teamId: v.number() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("nbaDraftPicks")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
       .first();
   },
 });
@@ -239,6 +254,44 @@ export const _upsertLeadersCache = internalMutation({
   },
 });
 
+export const _upsertDraftPicks = internalMutation({
+  args: {
+    teamId: v.number(),
+    teamAbbreviation: v.string(),
+    picks: v.array(
+      v.object({
+        year: v.number(),
+        round: v.number(),
+        originalTeam: v.string(),
+        conditions: v.optional(v.string()),
+        swapRights: v.optional(v.boolean()),
+        viaTradeWith: v.optional(v.string()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("nbaDraftPicks")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        teamAbbreviation: args.teamAbbreviation,
+        picks: args.picks,
+        lastUpdated: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("nbaDraftPicks", {
+        teamId: args.teamId,
+        teamAbbreviation: args.teamAbbreviation,
+        picks: args.picks,
+        lastUpdated: Date.now(),
+      });
+    }
+  },
+});
+
 // ========================================
 // Helper: Check Pro Status
 // ========================================
@@ -260,7 +313,6 @@ export const _checkProStatus = internalQuery({
       return { isProUser: false };
     }
 
-    // Check if pro and not expired
     const isProUser =
       user.isProUser === true &&
       (!user.proExpiresAt || user.proExpiresAt > Date.now());
@@ -317,10 +369,12 @@ export const getGames = action({
   handler: async (ctx, args): Promise<{ games: BDLGame[]; cachedAt: number }> => {
     const date = args.date ?? formatDateForAPI(new Date());
 
-    // Check cache - use short TTL whenever the cached slate still has active games
+    // Check cache
     const cached = await ctx.runQuery(internal.nba._getGamesCache, { date });
+
     if (cached) {
       const games = cached.data as BDLGame[];
+      // Use short TTL if any games are not final (live or scheduled)
       const hasActiveGames = games.some((g) => g.status !== "Final");
       const ttl = hasActiveGames ? CACHE_TTL.GAMES_LIVE : CACHE_TTL.GAMES_PAST;
 
@@ -388,10 +442,17 @@ export const getPlayerStats = action({
     });
 
     if (cached && isCacheValid(cached.cachedAt, CACHE_TTL.SEASON_AVERAGES)) {
-      return {
-        stats: cached.data?.basic as BDLSeasonAverages | null,
-        cachedAt: cached.cachedAt,
-      };
+      const cachedStats = cached.data?.basic as BDLSeasonAverages | null;
+      // Validate cached data is for the correct season (guard against stale mis-keyed entries)
+      if (cachedStats && cachedStats.season !== season) {
+        console.warn(`[BDL] cache SEASON MISMATCH playerId=${args.playerId} requested=${season} cached=${cachedStats.season} — bypassing cache`);
+      } else {
+        console.log(`[BDL] cache HIT playerId=${args.playerId} season=${season} pts=${cachedStats?.pts}`);
+        return {
+          stats: cachedStats,
+          cachedAt: cached.cachedAt,
+        };
+      }
     }
 
     // Fetch from API
@@ -402,6 +463,7 @@ export const getPlayerStats = action({
 
     const client = createBallDontLieClient(apiKey);
     const stats = await client.getSeasonAverages(args.playerId, season);
+    console.log(`[BDL] getSeasonAverages playerId=${args.playerId} requestedSeason=${season} returnedSeason=${stats?.season} pts=${stats?.pts}`);
 
     // Update cache (store both basic and advanced together)
     const existingCache = cached?.data ?? {};
@@ -463,14 +525,19 @@ export const getLeaders = action({
 
 /**
  * Get advanced player stats (PRO)
+ * Scrapes from Basketball Reference for accurate current season data
  */
 export const getAdvancedStats = action({
-  args: { playerId: v.number(), playerName: v.string(), season: v.optional(v.string()) },
+  args: {
+    playerId: v.number(),
+    playerName: v.string(),
+    season: v.optional(v.string()),
+  },
   handler: async (
     ctx,
     args
   ): Promise<{
-    stats: BDLAdvancedStats | null;
+    stats: BBRefAdvancedStats | null;
     cachedAt: number;
     requiresPro: boolean;
   }> => {
@@ -480,40 +547,41 @@ export const getAdvancedStats = action({
       return { stats: null, cachedAt: 0, requiresPro: true };
     }
 
-    const season = args.season ? parseInt(args.season) : getCurrentNBASeason();
+    const season = args.season ?? getCurrentSeasonString();
+    const numericSeason = getCurrentNBASeason();
 
-    // Check cache
+    // Check cache first
     const cached = await ctx.runQuery(internal.nba._getPlayerStatsCache, {
       playerId: args.playerId,
-      season,
+      season: numericSeason,
     });
 
-    if (
-      cached?.data?.advanced &&
-      isCacheValid(cached.cachedAt, CACHE_TTL.SEASON_AVERAGES)
-    ) {
-      return {
-        stats: cached.data.advanced as BDLAdvancedStats,
-        cachedAt: cached.cachedAt,
-        requiresPro: false,
-      };
-    }
+    // Skip BBRef cache - force fresh fetch to fix stale data
+    // TODO: Re-enable after all users have fresh data
+    // if (
+    //   cached?.data?.bbrefAdvanced &&
+    //   isCacheValid(cached.cachedAt, CACHE_TTL.SEASON_AVERAGES)
+    // ) {
+    //   return {
+    //     stats: cached.data.bbrefAdvanced as BBRefAdvancedStats,
+    //     cachedAt: cached.cachedAt,
+    //     requiresPro: false,
+    //   };
+    // }
 
-    // Fetch from API
-    const apiKey = process.env.BALLDONTLIE_API_KEY;
-    if (!apiKey) {
-      throw new Error("BALLDONTLIE_API_KEY not configured");
-    }
+    // Fetch from Basketball Reference
+    const stats = await fetchBBRefAdvancedStats(args.playerName, season);
 
-    const client = createBallDontLieClient(apiKey);
-    const stats = await client.getAdvancedStats(args.playerId, season);
+    if (!stats) {
+      return { stats: null, cachedAt: Date.now(), requiresPro: false };
+    }
 
     // Update cache
     const existingCache = cached?.data ?? {};
     await ctx.runMutation(internal.nba._upsertPlayerStatsCache, {
       playerId: args.playerId,
-      season,
-      data: { ...existingCache, advanced: stats },
+      season: numericSeason,
+      data: { ...existingCache, bbrefAdvanced: stats },
     });
 
     return { stats, cachedAt: Date.now(), requiresPro: false };
@@ -650,9 +718,11 @@ export const getInjuries = action({
 
     if (cached && isCacheValid(cached.cachedAt, CACHE_TTL.INJURIES)) {
       let injuries = cached.data as BDLInjury[];
-      // Filter by team if specified
+      // Filter by team if specified (check both team.id and player.team_id)
       if (args.teamId) {
-        injuries = injuries.filter((i) => i.team.id === args.teamId);
+        injuries = injuries.filter((i) =>
+          i.team?.id === args.teamId || (i.player as any)?.team_id === args.teamId
+        );
       }
       return { injuries, cachedAt: cached.cachedAt, requiresPro: false };
     }
@@ -671,9 +741,11 @@ export const getInjuries = action({
       data: allInjuries,
     });
 
-    // Return filtered if team specified
+    // Return filtered if team specified (check both team.id and player.team_id)
     const injuries = args.teamId
-      ? allInjuries.filter((i) => i.team.id === args.teamId)
+      ? allInjuries.filter((i) =>
+          i.team?.id === args.teamId || (i.player as any)?.team_id === args.teamId
+        )
       : allInjuries;
 
     return { injuries, cachedAt: Date.now(), requiresPro: false };
@@ -718,25 +790,23 @@ export const searchPlayerByName = action({
     }
 
     const client = createBallDontLieClient(apiKey);
-    const normalizeName = (value: string) =>
-      value
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim();
 
-    // BDL API works better with last name for unique matches
+    // Search with full name first for better accuracy, fallback to last name
     const nameParts = args.name.trim().split(/\s+/);
-    const rawSearchTerm =
-      nameParts.length > 1 ? nameParts[nameParts.length - 1] : args.name;
-    const searchTerm = normalizeName(rawSearchTerm);
 
-    const results = await client.searchPlayers(searchTerm, 10);
+    // Try full name first
+    let results = await client.searchPlayers(args.name.trim(), 25);
+
+    // If no results with full name, try last name only
+    if (results.data.length === 0 && nameParts.length > 1) {
+      const lastName = nameParts[nameParts.length - 1];
+      results = await client.searchPlayers(lastName, 25);
+    }
 
     // Find best match - prefer exact name match
-    const normalizedInput = normalizeName(args.name);
+    const normalizedInput = args.name.toLowerCase().trim();
     let player = results.data.find((p) => {
-      const fullName = normalizeName(`${p.first_name} ${p.last_name}`);
+      const fullName = `${p.first_name} ${p.last_name}`.toLowerCase();
       return fullName === normalizedInput;
     });
 
@@ -761,6 +831,109 @@ export const searchPlayerByName = action({
           }
         : null,
     };
+  },
+});
+
+/**
+ * Check if user has pro access (for UI)
+ */
+export const checkProAccess = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { isProUser: false, isAuthenticated: false };
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) {
+      return { isProUser: false, isAuthenticated: true };
+    }
+
+    const isProUser =
+      user.isProUser === true &&
+      (!user.proExpiresAt || user.proExpiresAt > Date.now());
+
+    return { isProUser, isAuthenticated: true };
+  },
+});
+
+// ========================================
+// Draft Picks
+// ========================================
+
+interface DraftPick {
+  year: number;
+  round: number;
+  originalTeam: string;
+  conditions?: string;
+  swapRights?: boolean;
+  viaTradeWith?: string;
+}
+
+/**
+ * Get team draft picks (FREE)
+ * Data is static and manually updated after trades/drafts
+ */
+export const getTeamFuturePicks = query({
+  args: { teamId: v.number() },
+  handler: async (ctx, args): Promise<{ picks: DraftPick[]; lastUpdated: number | null }> => {
+    const data = await ctx.db
+      .query("nbaDraftPicks")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .first();
+
+    if (!data) {
+      return { picks: [], lastUpdated: null };
+    }
+
+    return { picks: data.picks as DraftPick[], lastUpdated: data.lastUpdated };
+  },
+});
+
+/**
+ * Bulk update draft picks (for seed script)
+ * This is an internal mutation called by the seed script
+ */
+export const updateDraftPicks = internalMutation({
+  args: {
+    teamId: v.number(),
+    teamAbbreviation: v.string(),
+    picks: v.array(
+      v.object({
+        year: v.number(),
+        round: v.number(),
+        originalTeam: v.string(),
+        conditions: v.optional(v.string()),
+        swapRights: v.optional(v.boolean()),
+        viaTradeWith: v.optional(v.string()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("nbaDraftPicks")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        teamAbbreviation: args.teamAbbreviation,
+        picks: args.picks,
+        lastUpdated: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("nbaDraftPicks", {
+        teamId: args.teamId,
+        teamAbbreviation: args.teamAbbreviation,
+        picks: args.picks,
+        lastUpdated: Date.now(),
+      });
+    }
   },
 });
 
@@ -792,6 +965,8 @@ export const getBoxScore = action({
 
     const client = createBallDontLieClient(apiKey);
 
+    // Live box scores can occasionally lag or omit player rows for an active game.
+    // Fetch both snapshots and prefer whichever contains richer player data.
     const [liveBoxScores, boxScores] = await Promise.all([
       client.getLiveBoxScores(),
       client.getBoxScores(args.date),
@@ -832,6 +1007,7 @@ export const getBoxScore = action({
 
 /**
  * Get season team averages for one or more teams.
+ * Used by the scores sheet before a game starts.
  */
 export const getTeamSeasonAverages = action({
   args: {
@@ -861,7 +1037,7 @@ export const getTeamSeasonAverages = action({
 
 /**
  * Get play-by-play for a specific game.
- * Used to calculate scoring runs.
+ * Used to calculate live and final scoring runs.
  */
 export const getGamePlays = action({
   args: {
@@ -883,30 +1059,141 @@ export const getGamePlays = action({
   },
 });
 
+// ========================================
+// Box Score Testing
+// ========================================
+
 /**
- * Check if user has pro access (for UI)
+ * Test action to fetch box score data for a specific date
+ * Usage: npx convex run nba:testBoxScore '{"date": "2025-02-27"}'
  */
-export const checkProAccess = query({
+export const testBoxScore = action({
+  args: { date: v.string() },
+  handler: async (_ctx, args): Promise<{
+    totalGames: number;
+    hornetsGame: {
+      opponent: string;
+      hornetsScore: number;
+      opponentScore: number;
+      isHome: boolean;
+      players: Array<{
+        name: string;
+        min: string;
+        pts: number;
+        reb: number;
+        ast: number;
+        stl: number;
+        blk: number;
+        fgm: number;
+        fga: number;
+        fg_pct: number;
+        fg3m: number;
+        fg3a: number;
+        fg3_pct: number;
+        ftm: number;
+        fta: number;
+        ft_pct: number | null;
+        turnover: number;
+        plus_minus: number | null;
+      }>;
+    } | null;
+    allMatchups: string[];
+  }> => {
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
+    }
+
+    const client = createBallDontLieClient(apiKey);
+    const boxScores = await client.getBoxScores(args.date);
+
+    // Get all matchups for the date
+    const allMatchups = boxScores.map(
+      (game) => `${game.visitor_team.abbreviation} @ ${game.home_team.abbreviation}`
+    );
+
+    // Find Hornets game (could be home or visitor)
+    const hornetsGameData = boxScores.find(
+      (game) =>
+        game.home_team.abbreviation === "CHA" ||
+        game.visitor_team.abbreviation === "CHA"
+    );
+
+    let hornetsGame = null;
+    if (hornetsGameData) {
+      const isHome = hornetsGameData.home_team.abbreviation === "CHA";
+      const hornetsTeam = isHome ? hornetsGameData.home_team : hornetsGameData.visitor_team;
+      const opponentTeam = isHome ? hornetsGameData.visitor_team : hornetsGameData.home_team;
+
+      hornetsGame = {
+        opponent: opponentTeam.full_name,
+        hornetsScore: isHome ? hornetsGameData.home_team_score : hornetsGameData.visitor_team_score,
+        opponentScore: isHome ? hornetsGameData.visitor_team_score : hornetsGameData.home_team_score,
+        isHome,
+        players: hornetsTeam.players.map((p) => ({
+          name: `${p.player.first_name} ${p.player.last_name}`,
+          min: p.min,
+          pts: p.pts,
+          reb: p.reb,
+          ast: p.ast,
+          stl: p.stl,
+          blk: p.blk,
+          fgm: p.fgm,
+          fga: p.fga,
+          fg_pct: p.fg_pct,
+          fg3m: p.fg3m,
+          fg3a: p.fg3a,
+          fg3_pct: p.fg3_pct,
+          ftm: p.ftm,
+          fta: p.fta,
+          ft_pct: p.ft_pct,
+          turnover: p.turnover,
+          plus_minus: p.plus_minus,
+        })),
+      };
+    }
+
+    return {
+      totalGames: boxScores.length,
+      hornetsGame,
+      allMatchups,
+    };
+  },
+});
+
+/**
+ * Test action to fetch LIVE box scores for games in progress
+ * Usage: npx convex run nba:testLiveBoxScores
+ */
+export const testLiveBoxScores = action({
   args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return { isProUser: false, isAuthenticated: false };
+  handler: async (_ctx): Promise<{
+    liveGames: number;
+    games: Array<{
+      matchup: string;
+      score: string;
+      status: string;
+    }>;
+    rawData: unknown;
+  }> => {
+    const apiKey = process.env.BALLDONTLIE_API_KEY;
+    if (!apiKey) {
+      throw new Error("BALLDONTLIE_API_KEY not configured");
     }
 
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .first();
+    const client = createBallDontLieClient(apiKey);
+    const liveBoxScores = await client.getLiveBoxScores();
 
-    if (!user) {
-      return { isProUser: false, isAuthenticated: true };
-    }
+    const games = liveBoxScores.map((game) => ({
+      matchup: `${game.visitor_team.abbreviation} @ ${game.home_team.abbreviation}`,
+      score: `${game.visitor_team_score} - ${game.home_team_score}`,
+      status: game.datetime || "Live",
+    }));
 
-    const isProUser =
-      user.isProUser === true &&
-      (!user.proExpiresAt || user.proExpiresAt > Date.now());
-
-    return { isProUser, isAuthenticated: true };
+    return {
+      liveGames: liveBoxScores.length,
+      games,
+      rawData: liveBoxScores[0] ?? null,
+    };
   },
 });
